@@ -33,8 +33,7 @@ history, scratch notes, benchmark outputs, manuscript files, or deployment confi
 - 2026-07-02: `dogma-local-service` — `python -m unittest discover -s tests` → 77 tests OK
   (zero runtime dependencies, no install).
 
-## Before making public
+## Release
 
-- Confirm the README framing matches how you want the project represented.
-- Skim `docs/dogma/` (product-direction notes) for anything you would rather keep private.
-- Decide the final public name (this repo uses **Dogma**).
+Published 2026-07-02 as the public **Dogma** IDE slice. The broader research
+application remains in a separate private repository.
