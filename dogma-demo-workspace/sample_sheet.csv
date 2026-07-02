@@ -1,0 +1,4 @@
+sample_id,condition,replicate,fastq_1,fastq_2,strandedness
+SYN_001,control,1,data/SYN_001_R1.fastq.gz,data/SYN_001_R2.fastq.gz,reverse
+SYN_001,control,2,data/SYN_001B_R1.fastq.gz,data/SYN_001B_R2.fastq.gz,forward
+SYN_003,treatment,1,data/SYN_003_R1.fastq.gz,,reverse

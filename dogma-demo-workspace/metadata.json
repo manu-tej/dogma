@@ -1,0 +1,11 @@
+{
+  "project": "biocursor_demo_workspace",
+  "assay": "bulk RNA-seq",
+  "organism": "human",
+  "reference": {
+    "genome_build": "GRCh38"
+  },
+  "privacy": {
+    "contains_human_data": true
+  }
+}
