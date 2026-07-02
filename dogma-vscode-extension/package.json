@@ -1,0 +1,493 @@
+{
+  "name": "dogma",
+  "displayName": "Dogma",
+  "description": "Cursor-style computational biology IDE and co-scientist with methods-graph guardrails.",
+  "version": "0.2.53",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Data Science",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onView:dogma.inspector",
+    "onView:dogma.sidecar",
+    "onCommand:dogma.prepareIdeSession",
+    "onCommand:dogma.scanWorkspace",
+    "onCommand:dogma.scanWithLocalService",
+    "onCommand:dogma.checkLocalService",
+    "onCommand:dogma.startLocalService",
+    "onCommand:dogma.stopLocalService",
+    "onCommand:dogma.runNextIdeAction",
+    "onCommand:dogma.openAssistant",
+    "onCommand:dogma.previewActiveBioFile",
+    "onCommand:dogma.generateContextReport",
+    "onCommand:dogma.generateWorkflowGraph",
+    "onCommand:dogma.openGraphWorkbench",
+    "onCommand:dogma.openBiologicalGraphWorkbench",
+    "onCommand:dogma.generateRunPlan",
+    "onCommand:dogma.generateServiceAssistantContext",
+    "onCommand:dogma.generateMethodGuardrails",
+    "onCommand:dogma.generateEvidenceLedger",
+    "onCommand:dogma.generateEdgeEvaluationPlan",
+    "onCommand:dogma.generateQurationEdgeEvaluationPlan",
+    "onCommand:dogma.fetchQurationEdgePlan",
+    "onCommand:dogma.generateQurationEdgeWorkPackage",
+    "onCommand:dogma.suggestFromQurationEdgeWorkPackage",
+    "onCommand:dogma.previewQurationEdgeSuggestedPatch",
+    "onCommand:dogma.generateQurationEdgePatchHandoff",
+    "onCommand:dogma.resolveQurationSelectedEdgeReadout",
+    "onCommand:dogma.applyQurationEdgeSuggestedPatch",
+    "onCommand:dogma.generateQurationHandoff",
+    "onCommand:dogma.openQurationGraphUi",
+    "onCommand:dogma.openCurrentQurationGraph",
+    "onCommand:dogma.openQurationCanvasFromWorkspace",
+    "onCommand:dogma.checkQurationStatus",
+    "onCommand:dogma.refreshQurationGraphHistory",
+    "onCommand:dogma.pullQurationGraphContext",
+    "onCommand:dogma.pullQurationGraphEvents",
+    "onCommand:dogma.pullQurationFailedEvents",
+    "onCommand:dogma.selectQurationEdge",
+    "onCommand:dogma.checkIdeReadiness",
+    "onCommand:dogma.importWorkspaceToQuration",
+    "onCommand:dogma.openLastQurationImport",
+    "onCommand:dogma.generateMethodsGraphSubstrate",
+    "onCommand:dogma.generateMethodsGraphPreflight",
+    "onCommand:dogma.checkLlmProvider",
+    "onCommand:dogma.openAgentWorkbench",
+    "onCommand:dogma.generateAgentSuggestion",
+    "onCommand:dogma.generateAgentHandoff",
+    "onCommand:dogma.reviewActiveFile",
+    "onCommand:dogma.askDogmaAboutSelection",
+    "onCommand:dogma.reviewActiveFinding",
+    "onCommand:dogma.openFinding",
+    "onCommand:dogma.generateServiceRunPlan",
+    "onCommand:dogma.previewServiceDryRun",
+    "onCommand:dogma.executeServiceDryRun",
+    "onCommand:dogma.generatePatchProposals",
+    "onCommand:dogma.previewServicePatchApply",
+    "onCommand:dogma.previewActiveFilePatch",
+    "onCommand:dogma.applyActiveFilePatch",
+    "onCommand:dogma.applyServicePatch",
+    "onCommand:dogma.checkWorkspaceTrust",
+    "onCommand:dogma.trustWorkspaceForLocalOperations",
+    "onCommand:dogma.applySampleValidationPatch",
+    "onLanguage:nextflow",
+    "workspaceContains:**/{sample_sheet.csv,*.vcf,*.bed,*.gtf,*.gff,*.gff3,*.fastq,*.fq,*.nf,Snakefile}"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "dogma.prepareIdeSession",
+        "title": "Dogma: Prepare IDE Session"
+      },
+      {
+        "command": "dogma.scanWorkspace",
+        "title": "Dogma: Scan Workspace"
+      },
+      {
+        "command": "dogma.scanWithLocalService",
+        "title": "Dogma: Scan With Local Service"
+      },
+      {
+        "command": "dogma.checkLocalService",
+        "title": "Dogma: Check Local Service"
+      },
+      {
+        "command": "dogma.startLocalService",
+        "title": "Dogma: Start Local Service"
+      },
+      {
+        "command": "dogma.stopLocalService",
+        "title": "Dogma: Stop Local Service"
+      },
+      {
+        "command": "dogma.runNextIdeAction",
+        "title": "Dogma: Run Next IDE Action"
+      },
+      {
+        "command": "dogma.openAssistant",
+        "title": "Dogma: Open Assistant"
+      },
+      {
+        "command": "dogma.previewActiveBioFile",
+        "title": "Dogma: Preview Active Bio File"
+      },
+      {
+        "command": "dogma.generateContextReport",
+        "title": "Dogma: Generate Context Report"
+      },
+      {
+        "command": "dogma.generateWorkflowGraph",
+        "title": "Dogma: Generate Workflow Graph"
+      },
+      {
+        "command": "dogma.openGraphWorkbench",
+        "title": "Dogma: Open Local Workflow Guardrails"
+      },
+      {
+        "command": "dogma.openBiologicalGraphWorkbench",
+        "title": "Dogma: Open Local Biological Edge Guardrails"
+      },
+      {
+        "command": "dogma.generateRunPlan",
+        "title": "Dogma: Generate Safe Run Plan"
+      },
+      {
+        "command": "dogma.generateServiceAssistantContext",
+        "title": "Dogma: Generate Local Service Assistant Context"
+      },
+      {
+        "command": "dogma.generateMethodGuardrails",
+        "title": "Dogma: Generate Method Guardrails"
+      },
+      {
+        "command": "dogma.generateEvidenceLedger",
+        "title": "Dogma: Generate Evidence Ledger"
+      },
+      {
+        "command": "dogma.generateEdgeEvaluationPlan",
+        "title": "Dogma: Generate Edge Evaluation Plan"
+      },
+      {
+        "command": "dogma.generateQurationEdgeEvaluationPlan",
+        "title": "Dogma: Generate quration Edge Evaluation Plan"
+      },
+      {
+        "command": "dogma.fetchQurationEdgePlan",
+        "title": "Dogma: Fetch quration Edge Plan"
+      },
+      {
+        "command": "dogma.generateQurationEdgeWorkPackage",
+        "title": "Dogma: Generate quration Edge Work Package"
+      },
+      {
+        "command": "dogma.suggestFromQurationEdgeWorkPackage",
+        "title": "Dogma: Suggest From quration Edge Work Package"
+      },
+      {
+        "command": "dogma.previewQurationEdgeSuggestedPatch",
+        "title": "Dogma: Preview quration Edge Suggested Patch"
+      },
+      {
+        "command": "dogma.generateQurationEdgePatchHandoff",
+        "title": "Dogma: Generate quration Edge Patch Handoff"
+      },
+      {
+        "command": "dogma.resolveQurationSelectedEdgeReadout",
+        "title": "Dogma: Resolve quration Edge Readout"
+      },
+      {
+        "command": "dogma.applyQurationEdgeSuggestedPatch",
+        "title": "Dogma: Apply quration Edge Suggested Patch"
+      },
+      {
+        "command": "dogma.generateQurationHandoff",
+        "title": "Dogma: Generate quration Handoff"
+      },
+      {
+        "command": "dogma.openQurationGraphUi",
+        "title": "Dogma: Open quration Graph UI"
+      },
+      {
+        "command": "dogma.openCurrentQurationGraph",
+        "title": "Dogma: Open Current quration Graph"
+      },
+      {
+        "command": "dogma.openQurationCanvasFromWorkspace",
+        "title": "Dogma: Open quration Canvas From Workspace"
+      },
+      {
+        "command": "dogma.checkQurationStatus",
+        "title": "Dogma: Check quration Status"
+      },
+      {
+        "command": "dogma.refreshQurationGraphHistory",
+        "title": "Dogma: Refresh quration Graph History"
+      },
+      {
+        "command": "dogma.pullQurationGraphContext",
+        "title": "Dogma: Pull quration Graph Context"
+      },
+      {
+        "command": "dogma.pullQurationGraphEvents",
+        "title": "Dogma: Pull quration Graph Events"
+      },
+      {
+        "command": "dogma.pullQurationFailedEvents",
+        "title": "Dogma: Pull quration Failed Events"
+      },
+      {
+        "command": "dogma.selectQurationEdge",
+        "title": "Dogma: Select quration Edge"
+      },
+      {
+        "command": "dogma.checkIdeReadiness",
+        "title": "Dogma: Check IDE Readiness"
+      },
+      {
+        "command": "dogma.importWorkspaceToQuration",
+        "title": "Dogma: Import Workspace To quration"
+      },
+      {
+        "command": "dogma.openLastQurationImport",
+        "title": "Dogma: Open Last quration Import"
+      },
+      {
+        "command": "dogma.generateMethodsGraphSubstrate",
+        "title": "Dogma: Generate Methods-Graph Substrate Report"
+      },
+      {
+        "command": "dogma.generateMethodsGraphPreflight",
+        "title": "Dogma: Generate Methods-Graph Preflight"
+      },
+      {
+        "command": "dogma.checkLlmProvider",
+        "title": "Dogma: Check LLM Provider"
+      },
+      {
+        "command": "dogma.openAgentWorkbench",
+        "title": "Dogma: Open Agent Workbench"
+      },
+      {
+        "command": "dogma.generateAgentSuggestion",
+        "title": "Dogma: Generate Agent Suggestion"
+      },
+      {
+        "command": "dogma.generateAgentHandoff",
+        "title": "Dogma: Generate Agent Handoff"
+      },
+      {
+        "command": "dogma.reviewActiveFile",
+        "title": "Dogma: Review Active File"
+      },
+      {
+        "command": "dogma.askDogmaAboutSelection",
+        "title": "Dogma: Ask About Selection"
+      },
+      {
+        "command": "dogma.reviewActiveFinding",
+        "title": "Dogma: Review Active Finding"
+      },
+      {
+        "command": "dogma.openFinding",
+        "title": "Dogma: Open Finding"
+      },
+      {
+        "command": "dogma.generateServiceRunPlan",
+        "title": "Dogma: Generate Local Service Run Plan"
+      },
+      {
+        "command": "dogma.previewServiceDryRun",
+        "title": "Dogma: Preview Local Service Dry Run"
+      },
+      {
+        "command": "dogma.executeServiceDryRun",
+        "title": "Dogma: Execute Local Service Dry Run"
+      },
+      {
+        "command": "dogma.generatePatchProposals",
+        "title": "Dogma: Generate Local Service Patch Proposals"
+      },
+      {
+        "command": "dogma.previewServicePatchApply",
+        "title": "Dogma: Preview Local Service Patch Apply"
+      },
+      {
+        "command": "dogma.previewActiveFilePatch",
+        "title": "Dogma: Preview Active File Patch"
+      },
+      {
+        "command": "dogma.applyActiveFilePatch",
+        "title": "Dogma: Apply Active File Patch"
+      },
+      {
+        "command": "dogma.applyServicePatch",
+        "title": "Dogma: Apply Local Service Patch"
+      },
+      {
+        "command": "dogma.checkWorkspaceTrust",
+        "title": "Dogma: Check Workspace Trust"
+      },
+      {
+        "command": "dogma.trustWorkspaceForLocalOperations",
+        "title": "Dogma: Trust Workspace For Local Operations"
+      },
+      {
+        "command": "dogma.applySampleValidationPatch",
+        "title": "Dogma: Apply Sample Sheet Validation Patch"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "dogma.askDogmaAboutSelection",
+          "when": "editorTextFocus && resourceScheme == file",
+          "group": "dogma@1"
+        },
+        {
+          "command": "dogma.reviewActiveFinding",
+          "when": "editorTextFocus && resourceScheme == file",
+          "group": "dogma@2"
+        },
+        {
+          "command": "dogma.reviewActiveFile",
+          "when": "editorTextFocus && resourceScheme == file",
+          "group": "dogma@3"
+        },
+        {
+          "command": "dogma.previewActiveBioFile",
+          "when": "editorTextFocus && resourceScheme == file",
+          "group": "dogma@4"
+        },
+        {
+          "command": "dogma.previewActiveFilePatch",
+          "when": "editorTextFocus && resourceScheme == file",
+          "group": "dogma@5"
+        },
+        {
+          "command": "dogma.applyActiveFilePatch",
+          "when": "editorTextFocus && resourceScheme == file",
+          "group": "dogma@6"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dogma",
+          "title": "Dogma",
+          "icon": "media/dogma.svg"
+        }
+      ]
+    },
+    "views": {
+      "dogma": [
+        {
+          "type": "webview",
+          "id": "dogma.sidecar",
+          "name": "Sidecar"
+        },
+        {
+          "id": "dogma.inspector",
+          "name": "Inspector"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Dogma",
+      "properties": {
+        "dogma.maxFiles": {
+          "type": "number",
+          "default": 200,
+          "minimum": 10,
+          "description": "Maximum number of candidate workspace files to scan."
+        },
+        "dogma.enableHumanDataWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warn when metadata indicates human data without explicit privacy posture."
+        },
+        "dogma.serviceMode": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "off",
+            "auto",
+            "required"
+          ],
+          "description": "Controls whether Dogma scans use the local companion service. Use auto to start/reuse the bundled service for user-triggered scans and fall back locally, off for in-extension scans, or required to fail when the service is unavailable."
+        },
+        "dogma.serviceUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8765",
+          "description": "Base URL for the Dogma local companion service."
+        },
+        "dogma.serviceTimeoutMs": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 250,
+          "description": "Timeout in milliseconds for Dogma local service requests."
+        },
+        "dogma.executionTimeoutSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "description": "Timeout in seconds for explicitly requested local-service dry-run/stub-run execution."
+        },
+        "dogma.servicePython": {
+          "type": "string",
+          "default": "python3",
+          "description": "Python executable used by Dogma: Start Local Service."
+        },
+        "dogma.serviceModule": {
+          "type": "string",
+          "default": "dogma_service",
+          "description": "Python module used to start the Dogma local companion service. The old biocursor_service module remains available as a compatibility alias."
+        },
+        "dogma.serviceCwd": {
+          "type": "string",
+          "default": "auto",
+          "description": "Working directory for starting the Dogma local service. Use auto to prefer the bundled VSIX python-service, then sibling/dev service folders, then the workspace Python environment."
+        },
+        "dogma.serviceStartupWaitMs": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 500,
+          "description": "Maximum time to wait for the local service health check after starting it."
+        },
+        "dogma.agentProvider": {
+          "type": "string",
+          "default": "claude_subscription",
+          "enum": [
+            "claude_subscription",
+            "none"
+          ],
+          "description": "Local provider used for guarded Dogma agent suggestions. Use claude_subscription to call the local Claude Code CLI through the Python sidecar."
+        },
+        "dogma.agentModel": {
+          "type": "string",
+          "default": "sonnet",
+          "description": "Claude model alias used for Dogma agent suggestions."
+        },
+        "dogma.agentTimeoutSeconds": {
+          "type": "number",
+          "default": 180,
+          "minimum": 10,
+          "description": "Timeout in seconds for local Dogma agent suggestion LLM calls."
+        },
+        "dogma.claudeCliPath": {
+          "type": "string",
+          "default": "claude",
+          "description": "Claude Code CLI path used by the local Python sidecar for agent suggestions."
+        },
+        "dogma.qurationUrl": {
+          "type": "string",
+          "default": "http://localhost:3000/canvas",
+          "description": "quration graph web UI URL. Dogma opens this as the canonical graph surface after exporting .dogma/quration-handoff.json."
+        },
+        "dogma.qurationApiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "quration backend API URL used by Dogma: Import Workspace To quration for POST /hypothesis/build."
+        },
+        "dogma.qurationTimeoutMs": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 250,
+          "description": "Timeout in milliseconds for quration backend import requests."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node test/domainValidators.test.js && node test/diagnosticModel.test.js && node test/codeActions.test.js && node test/sampleValidationPatch.test.js && node test/workflowGraph.test.js && node test/workflowGraphReport.test.js && node test/graphWorkbench.test.js && node test/biologicalGraphWorkbench.test.js && node test/nextIdeAction.test.js && node test/sidecarView.test.js && node test/agentSuggestion.test.js && node test/agentHandoff.test.js && node test/agentWorkbench.test.js && node test/workspaceContext.test.js && node test/assistantPrompts.test.js && node test/bioFilePreview.test.js && node test/runPlan.test.js && node test/serviceRunPlan.test.js && node test/serviceAssistantContext.test.js && node test/methodGuardrails.test.js && node test/evidenceLedger.test.js && node test/edgeEvaluationPlan.test.js && node test/qurationEdgeEvaluationPlan.test.js && node test/qurationEdgePlan.test.js && node test/qurationEdgeWorkPackage.test.js && node test/qurationEdgeSelection.test.js && node test/qurationEdgePatchHandoff.test.js && node test/qurationEdgeResolve.test.js && node test/methodsGraphPreflight.test.js && node test/methodsGraphSubstrate.test.js && node test/llmProviderStatus.test.js && node test/qurationCanvasLink.test.js && node test/qurationImportClient.test.js && node test/qurationImportRecord.test.js && node test/qurationConnectionStatus.test.js && node test/qurationGraphHistory.test.js && node test/qurationGraphContext.test.js && node test/qurationEvents.test.js && node test/ideReadiness.test.js && node test/ideSession.test.js && node test/patchProposals.test.js && node test/patchDiffPreview.test.js && node test/patchSelection.test.js && node test/activePatchSelection.test.js && node test/statusModel.test.js && node test/trustPolicy.test.js && node test/serviceProcessManager.test.js && node test/demoWorkspace.test.js && node test/localServiceClient.test.js && node test/vsixPackage.test.js",
+    "check": "node --check src/domainValidators.js && node --check src/diagnosticModel.js && node --check src/codeActions.js && node --check src/sampleValidationPatch.js && node --check src/workflowGraph.js && node --check src/workflowGraphReport.js && node --check src/graphWorkbench.js && node --check src/biologicalGraphWorkbench.js && node --check src/nextIdeAction.js && node --check src/sidecarView.js && node --check src/agentSuggestion.js && node --check src/agentHandoff.js && node --check src/agentWorkbench.js && node --check src/workspaceContext.js && node --check src/assistantPrompts.js && node --check src/bioFilePreview.js && node --check src/runPlan.js && node --check src/serviceRunPlan.js && node --check src/serviceAssistantContext.js && node --check src/methodGuardrails.js && node --check src/evidenceLedger.js && node --check src/edgeEvaluationPlan.js && node --check src/qurationEdgeEvaluationPlan.js && node --check src/qurationEdgePlan.js && node --check src/qurationEdgeWorkPackage.js && node --check src/qurationEdgeSelection.js && node --check src/qurationEdgePatchHandoff.js && node --check src/qurationEdgeResolve.js && node --check src/qurationEvents.js && node --check src/methodsGraphPreflight.js && node --check src/methodsGraphSubstrate.js && node --check src/llmProviderStatus.js && node --check src/qurationCanvasLink.js && node --check src/qurationImportClient.js && node --check src/qurationImportRecord.js && node --check src/qurationConnectionStatus.js && node --check src/qurationGraphHistory.js && node --check src/qurationGraphContext.js && node --check src/ideReadiness.js && node --check src/ideSession.js && node --check src/patchProposals.js && node --check src/patchDiffPreview.js && node --check src/patchSelection.js && node --check src/activePatchSelection.js && node --check src/statusModel.js && node --check src/trustPolicy.js && node --check src/serviceProcessManager.js && node --check src/localServiceClient.js && node --check src/extension.js && node --check tools/package-vsix.js && node --check test/domainValidators.test.js && node --check test/diagnosticModel.test.js && node --check test/codeActions.test.js && node --check test/sampleValidationPatch.test.js && node --check test/workflowGraph.test.js && node --check test/workflowGraphReport.test.js && node --check test/graphWorkbench.test.js && node --check test/biologicalGraphWorkbench.test.js && node --check test/nextIdeAction.test.js && node --check test/sidecarView.test.js && node --check test/agentSuggestion.test.js && node --check test/agentHandoff.test.js && node --check test/agentWorkbench.test.js && node --check test/workspaceContext.test.js && node --check test/assistantPrompts.test.js && node --check test/bioFilePreview.test.js && node --check test/runPlan.test.js && node --check test/serviceRunPlan.test.js && node --check test/serviceAssistantContext.test.js && node --check test/methodGuardrails.test.js && node --check test/evidenceLedger.test.js && node --check test/edgeEvaluationPlan.test.js && node --check test/qurationEdgeEvaluationPlan.test.js && node --check test/qurationEdgePlan.test.js && node --check test/qurationEdgeWorkPackage.test.js && node --check test/qurationEdgeSelection.test.js && node --check test/qurationEdgePatchHandoff.test.js && node --check test/qurationEdgeResolve.test.js && node --check test/qurationEvents.test.js && node --check test/methodsGraphPreflight.test.js && node --check test/methodsGraphSubstrate.test.js && node --check test/llmProviderStatus.test.js && node --check test/qurationCanvasLink.test.js && node --check test/qurationImportClient.test.js && node --check test/qurationImportRecord.test.js && node --check test/qurationConnectionStatus.test.js && node --check test/qurationGraphHistory.test.js && node --check test/qurationGraphContext.test.js && node --check test/ideReadiness.test.js && node --check test/ideSession.test.js && node --check test/patchProposals.test.js && node --check test/patchDiffPreview.test.js && node --check test/patchSelection.test.js && node --check test/activePatchSelection.test.js && node --check test/statusModel.test.js && node --check test/trustPolicy.test.js && node --check test/serviceProcessManager.test.js && node --check test/demoWorkspace.test.js && node --check test/localServiceClient.test.js && node --check test/vsixPackage.test.js",
+    "package:vsix": "node tools/package-vsix.js"
+  },
+  "devDependencies": {}
+}

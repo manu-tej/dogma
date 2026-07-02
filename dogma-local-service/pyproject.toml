@@ -1,0 +1,9 @@
+[project]
+name = "dogma-local-service"
+version = "0.1.11"
+description = "Dependency-free local workspace indexer for a Dogma-style bioinformatics IDE."
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.dogma]
+service = "local-companion"
