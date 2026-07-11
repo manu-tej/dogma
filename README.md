@@ -5,9 +5,10 @@ method guidance into the IDE. It scans a bioinformatics workspace, applies local
 guardrails and method checks, keeps an evidence ledger, and proposes patches — through
 a VS Code / Cursor extension backed by a dependency-light local sidecar.
 
-This repository is the **Dogma IDE slice**, extracted as a standalone artifact. The
-broader research application (dataset curation, web graph workspace) lives in a separate
-private repository; this repo intentionally contains only the IDE workflow.
+This repository is the **Dogma IDE slice** — the shipped, MIT-licensed artifact: a VS Code /
+Cursor extension plus a dependency-light local sidecar. The broader browser-based graph
+workspace (quration) lives in a separate, private repository; this repo intentionally contains
+only the IDE workflow.
 
 ## What's here
 
@@ -18,8 +19,12 @@ private repository; this repo intentionally contains only the IDE workflow.
   contract.
 - `dogma-demo-workspace/` — synthetic FASTQ / VCF / BED / GTF / sample-sheet / Nextflow
   fixtures for safe, reproducible checks.
-- `docs/dogma/` — product-direction notes.
 - `tools/check-dogma-rename.js` — rename-safety preflight.
+
+Inside `dogma-local-service/`, the sidecar's implementation package is still named
+`biocursor_service/` for backward compatibility while `dogma_service` is a thin alias that
+re-exports it — this naming is retained deliberately, since a full package rename carries
+more risk than its marginal benefit.
 
 ## Status
 

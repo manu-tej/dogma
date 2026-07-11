@@ -127,10 +127,10 @@ function renderContextRows(context = {}) {
   )).join("");
 }
 
-function truncateLine(value, maxLength = 140) {
+function truncateLine(value, maxChars = 140) {
   const text = String(value || "").trim();
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength - 1)}...`;
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars - 1)}...`;
 }
 
 function issueCountForFile(issues = [], filePath = "") {
@@ -184,10 +184,10 @@ function renderActiveEditor(activeEditor, issues = []) {
   ${renderActiveFileFindings(activeIssues)}`;
 }
 
-function compactText(value, fallback = "not available", maxLength = 120) {
+function compactText(value, fallback = "not available", maxChars = 120) {
   const text = String(value || "").trim();
   if (!text) return fallback;
-  return truncateLine(text, maxLength);
+  return truncateLine(text, maxChars);
 }
 
 function artifactPresent(artifacts = {}) {

@@ -5,9 +5,9 @@ function cleanText(value, fallback = "not available") {
   return text || fallback;
 }
 
-function compact(value, fallback = "not available", maxLength = 180) {
+function compact(value, fallback = "not available", maxChars = 180) {
   const text = cleanText(value, fallback).replace(/\s+/g, " ");
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+  return text.length > maxChars ? `${text.slice(0, maxChars - 1)}...` : text;
 }
 
 function artifactStatus(value) {

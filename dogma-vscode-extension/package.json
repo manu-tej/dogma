@@ -3,7 +3,7 @@
   "displayName": "Dogma",
   "description": "Cursor-style computational biology IDE and co-scientist with methods-graph guardrails.",
   "version": "0.2.53",
-  "publisher": "local",
+  "publisher": "manu-tej",
   "engines": {
     "vscode": "^1.90.0"
   },
