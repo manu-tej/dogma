@@ -159,7 +159,7 @@ assert(editorContextMenus.every((item) => item.when.includes("editorTextFocus") 
 const manifest = buildVsixManifest(packageJson);
 assert(manifest.includes('Id="dogma"'));
 assert(manifest.includes('Version="0.2.53"'));
-assert(manifest.includes('Publisher="local"'));
+assert(manifest.includes('Publisher="manu-tej"'));
 assert(manifest.includes("extension/package.json"));
 assert(manifest.includes("extension/README.md"));
 assert(manifest.includes("dogma,bioinformatics,genomics,workflow,nextflow,vscode,cursor"));

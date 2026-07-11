@@ -6,7 +6,7 @@ It is intentionally dependency-free JavaScript so the core validators can run lo
 
 ## Product Boundary
 
-Dogma is becoming the monorepo for the browser-based graph workspace, VS Code/Cursor extension, and local companion service. The web app owns the canonical graph UI and `/canvas` routes; the extension scans local bioinformatics workspaces, prepares guarded IDE work packages, calls the web graph and methods-graph contracts, and deep-links into the graph UI instead of duplicating the React Flow graph product inside VS Code.
+Dogma is the shipped, MIT-licensed IDE slice: this VS Code/Cursor extension plus a dependency-light local sidecar. The browser-based graph workspace (quration) is a separate, private repository and owns the canonical graph UI and `/canvas` routes. This extension scans local bioinformatics workspaces, prepares guarded IDE work packages, calls the quration graph and methods-graph contracts, and deep-links into the graph UI instead of duplicating the React Flow graph product inside VS Code.
 
 ## Capabilities
 

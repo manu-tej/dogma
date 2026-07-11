@@ -8,7 +8,7 @@ const markdown = renderQurationGraphContext({
   fetched_at: "2026-06-19T23:42:00.000Z",
   graph_id: "graph-1",
   graph_url: "http://localhost:3000/canvas/graph-1",
-  query: "Does AXL inhibition alter pAKT?",
+  query: "Does EGFR inhibition alter pMEK?",
   summary: {
     nodes: 2,
     edges: 1,
@@ -20,13 +20,13 @@ const markdown = renderQurationGraphContext({
   edge_dossiers: [
     {
       id: "edge-1",
-      source_label: "AXL",
-      target_label: "pAKT",
+      source_label: "EGFR",
+      target_label: "pMEK",
       relation: "changes",
       state: "untested",
       validation_status: "unvalidated",
       proposal_source: "llm",
-      proposed_test: { expected: "Measure pAKT after AXL inhibition" }
+      proposed_test: { expected: "Measure pMEK after EGFR inhibition" }
     }
   ],
   settings: {
@@ -41,7 +41,7 @@ assert(markdown.includes("quration remains the canonical canvas"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- target: 1"));
 assert(markdown.includes("- unvalidated: 1"));
-assert(markdown.includes("| edge-1 | AXL changes pAKT | untested | unvalidated | llm | Measure pAKT after AXL inhibition |"));
+assert(markdown.includes("| edge-1 | EGFR changes pMEK | untested | unvalidated | llm | Measure pMEK after EGFR inhibition |"));
 assert(markdown.includes("Use Dogma for local files"));
 
 const empty = renderQurationGraphContext({
