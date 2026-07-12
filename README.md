@@ -1,14 +1,17 @@
 # Dogma
 
-Dogma is an experimental computational-biology workspace that brings graph-grounded
-method guidance into the IDE. It scans a bioinformatics workspace, applies local
-guardrails and method checks, keeps an evidence ledger, and proposes patches — through
-a VS Code / Cursor extension backed by a dependency-light local sidecar.
+Dogma is an in-progress AI-scientist platform for computational biology. It connects
+scientific questions, data, methods, execution, and evidence through graph-grounded
+workflows. This public release brings that approach into the IDE: it scans a
+bioinformatics workspace, applies local guardrails and method checks, keeps an evidence
+ledger, and proposes reviewable patches through a VS Code / Cursor extension backed by
+a dependency-light local sidecar.
 
-This repository is the **Dogma IDE slice** — the shipped, MIT-licensed artifact: a VS Code /
-Cursor extension plus a dependency-light local sidecar. The broader browser-based graph
-workspace (quration) lives in a separate, private repository; this repo intentionally contains
-only the IDE workflow.
+This repository is the reviewed, MIT-licensed **Dogma IDE and local-control slice**. The
+browser graph workspace and earlier data-curation and analysis surfaces remain in Dogma's
+original working repository, whose repository, Python-package, and API namespace is
+`quration` for historical reasons. They are parts of the same Dogma project, not a separate
+product.
 
 ## What's here
 
@@ -20,6 +23,15 @@ only the IDE workflow.
 - `dogma-demo-workspace/` — synthetic FASTQ / VCF / BED / GTF / sample-sheet / Nextflow
   fixtures for safe, reproducible checks.
 - `tools/check-dogma-rename.js` — rename-safety preflight.
+
+### Legacy identifiers
+
+`quration` was Dogma's original working name. Existing `quration` command IDs, settings,
+environment variables, API fields, and `.dogma/quration-*` filenames remain unchanged for
+compatibility; in this repository they refer to Dogma's browser graph workspace and graph
+handoff contract. They do not denote a separate product. Renaming those identifiers is out
+of scope for this reviewed release because it would break existing integrations and saved
+artifacts.
 
 Inside `dogma-local-service/`, the sidecar's implementation package is still named
 `biocursor_service/` for backward compatibility while `dogma_service` is a thin alias that
@@ -43,10 +55,10 @@ are synthetic unless documented otherwise. MIT licensed.
 
 ## Where coding agents helped
 
-Coding agents helped implement and revise the extension surfaces, local-service modules,
-tests, and documentation. I directed the product and scientific framing, the workflow
-design, integration decisions, review of claims, and the final publication choices. AI
-tools are not authors; responsibility for the content here stays with me.
+Claude Code and Codex helped implement and revise the extension surfaces, local-service
+modules, tests, and documentation. I directed the product and scientific framing, the
+workflow design, integration decisions, review of claims, and the final publication
+choices. AI tools are not authors; responsibility for the content here stays with me.
 
 ## Getting started
 
@@ -68,7 +80,7 @@ Point the extension at `dogma-demo-workspace/` for a safe, synthetic run.
 
 ## Verification
 
-Last run on the extracted repo (2026-07-02):
+Last run on the current public branch (2026-07-11):
 
 - `dogma-vscode-extension` — `npm test` passed (full node test suite, including demo
   workspace, local-service client, and VSIX-package checks).
