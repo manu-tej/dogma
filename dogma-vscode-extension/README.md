@@ -6,14 +6,16 @@ It is intentionally dependency-free JavaScript so the core validators can run lo
 
 ## Product Boundary
 
-Dogma is the shipped, MIT-licensed IDE slice: this VS Code/Cursor extension plus a dependency-light local sidecar. The browser-based graph workspace (quration) is a separate, private repository and owns the canonical graph UI and `/canvas` routes. This extension scans local bioinformatics workspaces, prepares guarded IDE work packages, calls the quration graph and methods-graph contracts, and deep-links into the graph UI instead of duplicating the React Flow graph product inside VS Code.
+Dogma is one in-progress AI-scientist platform. This public repository is its reviewed, MIT-licensed IDE and local-control slice: this VS Code/Cursor extension plus a dependency-light local sidecar. Dogma's browser graph workspace remains in the original private working repository, where it still uses the historical `quration` package, API, command, and artifact namespace. This extension scans local bioinformatics workspaces, prepares guarded IDE work packages, calls that graph contract and methods-graph, and deep-links into Dogma's browser canvas instead of duplicating it inside VS Code.
+
+The existing `quration` command labels, `dogma.quration*` settings, and `.dogma/quration-*` artifacts below are compatibility identifiers for Dogma's browser graph surface. They are intentionally unchanged and do not name a separate product.
 
 ## Capabilities
 
 - Sidebar views: `Dogma > Sidecar` and `Dogma > Inspector`.
 - Active-file Sidecar context showing the current file, language, selection state, file-local finding count, source-jump links, and preview/review actions.
 - Sidecar Bioinformatics State cards for samples/conditions, FASTQ read counts, workflow processes, reference/annotation, and local trust gate status.
-- Sidecar action lanes for primary IDE work, quration canvas handoff, methods-graph/guardrail artifacts, and local service/trust operations.
+- Sidecar action lanes for primary IDE work, browser-canvas handoff, methods-graph/guardrail artifacts, and local service/trust operations.
 - Status bar item showing idle, scanning, blocked, review, ready, or service-offline workspace state.
 - Problems panel diagnostics with `Dogma` as the diagnostic source.
 - Quick Fix actions for the Nextflow sample-sheet validation warning and service-backed patch proposals.
@@ -23,7 +25,7 @@ Dogma is the shipped, MIT-licensed IDE slice: this VS Code/Cursor extension plus
 - Command: `Dogma: Check Local Service`.
 - Command: `Dogma: Start Local Service`.
 - Command: `Dogma: Stop Local Service`.
-- Command: `Dogma: Check IDE Readiness`, which writes `.dogma/ide-readiness.*` across local service, trust, Claude, methods-graph, and quration gates.
+- Command: `Dogma: Check IDE Readiness`, which writes `.dogma/ide-readiness.*` across local service, trust, Claude, methods-graph, and browser-graph gates.
 - Command: `Dogma: Open Assistant`.
 - Command: `Dogma: Preview Active Bio File`.
 - Command: `Dogma: Generate Context Report`.
@@ -35,17 +37,17 @@ Dogma is the shipped, MIT-licensed IDE slice: this VS Code/Cursor extension plus
 - Command: `Dogma: Generate Method Guardrails`.
 - Command: `Dogma: Generate Evidence Ledger`.
 - Command: `Dogma: Generate Edge Evaluation Plan`.
-- Command: `Dogma: Generate quration Edge Evaluation Plan`, which adapts a pulled quration graph edge into a local Dogma guardrail plan while quration remains the canonical graph UI.
-- Command: `Dogma: Fetch quration Edge Plan`, which fetches quration's side-effect-free `/hypothesis/{graph_id}/edges/{edge_id}/plan` skeleton and writes `.dogma/quration-edge-plan.*`.
-- Command: `Dogma: Generate quration Edge Work Package`, which refreshes both quration and Dogma edge-plan artifacts and writes one agent-ready `.dogma/quration-edge-work-package.*` bundle.
+- Command: `Dogma: Generate quration Edge Evaluation Plan`, which adapts an edge pulled from Dogma's browser graph workspace through the legacy graph contract into a local guardrail plan.
+- Command: `Dogma: Fetch quration Edge Plan`, which fetches the Dogma graph API's side-effect-free `/hypothesis/{graph_id}/edges/{edge_id}/plan` skeleton and writes `.dogma/quration-edge-plan.*`.
+- Command: `Dogma: Generate quration Edge Work Package`, which refreshes both browser-graph and IDE edge-plan artifacts and writes one agent-ready `.dogma/quration-edge-work-package.*` bundle.
 - Command: `Dogma: Suggest From quration Edge Work Package`, which sends the generated work-package Markdown through the guarded local agent path and writes `.dogma/quration-edge-agent-suggestion.md`.
 - Command: `Dogma: Preview quration Edge Suggested Patch`, which uses the edge-package suggestion's first `patch_preview` proposal and opens Dogma's review-first patch preview without applying it.
 - Command: `Dogma: Apply quration Edge Suggested Patch`, which previews the same suggested proposal first, then applies it only after explicit confirmation and trust checks.
 - Command: `Dogma: Generate quration Handoff`.
-- Command: `Dogma: Check quration Status`, which checks quration backend/canvas reachability plus the `/hypothesis` graph API contract and writes `.dogma/quration-status.*`.
-- Command: `Dogma: Refresh quration Graph History`, which reads quration `/hypothesis`, writes `.dogma/quration-graphs.*`, and can open the newest graph in quration.
-- Command: `Dogma: Pull quration Graph Context`, which fetches the last imported or newest quration graph and writes `.dogma/quration-graph.*`.
-- Command: `Dogma: Import Workspace To quration`, which posts the Dogma seed graph to quration `/hypothesis/build` and opens `/canvas/<graphId>`.
+- Command: `Dogma: Check quration Status`, which checks Dogma browser-backend/canvas reachability plus the `/hypothesis` graph API contract and writes `.dogma/quration-status.*`.
+- Command: `Dogma: Refresh quration Graph History`, which reads the Dogma graph API's `/hypothesis` route, writes `.dogma/quration-graphs.*`, and can open the newest graph in the browser canvas.
+- Command: `Dogma: Pull quration Graph Context`, which fetches the last imported or newest Dogma graph and writes `.dogma/quration-graph.*`.
+- Command: `Dogma: Import Workspace To quration`, which posts the IDE-derived seed graph to Dogma's legacy-namespaced `/hypothesis/build` endpoint and opens `/canvas/<graphId>`.
 - Command: `Dogma: Open Last quration Import`, which reopens the graph recorded in `.dogma/quration-import.json`.
 - Command: `Dogma: Open quration Canvas From Workspace`.
 - Command: `Dogma: Open quration Graph UI`.
@@ -118,7 +120,7 @@ Dogma is the shipped, MIT-licensed IDE slice: this VS Code/Cursor extension plus
   - selectable workflow edges inside a webview,
   - edge dossier with method grounding, container coverage, blockers, assumptions, and next actions,
   - selected-edge action to generate `.dogma/edge-evaluation-plan.md`,
-  - quration-style policy that edges are factual work items, not support/refute verdicts.
+  - Dogma policy that edges are factual work items, not support/refute verdicts.
 - Local biological edge guardrail workbench:
   - command `Dogma: Open Local Biological Edge Guardrails`,
   - service-backed biological nodes and edges for measurable questions,
@@ -128,7 +130,7 @@ Dogma is the shipped, MIT-licensed IDE slice: this VS Code/Cursor extension plus
   - Markdown bundle at `.dogma/service-assistant-context.md`,
   - sample-ID redaction for untrusted human-data workspaces,
   - task prompts for review, debug, patch, and synthetic-test planning.
-- Quration/methods-graph-inspired guardrails:
+- Dogma methods-graph guardrails:
   - Markdown bundle at `.dogma/method-guardrails.md`,
   - factual ledger posture instead of support/refute verdicts,
   - explicit method-contract, container, trust, dry-run, and coverage-gap checks.
@@ -239,35 +241,35 @@ Optional settings:
 
 For assistant context:
 
-- `Dogma: Prepare IDE Session` starts or verifies the local service, runs a service-backed workspace scan, writes `.dogma/ide-readiness.json`, `.dogma/ide-readiness.md`, `.dogma/ide-session.json`, and `.dogma/ide-session.md`, and records the boundary that Dogma is the VS Code/Cursor IDE surface while quration remains the graph web UI.
-- `Dogma: Check IDE Readiness` writes `.dogma/ide-readiness.json` and `.dogma/ide-readiness.md`, a single readiness gate for local service reachability, workspace trust, Claude Code subscription readiness, methods-graph preflight, and quration import readiness.
+- `Dogma: Prepare IDE Session` starts or verifies the local service, runs a service-backed workspace scan, writes `.dogma/ide-readiness.json`, `.dogma/ide-readiness.md`, `.dogma/ide-session.json`, and `.dogma/ide-session.md`, and records the boundary between Dogma's IDE and browser graph surfaces.
+- `Dogma: Check IDE Readiness` writes `.dogma/ide-readiness.json` and `.dogma/ide-readiness.md`, a single readiness gate for local service reachability, workspace trust, Claude Code subscription readiness, methods-graph preflight, and legacy graph-import readiness.
 - `Dogma: Generate Local Service Assistant Context` writes `.dogma/service-assistant-context.md`.
-- `Dogma: Generate Agent Handoff` refreshes `.dogma/methods-graph-preflight.json/md` when the local service is reachable, then writes `.dogma/agent-handoff.json`, `.dogma/agent-handoff.md`, and `.cursor/rules/dogma-bioinformatics.mdc`. The Cursor rule file makes concrete methods-graph coverage gaps, Dogma trust gates, quration graph ownership, dry-run execution policy, and no-biological-verdict constraints durable for Cursor or another coding agent.
-- `Dogma: Generate Agent Suggestion`, `Dogma: Review Active File`, and quration-edge agent suggestions route through the local sidecar prompt, which includes the current methods-graph preflight status, method IDs, dataset facts, coverage gaps, and preflight next actions.
+- `Dogma: Generate Agent Handoff` refreshes `.dogma/methods-graph-preflight.json/md` when the local service is reachable, then writes `.dogma/agent-handoff.json`, `.dogma/agent-handoff.md`, and `.cursor/rules/dogma-bioinformatics.mdc`. The Cursor rule file makes concrete methods-graph coverage gaps, Dogma trust gates, browser-graph ownership, dry-run execution policy, and no-biological-verdict constraints durable for Cursor or another coding agent.
+- `Dogma: Generate Agent Suggestion`, `Dogma: Review Active File`, and legacy-named quration-edge agent suggestions route through the local sidecar prompt, which includes the current methods-graph preflight status, method IDs, dataset facts, coverage gaps, and preflight next actions.
 - The bundle includes workspace facts, findings, trust status, redaction status, indexed files, and task prompts.
 - Raw sample IDs are replaced with stable aliases when human data is detected and `.dogma/trust.json` does not explicitly allow local operations.
 
 For method guardrails:
 
 - `Dogma: Generate Method Guardrails` writes `.dogma/method-guardrails.md`.
-- The report follows the quration/methods-graph stance: findings are facts rather than verdicts, method grounding is a safety rail, missing method/container contracts are coverage gaps, and execution remains dry-run/trust-gated until validation passes.
+- The report follows Dogma's methods-graph stance: findings are facts rather than verdicts, method grounding is a safety rail, missing method/container contracts are coverage gaps, and execution remains dry-run/trust-gated until validation passes.
 - `Dogma: Generate Evidence Ledger` writes `.dogma/evidence-ledger.md`, a factual ledger of workspace observations, findings, guardrail checks, patch proposals, and execution gates.
 - `Dogma: Open Local Biological Edge Guardrails` opens a service-backed biological edge workbench whose selected biological edge can seed `.dogma/edge-evaluation-plan.md`. If an audited methods-graph Kuzu database and the `kuzu` Python dependency are available, the service calls methods-graph read-only for seeds, suggestions, chosen methods, and preconditions; otherwise the workbench shows the grounding gap.
 - `Dogma: Generate Edge Evaluation Plan` writes `.dogma/edge-evaluation-plan.md`, a typed `Readout -> Grounding -> Compose -> Execute -> Interpret` plan. From the Graph Workbench or Biological Graph action, the selected edge is preserved in the service request and the generated plan records its method/container/data coverage gaps.
-- `Dogma: Generate quration Edge Evaluation Plan` reads `.dogma/quration-graph.json` or pulls the newest quration graph, selects a quration edge, sends that selected biological edge to the local service, and writes `.dogma/quration-edge-evaluation-plan.json` plus `.dogma/quration-edge-evaluation-plan.md`. This keeps Dogma as the editor-side guardrail adapter and quration as the graph-native web UI.
-- `Dogma: Fetch quration Edge Plan` reads `.dogma/quration-graph.json` or pulls the newest quration graph, selects a quration edge, calls quration's side-effect-free `/hypothesis/{graph_id}/edges/{edge_id}/plan`, and writes `.dogma/quration-edge-plan.json` plus `.dogma/quration-edge-plan.md`. This is quration's canonical edge plan skeleton; `resolve` remains a separate evidence-writing quration operation.
+- `Dogma: Generate quration Edge Evaluation Plan` reads `.dogma/quration-graph.json` or pulls the newest graph from Dogma's browser workspace, selects an edge, sends that biological edge to the local service, and writes `.dogma/quration-edge-evaluation-plan.json` plus `.dogma/quration-edge-evaluation-plan.md`. The IDE remains the local guardrail surface while the browser workspace remains the graph-native surface.
+- `Dogma: Fetch quration Edge Plan` reads `.dogma/quration-graph.json` or pulls the newest Dogma graph, selects an edge, calls the browser graph API's side-effect-free `/hypothesis/{graph_id}/edges/{edge_id}/plan`, and writes `.dogma/quration-edge-plan.json` plus `.dogma/quration-edge-plan.md`. This is the browser workspace's canonical edge-plan skeleton; `resolve` remains a separate evidence-writing operation.
 - `Dogma: Generate quration Edge Work Package` refreshes both `.dogma/quration-edge-plan.*` and `.dogma/quration-edge-evaluation-plan.*`, then writes `.dogma/quration-edge-work-package.json` and `.dogma/quration-edge-work-package.md` as the single IDE-side work unit for an agent or human to inspect before proposing workflow/code changes.
 - `Dogma: Suggest From quration Edge Work Package` regenerates the work package, passes its Markdown as redacted editor context through the local service's guarded agent-suggestion route, and writes `.dogma/quration-edge-agent-suggestion.md`. Claude Code subscription mode stays behind the Python sidecar: no tool access, no automatic patch application, and no biological verdicts.
 - `Dogma: Preview quration Edge Suggested Patch` regenerates the work package, asks the guarded agent path for the next action, writes `.dogma/quration-edge-agent-suggestion.md`, then previews the first `patch_preview` proposal with Dogma's existing patch diff flow. It does not mutate workspace files.
-- `Dogma: Apply quration Edge Suggested Patch` follows the same edge-package suggestion path, opens the diff preview first, then applies the selected proposal only after explicit confirmation and workspace trust checks. It never resolves quration evidence or emits biological verdicts.
-- `Dogma: Generate quration Handoff` writes `.dogma/quration-handoff.json` and `.dogma/quration-handoff.md`, a quration-compatible `CausalGraph`, `EvaluationPlan`, and factual `EvidenceRecord` handoff for the graph-native web UI.
-- `Dogma: Check quration Status` writes `.dogma/quration-status.json` and `.dogma/quration-status.md`, confirming whether the configured quration backend API, canonical canvas, and `/hypothesis` graph API contract are reachable before import.
-- `Dogma: Refresh quration Graph History` writes `.dogma/quration-graphs.json` and `.dogma/quration-graphs.md`, reading quration's saved graph summaries from `/hypothesis` and linking each graph back to the canonical quration canvas.
-- `Dogma: Pull quration Graph Context` writes `.dogma/quration-graph.json` and `.dogma/quration-graph.md`, fetching the last imported or newest quration graph from `/hypothesis/{graph_id}` and summarizing its nodes, edges, edge states, validation states, and proposed tests for local IDE work.
-- `Dogma: Import Workspace To quration` writes `.dogma/quration-handoff.json`, converts the graph to a quration `SeedSkeleton`, posts it to `dogma.qurationApiUrl` `/hypothesis/build`, writes `.dogma/quration-import.json` and `.dogma/quration-import.md`, and opens the saved graph in `dogma.qurationUrl`.
+- `Dogma: Apply quration Edge Suggested Patch` follows the same edge-package suggestion path, opens the diff preview first, then applies the selected proposal only after explicit confirmation and workspace trust checks. It never resolves graph evidence or emits biological verdicts.
+- `Dogma: Generate quration Handoff` writes `.dogma/quration-handoff.json` and `.dogma/quration-handoff.md`, a legacy-compatible `CausalGraph`, `EvaluationPlan`, and factual `EvidenceRecord` handoff for Dogma's graph-native web UI.
+- `Dogma: Check quration Status` writes `.dogma/quration-status.json` and `.dogma/quration-status.md`, confirming whether the configured Dogma graph backend, canvas, and `/hypothesis` API contract are reachable before import.
+- `Dogma: Refresh quration Graph History` writes `.dogma/quration-graphs.json` and `.dogma/quration-graphs.md`, reading saved graph summaries from `/hypothesis` and linking each graph back to Dogma's browser canvas.
+- `Dogma: Pull quration Graph Context` writes `.dogma/quration-graph.json` and `.dogma/quration-graph.md`, fetching the last imported or newest Dogma graph from `/hypothesis/{graph_id}` and summarizing its nodes, edges, edge states, validation states, and proposed tests for local IDE work.
+- `Dogma: Import Workspace To quration` writes `.dogma/quration-handoff.json`, converts the graph to the legacy API's `SeedSkeleton`, posts it to `dogma.qurationApiUrl` `/hypothesis/build`, writes `.dogma/quration-import.json` and `.dogma/quration-import.md`, and opens the saved graph in `dogma.qurationUrl`.
 - `Dogma: Open Last quration Import` reopens the saved graph URL from `.dogma/quration-import.json`.
-- `Dogma: Open quration Canvas From Workspace` generates the handoff, extracts the workspace-derived graph query, and opens quration at `/canvas?q=...`.
-- `Dogma: Open quration Graph UI` opens `dogma.qurationUrl` (default `http://localhost:3000/canvas`) so the sidecar stays an IDE surface while quration remains the canonical graph canvas.
+- `Dogma: Open quration Canvas From Workspace` generates the handoff, extracts the workspace-derived graph query, and opens Dogma's browser canvas at `/canvas?q=...`.
+- `Dogma: Open quration Graph UI` opens `dogma.qurationUrl` (default `http://localhost:3000/canvas`) so the sidecar remains Dogma's IDE surface while the browser workspace remains its canonical graph canvas.
 - `Dogma: Generate Methods-Graph Substrate Report` writes `.dogma/methods-graph-substrate.md`, showing whether an audited methods-graph database and `ingest.lock.json` are configured and how Dogma should use the current methods-graph surface.
 - `Dogma: Generate Methods-Graph Preflight` writes `.dogma/methods-graph-preflight.json` and `.dogma/methods-graph-preflight.md`, deriving a workflow method chain and dataset facts, then calling `methods-graph guardrail-chain --json` when `DOGMA_METHODS_GRAPH_DB` and `DOGMA_METHODS_GRAPH_CLI` are configured. Missing graph/CLI/runtime support is reported as a preflight gap, not a pass.
 - `Dogma: Check LLM Provider` writes `.dogma/llm-provider-status.md`. Claude Code subscription mode is treated as local-only: tools disabled, no session persistence, and Python-owned biomedical actions.
@@ -330,8 +332,8 @@ Use it to verify the user flow:
 14. Run `Dogma: Generate Method Guardrails` to write `.dogma/method-guardrails.md`.
 15. Run `Dogma: Generate Evidence Ledger` to write `.dogma/evidence-ledger.md`.
 16. Run `Dogma: Generate Edge Evaluation Plan` to write `.dogma/edge-evaluation-plan.md`.
-17. Run `Dogma: Generate quration Handoff` to write `.dogma/quration-handoff.json` and `.dogma/quration-handoff.md`, run `Dogma: Check quration Status`, then use `Dogma: Import Workspace To quration` when quration's backend and web UI are running. Use `Dogma: Open Last quration Import` to return to the recorded graph later.
-18. Run `Dogma: Pull quration Graph Context`, then `Dogma: Generate quration Edge Work Package` to write `.dogma/quration-edge-work-package.json` and `.dogma/quration-edge-work-package.md` plus its quration/Dogma source artifacts.
+17. Run `Dogma: Generate quration Handoff` to write `.dogma/quration-handoff.json` and `.dogma/quration-handoff.md`, run `Dogma: Check quration Status`, then use `Dogma: Import Workspace To quration` when Dogma's browser backend and web UI are running. Use `Dogma: Open Last quration Import` to return to the recorded graph later.
+18. Run `Dogma: Pull quration Graph Context`, then `Dogma: Generate quration Edge Work Package` to write `.dogma/quration-edge-work-package.json` and `.dogma/quration-edge-work-package.md` plus its browser-graph and IDE source artifacts.
 19. Run `Dogma: Suggest From quration Edge Work Package` to write `.dogma/quration-edge-agent-suggestion.md` through the guarded local Claude Code adapter when configured, or as a prompt-ready artifact when LLM use is disabled.
 19. Run `Dogma: Preview quration Edge Suggested Patch` to open a review-first diff for the first `patch_preview` action from the edge-package suggestion.
 20. Run `Dogma: Apply quration Edge Suggested Patch` only after reviewing the diff; Dogma will ask for explicit confirmation and enforce trust gates before mutating files.
@@ -352,21 +354,21 @@ This extension is the practical bridge between the static Dogma prototype and a 
 - open an interactive graph workbench where selected workflow edges show method grounding and coverage gaps,
 - open a biological graph workbench where selected biological edges seed typed EvaluationPlans,
 - generate privacy-aware local-service assistant context bundles,
-- generate quration/methods-graph-inspired method guardrail reports,
+- generate Dogma methods-graph guardrail reports,
 - generate typed edge evaluation plans from workspace context, a selected workflow edge, or a selected biological edge,
-- generate quration-compatible graph/evaluation/evidence handoff JSON for the web UI,
-- fetch quration's canonical side-effect-free edge plan skeleton from the graph API into local `.dogma/` artifacts,
-- generate quration-edge evaluation plans by consuming quration graph context as editor-side guardrail input rather than duplicating the quration canvas,
-- generate an agent-ready quration edge work package that combines quration's canonical edge skeleton with Dogma's local guardrails,
-- ask the guarded local Claude Code adapter for a next-action suggestion scoped to that quration edge work package,
-- preview the first patch proposal recommended from that quration edge package without mutating files,
-- apply the reviewed quration-edge patch proposal through explicit confirmation and trust-gated local service patch application,
+- generate legacy-compatible graph/evaluation/evidence handoff JSON for Dogma's web UI,
+- fetch the browser graph API's canonical side-effect-free edge-plan skeleton into local `.dogma/` artifacts,
+- generate legacy-named quration-edge evaluation plans by consuming browser graph context as editor-side guardrail input rather than duplicating Dogma's canvas,
+- generate an agent-ready, legacy-named quration edge work package that combines the browser graph's canonical edge skeleton with Dogma's local guardrails,
+- ask the guarded local Claude Code adapter for a next-action suggestion scoped to that graph-edge work package,
+- preview the first patch proposal recommended from that graph-edge package without mutating files,
+- apply the reviewed graph-edge patch proposal through explicit confirmation and trust-gated local service patch application,
 - prepare the IDE session in one command by starting/verifying the service, scanning, and writing readiness/session reports,
-- check quration backend/canvas readiness and required `/hypothesis` graph API endpoints from the VS Code sidecar before handoff import,
-- read quration graph history from `/hypothesis`, write `.dogma/quration-graphs.*`, and open saved graphs in the canonical quration canvas,
-- pull a quration graph from `/hypothesis/{graph_id}` into `.dogma/quration-graph.*` for edge-aware local IDE context,
-- check IDE readiness across local service, trust, Claude Code, methods-graph, and quration gates,
-- import the workspace-derived seed graph into quration through `/hypothesis/build`, record `.dogma/quration-import.*`, and reopen the saved canvas,
+- check Dogma browser-backend/canvas readiness and required `/hypothesis` graph API endpoints from the VS Code sidecar before handoff import,
+- read Dogma graph history from `/hypothesis`, write `.dogma/quration-graphs.*`, and open saved graphs in the browser canvas,
+- pull a Dogma graph from `/hypothesis/{graph_id}` into `.dogma/quration-graph.*` for edge-aware local IDE context,
+- check IDE readiness across local service, trust, Claude Code, methods-graph, and browser-graph gates,
+- import the workspace-derived seed graph through the legacy `/hypothesis/build` contract, record `.dogma/quration-import.*`, and reopen the saved Dogma canvas,
 - generate factual evidence ledgers, methods-graph substrate reports, and methods-graph preflight reports,
 - check local-only Claude Code subscription provider readiness through the service,
 - send redacted active-editor selection context into guarded Dogma agent suggestions,

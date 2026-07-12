@@ -35,11 +35,11 @@ The service is dependency-free Python so it can run before heavier parsers such 
   - FASTQ read/base/GC summaries,
   - risk-level summary.
 - Privacy-aware assistant context bundles with raw sample-ID redaction for untrusted human-data workspaces.
-- Quration/methods-graph-inspired guardrail reports that keep findings factual, surface method/container coverage gaps, and gate execution on dry-run/trust/validation state.
+- Dogma methods-graph guardrail reports that keep findings factual, surface method/container coverage gaps, and gate execution on dry-run/trust/validation state.
 - Factual evidence ledger reports that record observations, guardrails, proposals, and execution gates without support/refute verdicts or confidence grades.
 - Biological graph reports that expose measurable biological edges as planning units and ground them through methods-graph when an audited Kuzu substrate is available.
 - Edge evaluation plans that turn a workspace into a typed `Readout -> Grounding -> Compose -> Execute -> Interpret` plan without biological verdicts.
-- quration handoff artifacts that map Dogma local IDE facts into quration-compatible `CausalGraph`, `EvaluationPlan`, and factual `EvidenceRecord` JSON, with launch/import hints for the quration graph UI.
+- Legacy-named `quration` handoff artifacts that map Dogma local IDE facts into the browser graph workspace's `CausalGraph`, `EvaluationPlan`, and factual `EvidenceRecord` JSON contract, with launch/import hints for Dogma's graph UI.
 - Dependency-free MCP stdio server for exposing Dogma as an evidence-control-plane tool provider to MCP hosts such as K-Dense or Claude Desktop.
 - Methods-graph substrate reports for audited graph/`ingest.lock.json` configuration and current guardrail contract.
 - Methods-graph preflight reports that derive a workspace method chain and dataset facts, then call `methods-graph guardrail-chain --json` when configured.
@@ -100,7 +100,7 @@ python3 -m dogma_service guardrails ../dogma-demo-workspace --format markdown --
 python3 -m dogma_service methods-graph-preflight ../dogma-demo-workspace --format markdown --out /tmp/dogma-methods-graph-preflight.md
 ```
 
-This report imports the quration philosophy and methods-graph guardrails into Dogma: graph/chat drive the same workflow substrate, findings are factual ledger entries instead of support/refute verdicts, missing method/container contracts are explicit coverage gaps, and any real execution path stays behind dry-run, trust, and validation gates.
+This report applies Dogma's methods-graph guardrails: graph and chat drive the same workflow substrate, findings are factual ledger entries instead of support/refute verdicts, missing method/container contracts are explicit coverage gaps, and any real execution path stays behind dry-run, trust, and validation gates.
 
 ## Generate Evidence And Substrate Reports
 
@@ -118,7 +118,7 @@ The biological graph is the bridge between graph UI and execution: it records me
 
 The edge evaluation plan records the inferred biological question or selected edge, readout, methods-graph grounding status, workflow composition gaps, selected-edge method/container gaps, dry-run execution gates, and facts-only interpretation contract.
 
-The quration handoff is the boundary artifact between Dogma and the graph web UI. It keeps quration as the canonical graph product while exporting Dogma's local workspace facts as quration-shaped graph, plan, and evidence-record JSON. The artifact includes `quration_import` with the default frontend/API URLs, expected `.dogma/quration-handoff.*` paths, and an explicit `handoff_ready_import_endpoint_not_present` status until quration exposes a direct import endpoint.
+The legacy-named `quration` handoff connects Dogma's IDE and browser graph surfaces. It exports local workspace facts as graph, plan, and evidence-record JSON compatible with the historical graph API. The artifact keeps the `quration_import` field, default frontend/API URLs, and expected `.dogma/quration-handoff.*` paths for compatibility, and records an explicit `handoff_ready_import_endpoint_not_present` status until the browser graph workspace exposes a direct import endpoint.
 
 ## Run The MCP Server
 
@@ -139,7 +139,7 @@ The MCP adapter exposes these tools:
 
 Each tool takes a `root` argument pointing at the workspace to inspect. The adapter is intentionally facts-only: it wraps the same deterministic local-service builders used by the CLI/API, does not execute workflows, and does not create support/refute verdicts or confidence grades.
 
-Use `DOGMA_METHODS_GRAPH_DB` or `QURATION_METHODS_GRAPH_DB` to point Dogma at an audited methods-graph Kuzu database. Dogma expects the database to be paired with `ingest.lock.json`; otherwise the report records a configuration gap rather than pretending the graph is authoritative. Set `DOGMA_METHODS_GRAPH_DATASET_FORMAT` to override the dataset seed passed to methods-graph; by default sample-sheet/FASTQ workspaces seed `fmt:format_1930`. The local Python environment also needs the methods-graph `kuzu==0.11.3` dependency for live grounding.
+Use `DOGMA_METHODS_GRAPH_DB` to point Dogma at an audited methods-graph Kuzu database; `QURATION_METHODS_GRAPH_DB` remains a legacy compatibility alias. Dogma expects the database to be paired with `ingest.lock.json`; otherwise the report records a configuration gap rather than pretending the graph is authoritative. Set `DOGMA_METHODS_GRAPH_DATASET_FORMAT` to override the dataset seed passed to methods-graph; by default sample-sheet/FASTQ workspaces seed `fmt:format_1930`. The local Python environment also needs the methods-graph `kuzu==0.11.3` dependency for live grounding.
 
 For Claude Code subscription mode, set `DOGMA_LLM_PROVIDER=claude_subscription` and optionally `DOGMA_CLAUDE_CLI_PATH`, `DOGMA_CLAUDE_MODEL`, and `DOGMA_LLM_TIMEOUT_SECONDS`. If `DOGMA_CLAUDE_CLI_PATH` is `claude`, Dogma checks the service PATH plus common macOS developer locations such as `~/.local/bin`, `/opt/homebrew/bin`, and `/usr/local/bin`, then records all attempted paths in the LLM status artifact. This is a local-only adapter pattern: the LLM proposes typed decisions, while the Python service owns redaction, guardrails, and whitelisted actions.
 
