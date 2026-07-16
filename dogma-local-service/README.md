@@ -1,6 +1,9 @@
 # Dogma Local Service MVP
 
-This is the local companion-service layer for Dogma. It scans a bioinformatics workspace, extracts domain context, returns structured findings, and exposes JSON endpoints for a future VS Code/Cursor extension integration.
+This is the local companion-service layer for Dogma. It scans a bioinformatics
+workspace, extracts domain context, returns structured findings, and exposes the JSON,
+CLI, and MCP contracts used by the sibling VS Code/Cursor extension and Claude Science
+skill.
 
 The service is dependency-free Python so it can run before heavier parsers such as htslib, pysam, BioPython, or nf-core schema tooling are added.
 
@@ -118,7 +121,12 @@ The biological graph is the bridge between graph UI and execution: it records me
 
 The edge evaluation plan records the inferred biological question or selected edge, readout, methods-graph grounding status, workflow composition gaps, selected-edge method/container gaps, dry-run execution gates, and facts-only interpretation contract.
 
-The legacy-named `quration` handoff connects Dogma's IDE and browser graph surfaces. It exports local workspace facts as graph, plan, and evidence-record JSON compatible with the historical graph API. The artifact keeps the `quration_import` field, default frontend/API URLs, and expected `.dogma/quration-handoff.*` paths for compatibility, and records an explicit `handoff_ready_import_endpoint_not_present` status until the browser graph workspace exposes a direct import endpoint.
+The legacy-named `quration` handoff connects Dogma's IDE and browser graph surfaces. It
+exports local workspace facts as graph, plan, and evidence-record JSON compatible with
+the historical graph API. The artifact keeps the `quration_import` field, default
+frontend/API URLs, and expected `.dogma/quration-handoff.*` paths for compatibility. It
+now points at `/hypothesis/build` and records that the extension must adapt the emitted
+`CausalGraph` to the endpoint's `SeedSkeleton` request before import.
 
 ## Run The MCP Server
 
@@ -239,9 +247,9 @@ The extension can also request:
 - `Dogma: Generate Method Guardrails`,
 - `Dogma: Generate Evidence Ledger`,
 - `Dogma: Generate Edge Evaluation Plan`,
-- `Dogma: Generate quration Handoff`,
-- `Dogma: Open quration Canvas From Workspace`,
-- `Dogma: Open quration Graph UI`,
+- `Dogma: Generate Browser Graph Handoff`,
+- `Dogma: Open Browser Canvas From Workspace`,
+- `Dogma: Open Browser Graph UI`,
 - `Dogma: Generate Methods-Graph Substrate Report`,
 - `Dogma: Generate Methods-Graph Preflight`,
 - `Dogma: Check LLM Provider`,

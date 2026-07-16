@@ -105,16 +105,17 @@ function buildQurationEdgePatchHandoff({
       contracts: arrayOrEmpty(dogmaPlan.contracts).map(compactContract)
     },
     quration_review: {
-      canonical_surface: "quration web graph workspace",
-      evidence_policy: "Facts-only handoff. This does not support, refute, resolve, or validate the quration edge.",
+      canonical_surface: "Dogma browser graph workspace",
+      compatibility_namespace: "quration",
+      evidence_policy: "Facts-only handoff. This does not support, refute, resolve, or validate the Dogma graph edge.",
       graph_edit_contract: "GraphEdit.set_test",
       graph_edit_candidate_status: graphEditCandidate ? "review_only_not_applied" : "not_available_for_this_patch",
       graph_edit_candidate: graphEditCandidate,
       next_actions: [
-        "Review this local patch handoff on the selected quration edge.",
-        "If the local workflow target is appropriate, attach it in quration as a proposed test using GraphEdit.set_test.",
-        "Run quration's edge resolve/evidence workflow only after dataset, method, and execution evidence exist.",
-        "Keep biological support/refute decisions in quration, not in Dogma."
+        "Review this local patch handoff on the selected Dogma graph edge.",
+        "If the local workflow target is appropriate, attach it in Dogma's browser workspace using the compatibility-named GraphEdit.set_test contract.",
+        "Run Dogma's edge resolve/evidence workflow only after dataset, method, and execution evidence exist.",
+        "Keep biological support/refute decisions in the reviewed Dogma graph workflow, not in local IDE inference."
       ]
     },
     source_artifacts: sourceArtifacts
@@ -135,7 +136,7 @@ function renderGraphEditCandidate(candidate) {
     ].join("\n");
   }
   return [
-    "- Candidate status: review only; not applied to quration.",
+    "- Candidate status: review only; not applied to the Dogma graph workspace.",
     "- Candidate op: `set_test`",
     "",
     "```json",
@@ -163,11 +164,11 @@ function renderQurationEdgePatchHandoff(record = {}) {
   const review = record.quration_review || {};
 
   return [
-    "# Dogma quration Edge Patch Handoff",
+    "# Dogma Browser Edge Patch Handoff",
     "",
-    "This is a return package from Dogma's VS Code/Cursor IDE surface to quration's graph web UI. It describes local code patch state only; it is not biological evidence and does not resolve the edge.",
+    "This is a return package from Dogma's VS Code/Cursor IDE surface to Dogma's canonical browser graph workspace through the quration compatibility contract. It describes local code patch state only; it is not biological evidence and does not resolve the edge.",
     "",
-    "## quration Target",
+    "## Browser Graph Target",
     "",
     `- Graph ID: ${cleanText(graph.graph_id, "unknown")}`,
     `- Graph URL: ${cleanText(graph.graph_url, "not available")}`,
@@ -187,9 +188,10 @@ function renderQurationEdgePatchHandoff(record = {}) {
     `- Applied: ${String(Boolean(patch.applied))}`,
     `- Message: ${cleanText(patch.message, "none")}`,
     "",
-    "## quration Review Boundary",
+    "## Browser Graph Review Boundary",
     "",
-    `- Canonical surface: ${cleanText(review.canonical_surface, "quration")}`,
+    `- Canonical surface: ${cleanText(review.canonical_surface, "Dogma browser graph workspace")}`,
+    `- Compatibility namespace: ${cleanText(review.compatibility_namespace, "quration")}`,
     `- Evidence policy: ${cleanText(review.evidence_policy, "facts-only")}`,
     `- Graph edit contract: ${cleanText(review.graph_edit_contract, "not declared")}`,
     `- Candidate status: ${cleanText(review.graph_edit_candidate_status, "unknown")}`,

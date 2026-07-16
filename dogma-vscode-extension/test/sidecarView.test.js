@@ -38,7 +38,7 @@ const html = renderSidecarHtml({
         state: "untested",
         validation_status: "unvalidated"
       },
-      next_actions: ["Use Dogma quration edge commands to build a work package."]
+      next_actions: ["Use Dogma browser-edge commands to build a work package."]
     },
     qurationStatus: {
       contract_version: "dogma-quration-status.v1",
@@ -156,11 +156,11 @@ assert(html.includes("dogma.reviewActiveFile"));
 assert(html.includes("dogma.openBiologicalGraphWorkbench"));
 assert(html.includes("Local Biological Guardrails"));
 assert(!html.includes("Open Biological Graph"));
-assert(html.includes("quration"));
+assert(html.includes("Browser Graph"));
 assert(html.includes("dogma.importWorkspaceToQuration"));
-assert(html.includes("Import To quration"));
+assert(html.includes("Import To Browser Graph"));
 assert(html.includes("dogma.checkQurationStatus"));
-assert(html.includes("Check quration Status"));
+assert(html.includes("Check Graph Status"));
 assert(html.includes("dogma.refreshQurationGraphHistory"));
 assert(html.includes("Refresh Graph History"));
 assert(html.includes("dogma.pullQurationGraphContext"));
@@ -172,11 +172,11 @@ assert(html.includes("Pull Graph Events"));
 assert(html.includes("dogma.pullQurationFailedEvents"));
 assert(html.includes("Pull Failed Events"));
 assert(html.includes("dogma.selectQurationEdge"));
-assert(html.includes("Select quration Edge"));
+assert(html.includes("Select Graph Edge"));
 assert(html.includes("dogma.fetchQurationEdgePlan"));
-assert(html.includes("Fetch quration Edge Plan"));
+assert(html.includes("Fetch Browser Edge Plan"));
 assert(html.includes("dogma.generateQurationEdgeEvaluationPlan"));
-assert(html.includes("quration Edge Plan"));
+assert(html.includes("Browser Edge Plan"));
 assert(html.includes("dogma.generateQurationEdgeWorkPackage"));
 assert(html.includes("Edge Work Package"));
 assert(html.includes("dogma.suggestFromQurationEdgeWorkPackage"));

@@ -69,11 +69,12 @@ assert.strictEqual(record.selected_edge.id, "edge-b");
 assert.strictEqual(record.selected_edge.claim, "condition B decreases readout Y");
 assert.strictEqual(record.selected_edge.validation_status, "ambiguous");
 assert.strictEqual(record.selected_edge.proposed_test, "nf-core/rnaseq");
-assert.strictEqual(record.ide_policy.canonical_graph_surface, "quration");
+assert.strictEqual(record.ide_policy.canonical_graph_surface, "Dogma browser graph workspace");
+assert.strictEqual(record.ide_policy.compatibility_namespace, "quration");
 
 const markdown = renderQurationEdgeSelection(record);
-assert(markdown.includes("# Dogma quration Edge Selection"));
-assert(markdown.includes("quration remains the canonical graph web UI"));
+assert(markdown.includes("# Dogma Browser Edge Selection"));
+assert(markdown.includes("quration remains only the compatibility namespace"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- Edge ID: edge-b"));
 assert(markdown.includes("- Claim: condition B decreases readout Y"));
@@ -81,7 +82,7 @@ assert(markdown.includes("- Validation: ambiguous"));
 assert(markdown.includes("- Proposed test: nf-core/rnaseq"));
 assert(markdown.includes("- Selection source: quick_pick"));
 assert(markdown.includes("Dogma VS Code/Cursor extension"));
-assert(markdown.includes("Use Dogma quration edge commands"));
+assert(markdown.includes("Use Dogma's browser-edge commands"));
 
 const emptyItems = buildQurationEdgeQuickPickItems({ graph: { nodes: [], edges: [] } });
 assert.deepStrictEqual(emptyItems, []);

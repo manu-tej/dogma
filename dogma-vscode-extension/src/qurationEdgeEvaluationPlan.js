@@ -59,25 +59,25 @@ function coverageGapsForQurationEdge(edge = {}) {
 function pickQurationEdge(context = {}, edgeId) {
   const edges = qurationEdges(context);
   if (!edges.length) {
-    throw new Error("No quration edges are available in .dogma/quration-graph.json.");
+    throw new Error("No Dogma browser graph edges are available in .dogma/quration-graph.json.");
   }
   const wanted = cleanText(edgeId);
   if (!wanted) return edges[0];
   const match = edges.find((edge) => cleanText(edge.id) === wanted);
   if (!match) {
-    throw new Error(`quration edge ${wanted} was not found in .dogma/quration-graph.json.`);
+    throw new Error(`Dogma browser graph edge ${wanted} was not found in .dogma/quration-graph.json.`);
   }
   return match;
 }
 
 function buildQurationSelectedEdge(context = {}, options = {}) {
   const edge = pickQurationEdge(context, options.edgeId);
-  const source = cleanText(edge.source_label || edge.source_id, "quration source");
-  const target = cleanText(edge.target_label || edge.target_id, "quration target");
+  const source = cleanText(edge.source_label || edge.source_id, "graph source");
+  const target = cleanText(edge.target_label || edge.target_id, "graph target");
   const relation = cleanText(edge.relation, "relates to");
   const claim = qurationEdgeClaim(edge);
   const proposed = proposedTestText(edge);
-  const question = proposed || cleanText(context.query) || `Can the quration edge "${claim}" be locally grounded and gated?`;
+  const question = proposed || cleanText(context.query) || `Can the Dogma browser graph edge "${claim}" be locally grounded and gated?`;
   const validation = cleanText(edge.validation_status, "unvalidated");
   const state = cleanText(edge.state, "unknown");
   const graphId = cleanText(context.graph_id || context.graph?.id, "unknown");
@@ -89,7 +89,7 @@ function buildQurationSelectedEdge(context = {}, options = {}) {
     to: target,
     title: claim,
     status: `${state}/${validation}`,
-    source: "quration",
+    source: "dogma_browser_graph",
     edge_type: "biological",
     relation,
     question,
@@ -107,19 +107,19 @@ function buildQurationSelectedEdge(context = {}, options = {}) {
       },
       methodsGraphSuggestions: [
         "Run Dogma: Generate Methods-Graph Preflight before execution.",
-        "Keep quration as the canonical graph, evidence, and event-history surface."
+        "Keep Dogma's browser workspace as the canonical graph, evidence, and event-history surface; quration is the compatibility namespace."
       ],
-      evidencePolicy: "quration remains canonical for graph edits and evidence records; Dogma writes local IDE guardrails only.",
+      evidencePolicy: "Dogma's browser workspace remains canonical for graph edits and evidence records; the IDE writes local guardrails only.",
       assumptions: [
-        `quration graph: ${graphId}`,
-        `quration edge state: ${state}`,
-        `quration validation: ${validation}`,
+        `Dogma browser graph: ${graphId}`,
+        `browser edge state: ${state}`,
+        `browser edge validation: ${validation}`,
         `proposal source: ${cleanText(edge.proposal_source, "unknown")}`,
         `proposed test: ${question}`
       ]
     },
     next_actions: [
-      "Review the edge and evidence in quration.",
+      "Review the edge and evidence in Dogma's browser graph workspace.",
       "Run Dogma methods-graph preflight before execution.",
       "Treat this as a local evaluation plan, not a biological verdict."
     ]
@@ -134,21 +134,21 @@ function renderQurationEdgeEvaluationPlan(result = {}, context = {}, selectedEdg
   const edge = selectedEdge || result.selected_edge || {};
   const graphId = cleanText(context.graph_id || context.graph?.id, "unknown");
   const graphUrl = cleanText(context.graph_url, "not available");
-  const query = cleanText(context.query, "Untitled quration graph");
+  const query = cleanText(context.query, "Untitled Dogma graph");
   const localPlan = stripTopHeading(renderEdgeEvaluationPlan(result));
 
   return [
-    "# Dogma quration Edge Evaluation Plan",
+    "# Dogma Browser Edge Evaluation Plan",
     "",
-    "Dogma generated this local IDE-side plan from a quration graph edge. quration remains the canonical web UI for graph edits, evidence records, and event history.",
+    "Dogma generated this local IDE-side plan from an edge obtained through the quration compatibility API. Dogma's browser workspace remains the canonical UI for graph edits, evidence records, and event history.",
     "",
-    "## quration Graph",
+    "## Browser Graph",
     "",
     `- Graph ID: ${graphId}`,
     `- Graph URL: ${graphUrl}`,
     `- Query: ${query}`,
     "",
-    "## Selected quration Edge",
+    "## Selected Edge",
     "",
     `- Edge ID: ${cleanText(edge.id, "unknown")}`,
     `- Claim: ${cleanText(edge.title, qurationEdgeClaim(edge))}`,

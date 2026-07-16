@@ -286,18 +286,18 @@ function activeNextAction(artifacts = {}) {
 
 function renderActiveInvestigation(artifacts = {}) {
   if (!artifactPresent(artifacts)) {
-    return `<div class="empty-state">No active Dogma investigation artifacts yet. Run Prepare IDE Session or pull quration graph context.</div>`;
+    return `<div class="empty-state">No active Dogma investigation artifacts yet. Run Prepare IDE Session or pull browser graph context.</div>`;
   }
 
   const graph = graphFromArtifacts(artifacts);
   const edge = edgeFromArtifacts(artifacts) || {};
   const rows = [
     ["Graph", compactText(graph.graph_id || graph.id, "no graph id")],
-    ["Question", compactText(graph.query, "no quration question", 150)],
+    ["Question", compactText(graph.query, "no browser graph question", 150)],
     ["Shape", graphShape(graph)],
     ["Selected edge", compactText(edge.claim || edge.title || edge.id, "none selected", 150)],
     ["Edge state", edge.id ? compactText(edgeStatus(edge)) : "none selected"],
-    ["quration", qurationBridgeStatus(artifacts.qurationStatus || {})],
+    ["Browser graph", qurationBridgeStatus(artifacts.qurationStatus || {})],
     ["IDE gates", readinessSummary(artifacts.ideReadiness || {})],
     ["methods-graph", methodsGraphPreflightSummary(artifacts.methodsGraphPreflight || {})],
     ["Claude", llmProviderSummary(artifacts.llmProviderStatus || {})],
@@ -530,24 +530,24 @@ function renderSidecarHtml(state = {}) {
     <h2>Active Investigation</h2>
     <section>${renderActiveInvestigation(artifacts)}</section>
 
-    <h2>quration</h2>
+    <h2>Browser Graph</h2>
     ${renderActionGroup([
-      { command: "dogma.checkQurationStatus", label: "Check quration Status" },
+      { command: "dogma.checkQurationStatus", label: "Check Graph Status" },
       { command: "dogma.refreshQurationGraphHistory", label: "Refresh Graph History" },
       { command: "dogma.pullQurationGraphContext", label: "Pull Graph Context" },
       { command: "dogma.openCurrentQurationGraph", label: "Open Current Graph", kind: "primary" },
       { command: "dogma.pullQurationGraphEvents", label: "Pull Graph Events" },
       { command: "dogma.pullQurationFailedEvents", label: "Pull Failed Events" },
-      { command: "dogma.selectQurationEdge", label: "Select quration Edge" },
-      { command: "dogma.fetchQurationEdgePlan", label: "Fetch quration Edge Plan" },
-      { command: "dogma.generateQurationEdgeEvaluationPlan", label: "quration Edge Plan" },
+      { command: "dogma.selectQurationEdge", label: "Select Graph Edge" },
+      { command: "dogma.fetchQurationEdgePlan", label: "Fetch Browser Edge Plan" },
+      { command: "dogma.generateQurationEdgeEvaluationPlan", label: "Browser Edge Plan" },
       { command: "dogma.generateQurationEdgeWorkPackage", label: "Edge Work Package", kind: "primary" },
       { command: "dogma.suggestFromQurationEdgeWorkPackage", label: "Suggest From Edge Package" },
       { command: "dogma.previewQurationEdgeSuggestedPatch", label: "Preview Edge Patch" },
       { command: "dogma.generateQurationEdgePatchHandoff", label: "Edge Patch Handoff" },
       { command: "dogma.resolveQurationSelectedEdgeReadout", label: "Resolve Edge Readout" },
       { command: "dogma.applyQurationEdgeSuggestedPatch", label: "Apply Edge Patch" },
-      { command: "dogma.importWorkspaceToQuration", label: "Import To quration", kind: "primary" },
+      { command: "dogma.importWorkspaceToQuration", label: "Import To Browser Graph", kind: "primary" },
       { command: "dogma.openLastQurationImport", label: "Open Last Import" },
       { command: "dogma.openQurationCanvasFromWorkspace", label: "Open Canvas From Workspace" },
       { command: "dogma.generateQurationHandoff", label: "Generate Handoff" },

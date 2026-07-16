@@ -43,11 +43,11 @@ function renderQurationEdgeResolve(record = {}) {
   const gaps = coverageGaps(record);
 
   return [
-    "# Dogma quration Edge Resolve",
+    "# Dogma Browser Edge Resolve",
     "",
-    "Dogma asked quration to run its facts-only edge readout resolve workflow. quration remains the canonical evidence and event-history surface; Dogma records this local IDE audit artifact without turning the result into a support/refute verdict.",
+    "Dogma asked its browser graph backend to run the facts-only edge-readout resolve workflow through the quration compatibility API. Dogma's browser workspace remains the canonical evidence and event-history surface; the IDE records this audit artifact without turning the result into a support/refute verdict.",
     "",
-    "## quration Target",
+    "## Browser Graph Target",
     "",
     `- Graph ID: ${cleanText(record.graph_id, "unknown")}`,
     `- Graph URL: ${cleanText(record.graph_url, "not available")}`,
@@ -101,7 +101,7 @@ function renderQurationEdgeResolve(record = {}) {
     "",
     "## Boundary",
     "",
-    "- quration owns graph edits, evidence records, resolve side effects, and event history.",
+    "- Dogma's browser graph workspace owns graph edits, evidence records, resolve side effects, and event history.",
     "- Dogma owns local files, workspace context, guardrails, patch review, and IDE audit artifacts.",
     "- This artifact is factual readout resolution context, not a biological support/refute verdict.",
     ""

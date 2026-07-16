@@ -1,4 +1,4 @@
-"""Quration- and methods-graph-inspired guardrails for Dogma workspaces."""
+"""Dogma and methods-graph guardrails for local research workspaces."""
 
 from __future__ import annotations
 
@@ -10,11 +10,10 @@ from .assistant_context import build_assistant_context
 from .execution_sandbox import build_run_plan_for_workspace
 from .indexer import read_text_limited, scan_workspace
 from .patch_proposals import build_patch_proposals
-from .repo_paths import dogma_repo_root, methods_graph_repo_root
+from .repo_paths import dogma_source_url, methods_graph_repo_root
 
-DOGMA_REPO = dogma_repo_root()
 METHODS_GRAPH_REPO = methods_graph_repo_root()
-QURATION_NORTH_STAR = str(Path(DOGMA_REPO) / "docs" / "superpowers" / "specs" / "2026-06-18-agentic-compbio-north-star.md")
+DOGMA_RESEARCH_BOUNDARY = dogma_source_url("README.md")
 METHODS_GRAPH_VALIDATOR = str(Path(METHODS_GRAPH_REPO) / "src" / "methods_graph" / "workflow" / "validator.py")
 
 PROCESS_METHOD_CATALOG: dict[str, dict[str, Any]] = {
@@ -115,7 +114,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
         "quration.factual_ledger_not_verdict",
         "pass",
         "Dogma records findings, guardrail checks, proposals, and execution previews as facts; it does not mark biological claims as supported or refuted.",
-        "quration: evidence ledgers are facts, never verdicts or grades",
+        "Dogma: evidence ledgers are facts, never verdicts or grades",
         {"issues": len(scan.get("issues", [])), "patch_proposals": patches.get("proposal_count", 0)},
     )
 
@@ -145,7 +144,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
             "privacy.human_data_trust_gate_active",
             "pass",
             "Human data is detected and local execution/patch application remains gated until workspace trust is explicit.",
-            "quration: PHI/data-access governance is a named execution-substrate concern",
+            "Dogma: PHI/data-access governance is a named execution-substrate concern",
             {"trust_status": trust.get("status"), "blockers": trust.get("blockers", [])},
         )
     else:
@@ -154,7 +153,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
             "privacy.human_data_trust_gate_active",
             "pass",
             "No untrusted human-data execution gap is active for this scan.",
-            "quration: PHI/data-access governance is a named execution-substrate concern",
+            "Dogma: PHI/data-access governance is a named execution-substrate concern",
             {"trust_status": trust.get("status"), "human_data": trust.get("human_data")},
         )
 
@@ -163,7 +162,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
         "privacy.assistant_context_redaction",
         "pass" if assistant.get("redaction", {}).get("sample_ids_redacted") or not trust.get("human_data") or trust.get("trusted") else "blocked",
         "Assistant context redacts sample identifiers when human data is untrusted; trusted/non-human workspaces can disclose according to policy.",
-        "quration: local context is useful only when disclosure boundaries are explicit",
+        "Dogma: local context is useful only when disclosure boundaries are explicit",
         assistant.get("redaction", {}),
     )
 
@@ -173,7 +172,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
             "workflow.graph_present",
             "pass",
             "Workflow files were indexed and can be rendered as a graph/report before edits or execution.",
-            "quration: graph plus chat drive the same workflow engine",
+            "Dogma: graph plus chat drive the same workflow engine",
             {"workflow_files": context.get("workflow_files"), "workflow_processes": context.get("workflow_processes", [])},
         )
     else:
@@ -182,7 +181,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
             "workflow.graph_present",
             "gap",
             "No workflow files were indexed, so no workflow graph can be reviewed.",
-            "quration: graph plus chat drive the same workflow engine",
+            "Dogma: graph plus chat drive the same workflow engine",
         )
 
     if not processes:
@@ -222,7 +221,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
                         f"method.annotation_contract.{process['name']}",
                         "warning",
                         "Genome build is present, but annotation release is missing; interpretation should record this as an assumption gap.",
-                        "quration: assumption outcomes are recorded, never hidden",
+                        "Dogma: assumption outcomes are recorded, never hidden",
                         {"location": location},
                     )
         else:
@@ -231,7 +230,7 @@ def build_guardrail_checks(scan: dict[str, Any], run_plan: dict[str, Any], assis
                 f"method.coverage_gap.{process['name']}",
                 "gap",
                 f"{process['name']} has no local Dogma method contract yet; treat it as a coverage gap, not as an inferred method.",
-                "quration: honest COVERAGE_GAP when no grounded method exists",
+                "Dogma: honest COVERAGE_GAP when no grounded method exists",
                 {"location": location},
             )
 
@@ -294,7 +293,7 @@ def render_guardrails_markdown(result: dict[str, Any]) -> str:
             "",
             "## Source Philosophy",
             "",
-            f"- Quration north star: `{result['sources']['quration_north_star']}`",
+            f"- Dogma research boundary: `{result['sources']['dogma_research_boundary']}`",
             f"- Methods-graph validator: `{result['sources']['methods_graph_validator']}`",
             "",
             "Dogma should act like a Cursor-style compbio workbench: graph and chat drive the same workflow substrate, method grounding is a safety rail, findings are factual ledger entries rather than verdicts, and execution only follows validated dry-run/trust gates.",
@@ -341,7 +340,7 @@ def build_method_guardrails(root: str | Path, max_files: int = 500) -> dict[str,
         "service": "dogma-local-service",
         "root": str(root_path),
         "sources": {
-            "quration_north_star": QURATION_NORTH_STAR,
+            "dogma_research_boundary": DOGMA_RESEARCH_BOUNDARY,
             "methods_graph_validator": METHODS_GRAPH_VALIDATOR,
         },
         "summary": summarize_checks(checks),

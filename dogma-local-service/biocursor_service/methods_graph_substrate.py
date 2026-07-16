@@ -11,7 +11,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Mapping
 
-from .repo_paths import dogma_repo_root, methods_graph_repo_root
+from .repo_paths import DOGMA_REPOSITORY_URL, dogma_repo_root, dogma_source_url, methods_graph_repo_root
 
 METHODS_GRAPH_REPO = methods_graph_repo_root()
 DOGMA_REPO = dogma_repo_root()
@@ -88,7 +88,7 @@ def build_methods_graph_substrate(env: Mapping[str, str] | None = None) -> dict[
                 "detail": "Dogma must not invent Method, statistical-method, assumption, or executor edges.",
             },
         ],
-        "quration_aspiration": [
+        "dogma_execution_aspiration": [
             "Graph canvas and chat are two controls over the same edge-evaluation substrate.",
             "A selected edge opens an EvaluationPlan with readout, grounding, compose, execute, and interpret contracts.",
             "methods-graph grounds method choices, assumptions, preconditions, and COVERAGE_GAP outcomes.",
@@ -102,13 +102,12 @@ def build_methods_graph_substrate(env: Mapping[str, str] | None = None) -> dict[
             "Expose graph edits and evaluation plans as structured proposals requiring user approval.",
         ],
         "sources": {
-            "dogma_repo": DOGMA_REPO,
+            "dogma_repo": DOGMA_REPOSITORY_URL,
             "methods_graph_repo": METHODS_GRAPH_REPO,
-            "quration_repo": DOGMA_REPO,
             "methods_graph_workflow_validator": f"{METHODS_GRAPH_REPO}/src/methods_graph/workflow/validator.py",
             "methods_graph_ledger": f"{METHODS_GRAPH_REPO}/src/methods_graph/workflow/ledger.py",
-            "quration_edge_evaluation": f"{DOGMA_REPO}/docs/superpowers/specs/2026-06-19-edge-specific-evaluation-workflow-design.md",
-            "quration_llm_provider": f"{DOGMA_REPO}/src/quration/llm/providers.py",
+            "edge_evaluation_contract": dogma_source_url("src/quration/hypothesis/orchestrator/evaluation_plan.py"),
+            "compatibility_llm_provider": dogma_source_url("src/quration/llm/providers.py"),
         },
     }
     result["markdown"] = render_methods_graph_substrate_markdown(result)
@@ -121,7 +120,7 @@ def render_methods_graph_substrate_markdown(result: dict[str, Any]) -> str:
         f"| {item['name']} | {item['status']} | {item['detail']} |"
         for item in result.get("authoritative_surface", [])
     ]
-    aspiration_rows = [f"- {item}" for item in result.get("quration_aspiration", [])]
+    aspiration_rows = [f"- {item}" for item in result.get("dogma_execution_aspiration", [])]
     policy_rows = [f"- {item}" for item in result.get("dogma_policy", [])]
     sources = result.get("sources", {})
 
@@ -147,7 +146,7 @@ def render_methods_graph_substrate_markdown(result: dict[str, Any]) -> str:
             "| --- | --- | --- |",
             *surface_rows,
             "",
-            "## Quration Aspiration",
+            "## Dogma Execution Aspiration",
             "",
             *aspiration_rows,
             "",
@@ -157,11 +156,11 @@ def render_methods_graph_substrate_markdown(result: dict[str, Any]) -> str:
             "",
             "## Source Anchors",
             "",
+            f"- Dogma monorepo: `{sources.get('dogma_repo')}`",
             f"- methods-graph repo: `{sources.get('methods_graph_repo')}`",
-            f"- quration repo: `{sources.get('quration_repo')}`",
             f"- workflow validator: `{sources.get('methods_graph_workflow_validator')}`",
             f"- append-only ledger: `{sources.get('methods_graph_ledger')}`",
-            f"- edge workflow design: `{sources.get('quration_edge_evaluation')}`",
+            f"- edge evaluation contract: `{sources.get('edge_evaluation_contract')}`",
             "",
         ]
     )

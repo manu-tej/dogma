@@ -248,8 +248,9 @@ def export_evidence_bundle(arguments: dict[str, Any]) -> dict[str, Any]:
         "evidence_ledger": ledger,
         "method_assumptions": edge_plan,
         "invariants": {
-            "quration_web_ui_is_canonical": True,
-            "dogma_is_local_ide_layer": True,
+            "dogma_monorepo_is_canonical": True,
+            "dogma_web_ui_is_canonical_graph_surface": True,
+            "quration_is_compatibility_namespace": True,
             "stores_biological_verdicts": False,
             "stores_confidence_grades": False,
             "coverage_gaps_are_explicit": True,

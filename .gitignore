@@ -3,6 +3,10 @@ node_modules/
 dist/
 out/
 build/
+coverage/
+htmlcov/
+.dogma-vsix-staging/
+*.tsbuildinfo
 *.vsix
 
 # Python
@@ -11,14 +15,42 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+coverage.xml
 *.egg-info/
+*.whl
 
 # Secrets / local
 .env
 .env.*
 !.env.example
 *.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
 *.db
+*.db-shm
+*.db-wal
+
+# Generated and private working material
+.vite/
+scratch_notes/
+screenshots/
+benchmark-results/
+benchmarks/results/
+benchmark_results*.json
+
+# Local analysis inputs, outputs, and execution state
+/.dogma/
+.dogma/
+/.nextflow*
+.nextflow*
+/data/
+/results/
+/work/
+/logs/
+*.log
 
 # OS
 .DS_Store

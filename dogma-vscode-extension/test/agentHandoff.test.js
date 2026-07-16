@@ -93,7 +93,7 @@ assert(markdown.includes(".cursor/rules/dogma-bioinformatics.mdc"));
 const rules = renderCursorRules(record);
 assert(rules.includes("alwaysApply: true"));
 assert(rules.includes("# Dogma Bioinformatics Guardrails"));
-assert(rules.includes("quration graph: graph-1"));
+assert(rules.includes("Dogma browser graph: graph-1"));
 assert(rules.includes("methods-graph preflight: configuration_gap"));
 assert(rules.includes("methods_graph.audited_substrate_missing"));
 assert(rules.includes("missing methods-graph method"));

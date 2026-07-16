@@ -1,43 +1,55 @@
 # Publication Readiness
 
-Status: public repo (released 2026-07-02), a reviewed release artifact extracted from
-Dogma's original working repository. This public IDE and local-control slice does not
-carry the private repository's history, scratch notes, benchmark outputs, manuscript
-files, or deployment config.
+Status: **local consolidation candidate; not yet published from this branch**.
 
-## What I built
+The public `master` branch was released on 2026-07-02 as the reviewed Dogma IDE and
+local-control slice. This branch broadens that repository into the canonical monorepo by
+adding a committed snapshot of the earlier quration backend, web workspace, tests, and
+Claude Science skill. It must pass the full clean-clone and public-safety review before a
+merge or release decision.
 
-- Framed the graph-first, IDE-native workflow for computational-biology method guidance.
-- Directed the design of the local sidecar (scanning, guardrails, run plans, evidence
-  ledger) and the VS Code / Cursor extension surfaces.
-- Made the integration and scope decisions, reviewed claims, and own the public framing.
+## Consolidation scope
 
-## Where coding agents helped
+Included in the candidate:
 
-- Claude Code and Codex helped implement and revise the extension, local-service modules,
-  tests, and documentation under my direction.
-- Agent output was treated as implementation assistance or drafts until reviewed against
-  the test suites and the intended workflow.
-- AI tools are not authors; responsibility for the published content stays with me.
+- the existing public extension, local sidecar, and synthetic demo workspace;
+- `src/quration/` and backend tests, retaining the namespace for compatibility;
+- the browser graph workspace in `frontend/`;
+- the Claude Science method-validity skill;
+- unified setup, verification, CI, and migration documentation.
 
-## Limitations / scope of this repo
+Excluded deliberately:
 
-- Included: `dogma-vscode-extension/`, `dogma-local-service/`, `dogma-demo-workspace/`,
-  `docs/dogma/`, `tools/check-dogma-rename.js`, plus `README`, `LICENSE`, and this file.
-- Excluded by design: Dogma's earlier dataset-curation surfaces and browser graph
-  workspace, scratch notes, design-history docs, benchmark result bundles, manuscript
-  sources, and any deployment / environment config. Those remain in the original private
-  working repository. Its historical `quration` repository/package/API namespace is a
-  compatibility detail, not a separate product identity.
+- populated environment files and deployment configuration;
+- generated Supabase code and hosted-project identifiers;
+- local databases, generated VSIX packages, build output, caches, and screenshots;
+- scratch notes, load-test output, benchmark result bundles, and manuscript sources;
+- the source repository's uncommitted working-tree changes and Git history.
 
-## Verification
+See [`MIGRATION.md`](MIGRATION.md) for the exact source commit and cutover rules.
 
-- 2026-07-11: `dogma-vscode-extension` — `npm test` passed (node test suite, no install).
-- 2026-07-11: `dogma-local-service` — `python -m unittest discover -s tests` → 77 tests OK
-  (zero runtime dependencies, no install).
+## Claim boundary
 
-## Release
+The merged code supports graph-grounded planning, selected-edge work packages, guarded
+local dry-run/stub-run execution, and evidence-ledger generation. It does not yet close
+the entire selected causal edge → execution → result write-back loop. Public descriptions
+must remain at research/prototype level and must not imply clinical use, production
+reliability, or autonomous scientific validation.
 
-Published 2026-07-02 as the public **Dogma** IDE and local-control slice. The broader
-Dogma AI-scientist platform remains in progress in its original private working
-repository.
+## Attribution and review
+
+Claude Code and Codex provided task-level implementation and documentation assistance.
+Agent output remains subject to human review; AI tools are not authors. Manu Arrojwala
+owns the scientific framing, integration decisions, claim review, publication decision,
+and repository responsibility.
+
+## Release gate
+
+Before this branch is merged or published:
+
+1. Run `npm run check:all` from a clean environment.
+2. Verify a non-editable `dogma-local-service` install from outside the checkout.
+3. Inspect the staged file list and public-safety report manually.
+4. Confirm no source-repository working-tree changes or private history were imported.
+5. Merge Dogma first; archive the old quration repository only after the merged repo can
+   be cloned, installed, and tested independently.

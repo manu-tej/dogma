@@ -14,12 +14,15 @@ DEMO_ROOT = OUTPUTS_ROOT / "dogma-demo-workspace"
 
 
 class MethodGuardrailsTests(unittest.TestCase):
-    def test_demo_workspace_guardrails_encode_quration_and_methods_graph_principles(self) -> None:
+    def test_demo_workspace_guardrails_encode_dogma_and_methods_graph_principles(self) -> None:
         result = build_method_guardrails(DEMO_ROOT)
         checks = {item["code"]: item for item in result["checks"]}
 
         self.assertEqual(result["service"], "dogma-local-service")
-        self.assertIn("docs/superpowers/specs", result["sources"]["quration_north_star"])
+        self.assertEqual(
+            result["sources"]["dogma_research_boundary"],
+            "https://github.com/manu-tej/dogma/blob/master/README.md",
+        )
         self.assertIn("methods-graph", result["sources"]["methods_graph_validator"])
         self.assertGreater(result["summary"]["pass"], 0)
         self.assertGreater(result["summary"]["gap"], 0)

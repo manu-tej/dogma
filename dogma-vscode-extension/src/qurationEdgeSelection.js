@@ -68,13 +68,14 @@ function buildQurationEdgeSelectionRecord({
       proposed_test: proposedTestText(edge)
     },
     ide_policy: {
-      canonical_graph_surface: "quration",
+      canonical_graph_surface: "Dogma browser graph workspace",
+      compatibility_namespace: "quration",
       local_surface: "Dogma VS Code/Cursor extension",
-      evidence_policy: "Selection is local IDE state only; it does not mutate quration or resolve evidence."
+      evidence_policy: "Selection is local IDE state only; it does not mutate the Dogma browser graph or resolve evidence."
     },
     next_actions: [
-      "Use Dogma quration edge commands to fetch the edge plan, generate a local guardrail plan, or build a work package for this selected edge.",
-      "Use quration's web graph UI for graph edits, evidence records, event history, and biological review."
+      "Use Dogma's browser-edge commands to fetch the edge plan, generate a local guardrail plan, or build a work package for this selected edge.",
+      "Use Dogma's browser graph workspace for graph edits, evidence records, event history, and biological review; quration is the compatibility namespace."
     ]
   };
 }
@@ -86,11 +87,11 @@ function renderQurationEdgeSelection(record = {}) {
   const actions = Array.isArray(record.next_actions) ? record.next_actions : [];
 
   return [
-    "# Dogma quration Edge Selection",
+    "# Dogma Browser Edge Selection",
     "",
-    "Dogma selected this quration edge for local IDE work. quration remains the canonical graph web UI for graph edits, evidence records, and event history.",
+    "Dogma selected this browser graph edge for local IDE work. quration remains only the compatibility namespace for existing fields and artifacts.",
     "",
-    "## quration Graph",
+    "## Browser Graph",
     "",
     `- Graph ID: ${cleanText(graph.graph_id, "unknown")}`,
     `- Graph URL: ${cleanText(graph.graph_url, "not available")}`,
@@ -111,7 +112,8 @@ function renderQurationEdgeSelection(record = {}) {
     "",
     "## Boundary",
     "",
-    `- Canonical graph surface: ${cleanText(policy.canonical_graph_surface, "quration")}`,
+    `- Canonical graph surface: ${cleanText(policy.canonical_graph_surface, "Dogma browser graph workspace")}`,
+    `- Compatibility namespace: ${cleanText(policy.compatibility_namespace, "quration")}`,
     `- Local surface: ${cleanText(policy.local_surface, "Dogma")}`,
     `- Evidence policy: ${cleanText(policy.evidence_policy, "local selection only")}`,
     "",

@@ -103,8 +103,9 @@ assert.strictEqual(applied.local_patch.apply_status, "applied");
 assert(applied.source_artifacts.includes(".dogma/patch-apply-result.md"));
 
 const markdown = renderQurationEdgePatchHandoff(handoff);
-assert(markdown.includes("# Dogma quration Edge Patch Handoff"));
-assert(markdown.includes("quration's graph web UI"));
+assert(markdown.includes("# Dogma Browser Edge Patch Handoff"));
+assert(markdown.includes("Dogma's canonical browser graph workspace"));
+assert(markdown.includes("quration compatibility contract"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- Edge ID: bioedge.condition_transcript_abundance"));
 assert(markdown.includes("- Proposal ID: nextflow-sample-validation-1"));

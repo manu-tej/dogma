@@ -46,7 +46,7 @@ function summaryLines(summary = {}) {
 
 function renderQurationEvents(record = {}) {
   const isFailedFeed = record.scope === "failed" || record.contract_version === "dogma-quration-failed-events.v1";
-  const title = isFailedFeed ? "# Dogma quration Failed Events" : "# Dogma quration Graph Events";
+  const title = isFailedFeed ? "# Dogma Failed Browser Graph Events" : "# Dogma Browser Graph Events";
   const settings = record.settings || {};
 
   const target = isFailedFeed
@@ -57,7 +57,7 @@ function renderQurationEvents(record = {}) {
         `- Endpoint: ${record.endpoints?.failed_events || "not recorded"}`
       ]
     : [
-        "## quration Graph",
+        "## Browser Graph",
         "",
         `- Graph ID: ${cleanText(record.graph_id, "unknown")}`,
         `- Graph URL: ${cleanText(record.graph_url, "not available")}`,
@@ -68,7 +68,7 @@ function renderQurationEvents(record = {}) {
   return [
     title,
     "",
-    "Dogma pulled this quration event trail for IDE context only. quration remains the canonical graph, evidence, and event-history surface; this artifact is read-only and does not mutate quration.",
+    "Dogma pulled this event trail through its quration compatibility API for IDE context only. Dogma's browser workspace remains the canonical graph, evidence, and event-history surface; this artifact is read-only and does not mutate the graph.",
     "",
     ...target,
     "",
@@ -86,14 +86,14 @@ function renderQurationEvents(record = {}) {
     "",
     "## Boundary",
     "",
-    "- Use quration to inspect full event history, graph edits, evidence records, and raw event trails.",
-    "- Use Dogma to connect event context to local files, guardrails, patches, and IDE work packages.",
+    "- Use Dogma's browser workspace to inspect full event history, graph edits, evidence records, and raw event trails.",
+    "- Use Dogma's IDE surface to connect event context to local files, guardrails, patches, and work packages.",
     "- Do not treat an event trail as biological support/refute evidence.",
     "",
     "## Settings",
     "",
-    `- quration API: ${settings.quration_api_url || "not configured"}`,
-    `- quration canvas: ${settings.quration_canvas_url || "not configured"}`,
+    `- Dogma graph API (quration compatibility setting): ${settings.quration_api_url || "not configured"}`,
+    `- Dogma canvas (quration compatibility setting): ${settings.quration_canvas_url || "not configured"}`,
     `- Contract: ${settings.graph_contract || "unknown"}`,
     ""
   ].join("\n");

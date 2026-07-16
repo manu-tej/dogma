@@ -41,7 +41,7 @@ assert.strictEqual(selectedEdge.id, "bioedge.condition_transcript_abundance");
 assert.strictEqual(selectedEdge.from, "control vs treatment");
 assert.strictEqual(selectedEdge.to, "Transcript abundance");
 assert.strictEqual(selectedEdge.title, "control vs treatment changes Transcript abundance");
-assert.strictEqual(selectedEdge.source, "quration");
+assert.strictEqual(selectedEdge.source, "dogma_browser_graph");
 assert.strictEqual(selectedEdge.edge_type, "biological");
 assert.strictEqual(selectedEdge.status, "untested/unvalidated");
 assert.strictEqual(selectedEdge.facts.readout, "Transcript abundance");
@@ -49,7 +49,7 @@ assert.strictEqual(selectedEdge.facts.contrast, "control vs treatment");
 assert(selectedEdge.facts.coverageGaps.includes("quration.edge.untested"));
 assert(selectedEdge.facts.coverageGaps.includes("quration.edge.unvalidated"));
 assert.strictEqual(selectedEdge.facts.methodsGraphGrounding.qurationGraphId, "graph-1");
-assert(selectedEdge.next_actions.some((action) => action.includes("quration")));
+assert(selectedEdge.next_actions.some((action) => action.includes("browser graph")));
 
 const fromGraphEdges = buildQurationSelectedEdge({
   graph_id: "graph-2",
@@ -73,7 +73,7 @@ assert.strictEqual(fromGraphEdges.title, "A changes B");
 
 assert.throws(
   () => buildQurationSelectedEdge({ edge_dossiers: [] }),
-  /No quration edges/
+  /No Dogma browser graph edges/
 );
 
 const markdown = renderQurationEdgeEvaluationPlan({
@@ -87,8 +87,9 @@ const markdown = renderQurationEdgeEvaluationPlan({
   contracts: []
 }, context, selectedEdge);
 
-assert(markdown.includes("# Dogma quration Edge Evaluation Plan"));
-assert(markdown.includes("quration remains the canonical web UI"));
+assert(markdown.includes("# Dogma Browser Edge Evaluation Plan"));
+assert(markdown.includes("Dogma's browser workspace remains the canonical UI"));
+assert(markdown.includes("quration compatibility API"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- Edge ID: bioedge.condition_transcript_abundance"));
 assert(markdown.includes("## Dogma Local Plan"));

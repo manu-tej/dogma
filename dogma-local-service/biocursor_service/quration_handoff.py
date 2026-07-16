@@ -15,10 +15,10 @@ from .biological_graph import build_biological_graph
 from .edge_evaluation_plan import build_edge_evaluation_plan
 from .evidence_ledger import build_evidence_ledger
 from .indexer import scan_workspace
-from .repo_paths import dogma_repo_root
+from .repo_paths import DOGMA_REPOSITORY_URL, dogma_repo_root, dogma_source_url
 
 
-QURATION_REPO = dogma_repo_root()
+DOGMA_REPO = dogma_repo_root()
 CONTRACT_VERSION = "quration-handoff.v1"
 DEFAULT_QURATION_FRONTEND_URL = "http://localhost:3000/canvas"
 DEFAULT_QURATION_API_URL = "http://localhost:8000"
@@ -40,6 +40,11 @@ def quration_urls() -> dict[str, str]:
 
 def quration_import_hint(root_path: Path) -> dict[str, Any]:
     urls = quration_urls()
+    local_repo = Path(DOGMA_REPO)
+    if (local_repo / "package.json").exists() and (local_repo / "frontend").exists():
+        start_step = f"Start the Dogma web graph app with `npm run dev` in {DOGMA_REPO}."
+    else:
+        start_step = "Start the Dogma web graph app from a Dogma monorepo checkout with `npm run dev`, or configure the Dogma graph URLs."
     return {
         "frontend_url": urls["frontend_url"],
         "api_url": urls["api_url"],
@@ -47,12 +52,13 @@ def quration_import_hint(root_path: Path) -> dict[str, Any]:
         "hypothesis_graphs_url": f"{urls['api_url']}/hypothesis",
         "handoff_json_path": str(root_path / ".dogma" / "quration-handoff.json"),
         "handoff_markdown_path": str(root_path / ".dogma" / "quration-handoff.md"),
-        "import_endpoint": None,
-        "status": "handoff_ready_import_endpoint_not_present",
+        "import_endpoint": f"{urls['api_url']}/hypothesis/build",
+        "requires_adapter": "causal_graph_to_seed_skeleton",
+        "status": "adapter_ready_for_seed_import",
         "next_steps": [
-            f"Start the Dogma web graph app with `npm run dev` in {QURATION_REPO}.",
-            "Open the graph UI and import or adapt the Dogma handoff JSON when the web app exposes an import endpoint.",
-            "Keep the web graph workspace as the canonical graph UI; keep the Dogma extension as the local IDE/editor surface.",
+            start_step,
+            "Use the Dogma extension import command, which converts this CausalGraph to the SeedSkeleton accepted by /hypothesis/build.",
+            "Review the imported graph in the Dogma browser canvas before resolving or executing an edge.",
         ],
     }
 
@@ -267,7 +273,7 @@ def render_quration_handoff_markdown(result: dict[str, Any]) -> str:
     import_hint = result.get("quration_import", {})
     return "\n".join(
         [
-            "# Dogma quration Handoff",
+            "# Dogma Graph Handoff (quration compatibility)",
             "",
             "This artifact maps Dogma local IDE facts into quration-compatible graph, evaluation-plan, and evidence-record shapes.",
             "",
@@ -302,15 +308,17 @@ def render_quration_handoff_markdown(result: dict[str, Any]) -> str:
             "- CausalGraph edge state is untested.",
             "- Confidence is not synthesized.",
             "- EvidenceRecord directness is factual and not a score.",
-            "- quration remains the canonical graph web UI.",
+            "- Dogma's browser workspace remains the canonical graph UI.",
+            "- quration is a compatibility namespace, not a separate product.",
             "",
-            "## quration Import",
+            "## Graph Import (quration compatibility)",
             "",
             f"- Graph UI: {import_hint.get('frontend_url', DEFAULT_QURATION_FRONTEND_URL)}",
             f"- API: {import_hint.get('api_url', DEFAULT_QURATION_API_URL)}",
+            f"- Seed import endpoint: {import_hint.get('import_endpoint')}",
             f"- Handoff JSON: {import_hint.get('handoff_json_path')}",
             f"- Import status: {import_hint.get('status')}",
-            "- quration currently owns the graph canvas; Dogma only exports local IDE facts into that contract.",
+            "- The extension adapts this local handoff to Dogma's compatibility-namespaced graph API.",
             "",
         ]
     )
@@ -333,11 +341,11 @@ def build_quration_handoff(root: str | Path, max_files: int = 500) -> dict[str, 
         "root": str(root_path),
         "contract_version": CONTRACT_VERSION,
         "quration_contract": {
-            "repo": QURATION_REPO,
+            "repo": DOGMA_REPOSITORY_URL,
             "models": {
-                "CausalGraph": f"{QURATION_REPO}/src/quration/hypothesis/graph.py",
-                "EvaluationPlan": f"{QURATION_REPO}/src/quration/hypothesis/orchestrator/evaluation_plan.py",
-                "EvidenceRecord": f"{QURATION_REPO}/src/quration/hypothesis/evidence.py",
+                "CausalGraph": dogma_source_url("src/quration/hypothesis/graph.py"),
+                "EvaluationPlan": dogma_source_url("src/quration/hypothesis/orchestrator/evaluation_plan.py"),
+                "EvidenceRecord": dogma_source_url("src/quration/hypothesis/evidence.py"),
             },
         },
         "quration_import": quration_import_hint(root_path),
@@ -353,8 +361,9 @@ def build_quration_handoff(root: str | Path, max_files: int = 500) -> dict[str, 
             "ledger_summary": ledger.get("summary", {}),
         },
         "invariants": {
-            "quration_web_ui_is_canonical": True,
-            "dogma_is_local_ide_layer": True,
+            "dogma_monorepo_is_canonical": True,
+            "dogma_web_ui_is_canonical_graph_surface": True,
+            "quration_is_compatibility_namespace": True,
             "stores_biological_verdicts": False,
             "stores_confidence_grades": False,
             "causal_graph_edges_remain_untested": True,

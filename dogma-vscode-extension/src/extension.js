@@ -585,10 +585,10 @@ function buildAssistantHtml(context, issues) {
     <button data-command="generateMethodGuardrails">Generate Method Guardrails</button>
     <button data-command="generateEvidenceLedger">Generate Evidence Ledger</button>
     <button data-command="generateEdgeEvaluationPlan">Generate Edge Evaluation Plan</button>
-    <button data-command="generateQurationHandoff">Generate quration Handoff</button>
-    <button data-command="checkQurationStatus">Check quration Status</button>
-    <button data-command="importWorkspaceToQuration">Import Workspace To quration</button>
-    <button data-command="openLastQurationImport">Open Last quration Import</button>
+    <button data-command="generateQurationHandoff">Generate Browser Graph Handoff</button>
+    <button data-command="checkQurationStatus">Check Browser Graph Status</button>
+    <button data-command="importWorkspaceToQuration">Import Workspace To Browser Graph</button>
+    <button data-command="openLastQurationImport">Open Last Graph Import</button>
     <button data-command="generateMethodsGraphSubstrate">Generate Methods-Graph Substrate</button>
     <button data-command="generateMethodsGraphPreflight">Generate Methods-Graph Preflight</button>
     <button data-command="checkLlmProvider">Check LLM Provider</button>
@@ -1064,7 +1064,7 @@ async function writeQurationEdgeSelection(context, edge, selectionSource = "quic
 async function chooseQurationEdge(context = {}, options = {}) {
   const edges = qurationEdges(context);
   if (!edges.length) {
-    throw new Error("No quration edges are available in .dogma/quration-graph.json.");
+    throw new Error("No Dogma browser graph edges are available in the compatibility artifact .dogma/quration-graph.json.");
   }
 
   if (!options.forcePrompt) {
@@ -1084,8 +1084,8 @@ async function chooseQurationEdge(context = {}, options = {}) {
   const item = items.length === 1 && !options.forcePrompt
     ? items[0]
     : await vscode.window.showQuickPick(items, {
-        title: options.title || "Select quration Edge",
-        placeHolder: options.placeHolder || "Choose the quration edge Dogma should use for local IDE work.",
+        title: options.title || "Select Browser Graph Edge",
+        placeHolder: options.placeHolder || "Choose the Dogma browser graph edge to use for local IDE work.",
         matchOnDescription: true,
         matchOnDetail: true
       });
@@ -1104,7 +1104,7 @@ async function chooseQurationEdge(context = {}, options = {}) {
 
 async function selectQurationEdge() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before selecting a quration edge.");
+    vscode.window.showWarningMessage("Open a workspace folder before selecting a Dogma browser graph edge.");
     return null;
   }
 
@@ -1114,16 +1114,16 @@ async function selectQurationEdge() {
   try {
     const selected = await chooseQurationEdge(context, {
       forcePrompt: true,
-      title: "Select quration Edge For Dogma",
-      placeHolder: "Choose one quration edge as the active local IDE work unit."
+      title: "Select Browser Graph Edge For Dogma",
+      placeHolder: "Choose one browser graph edge as the active local IDE work unit."
     });
     if (!selected) return null;
     vscode.window.showInformationMessage(
-      `Dogma selected quration edge ${selected.selectedEdge.id} and wrote ${vscode.workspace.asRelativePath(selected.markdownUri)}.`
+      `Dogma selected browser graph edge ${selected.selectedEdge.id} and wrote ${vscode.workspace.asRelativePath(selected.markdownUri)}.`
     );
     return selected.markdownUri;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge selection failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser graph edge selection failed: ${error.message}`);
     return null;
   }
 }
@@ -1131,7 +1131,7 @@ async function selectQurationEdge() {
 async function fetchQurationEdgePlanRecord(context, edge, config = serviceConfig()) {
   const graphId = qurationGraphIdFromContext(context);
   if (!graphId) {
-    throw new Error("quration graph id is missing.");
+    throw new Error("Dogma browser graph id is missing.");
   }
   return getQurationEdgePlan({
     qurationApiUrl: config.qurationApiUrl,
@@ -1166,7 +1166,7 @@ async function getDogmaQurationEdgeEvaluationRecord(context, selectedEdge, confi
 
 async function generateQurationEdgeEvaluationPlan() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before generating a Dogma quration edge evaluation plan.");
+    vscode.window.showWarningMessage("Open a workspace folder before generating a Dogma browser edge evaluation plan.");
     return null;
   }
 
@@ -1176,12 +1176,12 @@ async function generateQurationEdgeEvaluationPlan() {
   let selectedEdge;
   try {
     const selection = await chooseQurationEdge(context, {
-      title: "Select quration Edge For Evaluation Plan"
+      title: "Select Browser Graph Edge For Evaluation Plan"
     });
     if (!selection) return null;
     selectedEdge = selection.selectedEdge;
   } catch (error) {
-    vscode.window.showWarningMessage(`Dogma could not select a quration edge: ${error.message}`);
+    vscode.window.showWarningMessage(`Dogma could not select a browser graph edge: ${error.message}`);
     return null;
   }
 
@@ -1194,18 +1194,18 @@ async function generateQurationEdgeEvaluationPlan() {
       renderQurationEdgeEvaluationPlan(record.plan, context, selectedEdge)
     );
     vscode.window.showInformationMessage(
-      `Dogma wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)} from quration edge ${selectedEdge.id}.`
+      `Dogma wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)} from browser graph edge ${selectedEdge.id}.`
     );
     return markdownUri;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge evaluation plan failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge evaluation plan failed: ${error.message}`);
     return null;
   }
 }
 
 async function fetchQurationEdgePlan() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before fetching a quration edge plan.");
+    vscode.window.showWarningMessage("Open a workspace folder before fetching a Dogma browser edge plan.");
     return null;
   }
 
@@ -1215,18 +1215,18 @@ async function fetchQurationEdgePlan() {
   let edge;
   try {
     const selection = await chooseQurationEdge(context, {
-      title: "Select quration Edge Plan To Fetch"
+      title: "Select Browser Edge Plan To Fetch"
     });
     if (!selection) return null;
     edge = selection.edge;
   } catch (error) {
-    vscode.window.showWarningMessage(`Dogma could not select a quration edge: ${error.message}`);
+    vscode.window.showWarningMessage(`Dogma could not select a browser graph edge: ${error.message}`);
     return null;
   }
 
   const graphId = String(context.graph_id || context.graph?.id || "").trim();
   if (!graphId) {
-    vscode.window.showWarningMessage("Dogma could not fetch a quration edge plan because the graph id is missing.");
+    vscode.window.showWarningMessage("Dogma could not fetch a browser edge plan because the graph id is missing.");
     return null;
   }
 
@@ -1236,18 +1236,18 @@ async function fetchQurationEdgePlan() {
     const jsonUri = await writeWorkspaceFile([".dogma", "quration-edge-plan.json"], JSON.stringify(record, null, 2) + "\n", null);
     const markdownUri = await writeWorkspaceFile([".dogma", "quration-edge-plan.md"], renderQurationEdgePlan(record));
     vscode.window.showInformationMessage(
-      `Dogma fetched quration edge plan ${record.edge_id} and wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)}.`
+      `Dogma fetched browser edge plan ${record.edge_id} and wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)}.`
     );
     return markdownUri;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge plan fetch failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge plan fetch failed: ${error.message}`);
     return null;
   }
 }
 
 async function generateQurationEdgeWorkPackage() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before generating a quration edge work package.");
+    vscode.window.showWarningMessage("Open a workspace folder before generating a Dogma browser edge work package.");
     return null;
   }
 
@@ -1258,13 +1258,13 @@ async function generateQurationEdgeWorkPackage() {
   let selectedEdge;
   try {
     const selection = await chooseQurationEdge(context, {
-      title: "Select quration Edge Work Package"
+      title: "Select Browser Edge Work Package"
     });
     if (!selection) return null;
     edge = selection.edge;
     selectedEdge = selection.selectedEdge;
   } catch (error) {
-    vscode.window.showWarningMessage(`Dogma could not select a quration edge: ${error.message}`);
+    vscode.window.showWarningMessage(`Dogma could not select a browser graph edge: ${error.message}`);
     return null;
   }
 
@@ -1299,11 +1299,11 @@ async function generateQurationEdgeWorkPackage() {
     const jsonUri = await writeWorkspaceFile([".dogma", "quration-edge-work-package.json"], JSON.stringify(record, null, 2) + "\n", null);
     const markdownUri = await writeWorkspaceFile([".dogma", "quration-edge-work-package.md"], renderQurationEdgeWorkPackage(record));
     vscode.window.showInformationMessage(
-      `Dogma wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)} for quration edge ${selectedEdge.id}.`
+      `Dogma wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)} for browser graph edge ${selectedEdge.id}.`
     );
     return markdownUri;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge work package failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge work package failed: ${error.message}`);
     return null;
   }
 }
@@ -1328,10 +1328,10 @@ function artifactEditorContext(relativeParts, contents) {
 
 function qurationEdgePackageAgentInstruction() {
   return [
-    "Review the quration edge work package in .dogma/quration-edge-work-package.md.",
+    "Review the Dogma browser edge work package in the compatibility artifact .dogma/quration-edge-work-package.md.",
     "Propose the next smallest safe IDE action for this bioinformatics workspace.",
-    "Use quration's canonical edge skeleton, Dogma local guardrails, coverage gaps, patch proposals, and active workflow files when relevant.",
-    "Do not assert biological support/refute verdicts, do not resolve quration evidence from the IDE, and do not recommend real execution while blocker gaps remain.",
+    "Use Dogma's canonical browser edge skeleton from the quration compatibility artifact, local guardrails, coverage gaps, patch proposals, and active workflow files when relevant.",
+    "Do not assert biological support/refute verdicts, do not resolve browser-graph evidence from the IDE, and do not recommend real execution while blocker gaps remain.",
     "Prefer a concrete patch preview, test-plan, guardrail configuration, or user question."
   ].join(" ");
 }
@@ -1392,7 +1392,7 @@ async function writeQurationEdgeAgentSuggestionArtifacts(result) {
 
 async function suggestFromQurationEdgeWorkPackage() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before asking Dogma about a quration edge work package.");
+    vscode.window.showWarningMessage("Open a workspace folder before asking Dogma about a browser edge work package.");
     return null;
   }
 
@@ -1408,14 +1408,14 @@ async function suggestFromQurationEdgeWorkPackage() {
     if (!result) return null;
     return writeQurationEdgeAgentSuggestionArtifacts(result);
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge agent suggestion failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge agent suggestion failed: ${error.message}`);
     return null;
   }
 }
 
 async function previewQurationEdgeSuggestedPatch() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before previewing a quration edge suggested patch.");
+    vscode.window.showWarningMessage("Open a workspace folder before previewing a browser edge suggested patch.");
     return null;
   }
 
@@ -1433,14 +1433,14 @@ async function previewQurationEdgeSuggestedPatch() {
     const action = firstPatchPreviewAction(result);
     const proposalId = action?.proposal_id || action?.proposalId;
     if (!proposalId) {
-      vscode.window.showWarningMessage("Dogma did not find a patch_preview proposal in the quration edge agent suggestion.");
+      vscode.window.showWarningMessage("Dogma did not find a patch_preview proposal in the browser edge agent suggestion.");
       return null;
     }
     const preview = await previewPatchProposalById(config, proposalId);
-    vscode.window.showInformationMessage(`Dogma previewed quration edge suggested patch ${proposalId}.`);
+    vscode.window.showInformationMessage(`Dogma previewed browser edge suggested patch ${proposalId}.`);
     return { proposalId, preview };
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge suggested patch preview failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge suggested patch preview failed: ${error.message}`);
     return null;
   }
 }
@@ -1455,7 +1455,7 @@ async function writeQurationEdgePatchHandoffArtifact(preview, applyResult = null
   const jsonUri = await writeWorkspaceFile([".dogma", "quration-edge-patch-handoff.json"], JSON.stringify(record, null, 2) + "\n", null);
   const markdownUri = await writeWorkspaceFile([".dogma", "quration-edge-patch-handoff.md"], renderQurationEdgePatchHandoff(record));
   vscode.window.showInformationMessage(
-    `Dogma wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)} for quration review.`
+    `Dogma wrote ${vscode.workspace.asRelativePath(markdownUri)} and ${vscode.workspace.asRelativePath(jsonUri)} for browser-graph review.`
   );
   return { record, jsonUri, markdownUri };
 }
@@ -1467,13 +1467,13 @@ async function readMatchingQurationEdgePatchHandoff(context = {}, selectedEdge =
   try {
     handoff = await readWorkspaceJson([".dogma", "quration-edge-patch-handoff.json"]);
   } catch {
-    throw new Error("Generate a quration edge patch handoff before resolving the edge in quration.");
+    throw new Error("Generate a browser edge patch handoff before resolving the edge in Dogma's browser workspace.");
   }
 
   const handoffGraphId = String(handoff.quration_graph?.graph_id || "").trim();
   const handoffEdgeId = String(handoff.selected_edge?.id || "").trim();
   if (handoffGraphId !== graphId || handoffEdgeId !== edgeId) {
-    throw new Error("The existing quration edge patch handoff does not match the selected graph edge.");
+    throw new Error("The existing browser edge patch handoff does not match the selected graph edge.");
   }
   return handoff;
 }
@@ -1485,8 +1485,8 @@ function resolveConfirmationMessage(selectedEdge = {}, handoff = {}) {
   const gapText = gaps.length ? ` Coverage gaps: ${gaps.join(", ")}.` : "";
   const patchText = patchApplied ? "The local patch handoff says the patch was applied." : "The local patch handoff says the patch was not applied.";
   return [
-    `Dogma will ask quration to resolve readout facts for ${selectedEdge.id}.`,
-    "This is a quration evidence-writing operation and may persist an EvidenceRecord in quration.",
+    `Dogma will ask its browser graph backend to resolve readout facts for ${selectedEdge.id}.`,
+    "This is a Dogma graph evidence-writing operation through the quration compatibility API and may persist an EvidenceRecord in the browser workspace.",
     patchText,
     `Dogma guardrail status is ${guardrailStatus}.${gapText}`,
     "Dogma will only write a local audit artifact and will not mark the edge supported or refuted."
@@ -1519,7 +1519,7 @@ function buildQurationEdgeResolveRecord(resolveRecord = {}, handoff = {}) {
 
 async function generateQurationEdgePatchHandoff() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before generating a quration edge patch handoff.");
+    vscode.window.showWarningMessage("Open a workspace folder before generating a Dogma browser edge patch handoff.");
     return null;
   }
 
@@ -1528,14 +1528,14 @@ async function generateQurationEdgePatchHandoff() {
     if (!preview) return null;
     return writeQurationEdgePatchHandoffArtifact(preview.preview);
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge patch handoff failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge patch handoff failed: ${error.message}`);
     return null;
   }
 }
 
 async function resolveQurationSelectedEdgeReadout() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before resolving a quration edge readout.");
+    vscode.window.showWarningMessage("Open a workspace folder before resolving a Dogma browser edge readout.");
     return null;
   }
 
@@ -1545,11 +1545,11 @@ async function resolveQurationSelectedEdgeReadout() {
   let selection;
   try {
     selection = await chooseQurationEdge(context, {
-      title: "Select quration Edge To Resolve"
+      title: "Select Browser Graph Edge To Resolve"
     });
     if (!selection) return null;
   } catch (error) {
-    vscode.window.showWarningMessage(`Dogma could not select a quration edge to resolve: ${error.message}`);
+    vscode.window.showWarningMessage(`Dogma could not select a browser graph edge to resolve: ${error.message}`);
     return null;
   }
 
@@ -1564,9 +1564,9 @@ async function resolveQurationSelectedEdgeReadout() {
   const choice = await vscode.window.showWarningMessage(
     resolveConfirmationMessage(selection.selectedEdge, handoff),
     { modal: true },
-    "Resolve In quration"
+    "Resolve In Dogma Browser Graph"
   );
-  if (choice !== "Resolve In quration") return null;
+  if (choice !== "Resolve In Dogma Browser Graph") return null;
 
   const config = serviceConfig();
   try {
@@ -1582,18 +1582,18 @@ async function resolveQurationSelectedEdgeReadout() {
     const jsonUri = await writeWorkspaceFile([".dogma", "quration-edge-resolve.json"], JSON.stringify(record, null, 2) + "\n", null);
     const markdownUri = await writeWorkspaceFile([".dogma", "quration-edge-resolve.md"], renderQurationEdgeResolve(record));
     vscode.window.showInformationMessage(
-      `Dogma resolved quration edge ${selection.selectedEdge.id} and wrote ${vscode.workspace.asRelativePath(markdownUri)} plus ${vscode.workspace.asRelativePath(jsonUri)}.`
+      `Dogma resolved browser graph edge ${selection.selectedEdge.id} and wrote ${vscode.workspace.asRelativePath(markdownUri)} plus ${vscode.workspace.asRelativePath(jsonUri)}.`
     );
     return record;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge resolve failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge resolve failed: ${error.message}`);
     return null;
   }
 }
 
 async function applyQurationEdgeSuggestedPatch(provider, diagnosticCollection) {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before applying a quration edge suggested patch.");
+    vscode.window.showWarningMessage("Open a workspace folder before applying a browser edge suggested patch.");
     return null;
   }
 
@@ -1611,7 +1611,7 @@ async function applyQurationEdgeSuggestedPatch(provider, diagnosticCollection) {
     const action = firstPatchPreviewAction(result);
     const proposalId = action?.proposal_id || action?.proposalId;
     if (!proposalId) {
-      vscode.window.showWarningMessage("Dogma did not find a patch_preview proposal in the quration edge agent suggestion.");
+      vscode.window.showWarningMessage("Dogma did not find a patch_preview proposal in the browser edge agent suggestion.");
       return null;
     }
     const preview = await previewPatchProposalById(config, proposalId);
@@ -1623,7 +1623,7 @@ async function applyQurationEdgeSuggestedPatch(provider, diagnosticCollection) {
     }
     return applyResult;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration edge suggested patch apply failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser edge suggested patch apply failed: ${error.message}`);
     return null;
   }
 }
@@ -1654,7 +1654,7 @@ async function writeEdgeEvaluationPlanFromService(selectedEdge) {
 
 async function generateQurationHandoff() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before generating a quration handoff.");
+    vscode.window.showWarningMessage("Open a workspace folder before generating a Dogma browser graph handoff.");
     return;
   }
 
@@ -1673,14 +1673,14 @@ async function generateQurationHandoff() {
     }
     const suffix = markdownUri ? ` and ${vscode.workspace.asRelativePath(markdownUri)}` : "";
     const choice = await vscode.window.showInformationMessage(
-      `Dogma wrote ${vscode.workspace.asRelativePath(jsonUri)}${suffix} for quration.`,
-      "Open quration Canvas"
+      `Dogma wrote ${vscode.workspace.asRelativePath(jsonUri)}${suffix} for the browser graph.`,
+      "Open Browser Canvas"
     );
-    if (choice === "Open quration Canvas") {
+    if (choice === "Open Browser Canvas") {
       await openQurationCanvas(result);
     }
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration handoff failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser graph handoff failed: ${error.message}`);
   }
 }
 
@@ -1689,9 +1689,9 @@ async function openQurationUrl(query) {
   try {
     const target = buildQurationCanvasUrl(config.qurationUrl, query);
     await vscode.env.openExternal(vscode.Uri.parse(target));
-    vscode.window.showInformationMessage(`Dogma opened quration canvas at ${target}.`);
+    vscode.window.showInformationMessage(`Dogma opened its browser canvas at ${target}.`);
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma could not open quration canvas: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma could not open its browser canvas: ${error.message}`);
   }
 }
 
@@ -1712,7 +1712,7 @@ async function resolveCurrentQurationGraphTarget(config = serviceConfig()) {
     const url = qurationGraphUrlFromFields(context, config);
     if (url) return { url, source: ".dogma/quration-graph.json" };
   } catch {
-    // Fall through to other local quration records.
+    // Fall through to other local compatibility records.
   }
 
   try {
@@ -1747,13 +1747,13 @@ async function resolveCurrentQurationGraphTarget(config = serviceConfig()) {
   });
   const newest = history.graphs?.[0] || {};
   const url = qurationGraphUrlFromFields(newest, config);
-  if (url) return { url, source: "quration /hypothesis" };
+  if (url) return { url, source: "Dogma graph API /hypothesis" };
   return null;
 }
 
 async function openCurrentQurationGraph() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before opening the current quration graph.");
+    vscode.window.showWarningMessage("Open a workspace folder before opening the current Dogma graph.");
     return null;
   }
 
@@ -1761,14 +1761,14 @@ async function openCurrentQurationGraph() {
   try {
     const target = await resolveCurrentQurationGraphTarget(config);
     if (!target?.url) {
-      vscode.window.showWarningMessage("Dogma could not find a current quration graph. Pull graph context, refresh graph history, or import the workspace first.");
+      vscode.window.showWarningMessage("Dogma could not find a current browser graph. Pull graph context, refresh graph history, or import the workspace first.");
       return null;
     }
     await vscode.env.openExternal(vscode.Uri.parse(target.url));
-    vscode.window.showInformationMessage(`Dogma opened the current quration graph from ${target.source}.`);
+    vscode.window.showInformationMessage(`Dogma opened the current browser graph from ${target.source}.`);
     return target;
   } catch (error) {
-    vscode.window.showWarningMessage(`Dogma could not open the current quration graph: ${error.message}`);
+    vscode.window.showWarningMessage(`Dogma could not open the current browser graph: ${error.message}`);
     return null;
   }
 }
@@ -1802,7 +1802,7 @@ async function openQurationCanvas(result) {
 
 async function openQurationCanvasFromWorkspace() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before opening quration from Dogma workspace context.");
+    vscode.window.showWarningMessage("Open a workspace folder before opening the Dogma browser canvas from workspace context.");
     return;
   }
 
@@ -1816,15 +1816,15 @@ async function openQurationCanvasFromWorkspace() {
     });
     const jsonUri = await writeWorkspaceFile([".dogma", "quration-handoff.json"], JSON.stringify(result, null, 2) + "\n");
     await openQurationCanvas(result);
-    vscode.window.showInformationMessage(`Dogma opened quration canvas from ${vscode.workspace.asRelativePath(jsonUri)}.`);
+    vscode.window.showInformationMessage(`Dogma opened its browser canvas from ${vscode.workspace.asRelativePath(jsonUri)}.`);
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration canvas launch failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser canvas launch failed: ${error.message}`);
   }
 }
 
 async function checkQurationStatus() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before checking quration status.");
+    vscode.window.showWarningMessage("Open a workspace folder before checking Dogma browser graph status.");
     return;
   }
 
@@ -1838,15 +1838,15 @@ async function checkQurationStatus() {
     await writeWorkspaceFile([".dogma", "quration-status.json"], JSON.stringify(status, null, 2) + "\n", null);
     const markdownUri = await writeWorkspaceFile([".dogma", "quration-status.md"], renderQurationConnectionStatus(status));
     const readiness = status.import_ready ? "ready" : "not ready";
-    vscode.window.showInformationMessage(`Dogma quration status is ${readiness}; wrote ${vscode.workspace.asRelativePath(markdownUri)}.`);
+    vscode.window.showInformationMessage(`Dogma browser graph status is ${readiness}; wrote ${vscode.workspace.asRelativePath(markdownUri)}.`);
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration status check failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser graph status check failed: ${error.message}`);
   }
 }
 
 async function refreshQurationGraphHistory() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before refreshing quration graph history.");
+    vscode.window.showWarningMessage("Open a workspace folder before refreshing Dogma browser graph history.");
     return null;
   }
 
@@ -1862,16 +1862,16 @@ async function refreshQurationGraphHistory() {
     const newest = history.graphs?.[0];
     const choice = newest?.graph_url
       ? await vscode.window.showInformationMessage(
-        `Dogma read ${history.count} quration graph(s) and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`,
+        `Dogma read ${history.count} browser graph(s) and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`,
         "Open Newest Graph"
       )
-      : await vscode.window.showInformationMessage(`Dogma read no quration graphs and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`);
+      : await vscode.window.showInformationMessage(`Dogma read no browser graphs and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`);
     if (choice === "Open Newest Graph") {
       await vscode.env.openExternal(vscode.Uri.parse(newest.graph_url));
     }
     return history;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration graph history refresh failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser graph history refresh failed: ${error.message}`);
     return null;
   }
 }
@@ -1890,7 +1890,7 @@ async function resolveQurationGraphId(config) {
     const graphId = String(history.graphs?.[0]?.id || "").trim();
     if (graphId) return { graphId, source: ".dogma/quration-graphs.json" };
   } catch {
-    // Fall through to live quration history.
+    // Fall through to live Dogma graph history.
   }
 
   const history = await listQurationGraphs({
@@ -1899,13 +1899,13 @@ async function resolveQurationGraphId(config) {
     timeoutMs: config.qurationTimeoutMs
   });
   const graphId = String(history.graphs?.[0]?.id || "").trim();
-  if (graphId) return { graphId, source: "quration /hypothesis" };
-  return { graphId: null, source: "quration /hypothesis" };
+  if (graphId) return { graphId, source: "Dogma graph API /hypothesis" };
+  return { graphId: null, source: "Dogma graph API /hypothesis" };
 }
 
 async function pullQurationGraphContext() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before pulling quration graph context.");
+    vscode.window.showWarningMessage("Open a workspace folder before pulling Dogma browser graph context.");
     return null;
   }
 
@@ -1913,7 +1913,7 @@ async function pullQurationGraphContext() {
   try {
     const { graphId, source } = await resolveQurationGraphId(config);
     if (!graphId) {
-      vscode.window.showWarningMessage("Dogma could not find a quration graph id. Import a workspace graph or refresh quration graph history first.");
+      vscode.window.showWarningMessage("Dogma could not find a browser graph id. Import a workspace graph or refresh browser graph history first.");
       return null;
     }
     const context = await getQurationGraphContext({
@@ -1926,23 +1926,23 @@ async function pullQurationGraphContext() {
     await writeWorkspaceFile([".dogma", "quration-graph.md"], renderQurationGraphContext(context), null);
     const choice = context.graph_url
       ? await vscode.window.showInformationMessage(
-        `Dogma pulled quration graph ${context.graph_id} from ${source} and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`,
+        `Dogma pulled browser graph ${context.graph_id} from ${source} and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`,
         "Open Graph"
       )
-      : await vscode.window.showInformationMessage(`Dogma pulled quration graph ${context.graph_id} from ${source} and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`);
+      : await vscode.window.showInformationMessage(`Dogma pulled browser graph ${context.graph_id} from ${source} and wrote ${vscode.workspace.asRelativePath(jsonUri)}.`);
     if (choice === "Open Graph") {
       await vscode.env.openExternal(vscode.Uri.parse(context.graph_url));
     }
     return context;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration graph context pull failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser graph context pull failed: ${error.message}`);
     return null;
   }
 }
 
 async function pullQurationGraphEvents() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before pulling quration graph events.");
+    vscode.window.showWarningMessage("Open a workspace folder before pulling Dogma browser graph events.");
     return null;
   }
 
@@ -1952,7 +1952,7 @@ async function pullQurationGraphEvents() {
     if (!context) return null;
     const graphId = qurationGraphIdFromContext(context);
     if (!graphId) {
-      vscode.window.showWarningMessage("Dogma could not pull quration graph events because the graph id is missing.");
+      vscode.window.showWarningMessage("Dogma could not pull browser graph events because the graph id is missing.");
       return null;
     }
     const events = await getQurationGraphEvents({
@@ -1965,18 +1965,18 @@ async function pullQurationGraphEvents() {
     const jsonUri = await writeWorkspaceFile([".dogma", "quration-events.json"], JSON.stringify(events, null, 2) + "\n", null);
     const markdownUri = await writeWorkspaceFile([".dogma", "quration-events.md"], renderQurationEvents(events), null);
     vscode.window.showInformationMessage(
-      `Dogma pulled ${events.count} quration event(s) for graph ${graphId} and wrote ${vscode.workspace.asRelativePath(markdownUri)}.`
+      `Dogma pulled ${events.count} browser graph event(s) for graph ${graphId} and wrote ${vscode.workspace.asRelativePath(markdownUri)}.`
     );
     return events;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration graph event pull failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser graph event pull failed: ${error.message}`);
     return null;
   }
 }
 
 async function pullQurationFailedEvents() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before pulling quration failed events.");
+    vscode.window.showWarningMessage("Open a workspace folder before pulling failed Dogma graph events.");
     return null;
   }
 
@@ -1991,11 +1991,11 @@ async function pullQurationFailedEvents() {
     const jsonUri = await writeWorkspaceFile([".dogma", "quration-failed-events.json"], JSON.stringify(events, null, 2) + "\n", null);
     const markdownUri = await writeWorkspaceFile([".dogma", "quration-failed-events.md"], renderQurationEvents(events), null);
     vscode.window.showInformationMessage(
-      `Dogma pulled ${events.count} failed quration event(s) and wrote ${vscode.workspace.asRelativePath(markdownUri)}.`
+      `Dogma pulled ${events.count} failed browser graph event(s) and wrote ${vscode.workspace.asRelativePath(markdownUri)}.`
     );
     return events;
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration failed event pull failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma failed browser graph event pull failed: ${error.message}`);
     return null;
   }
 }
@@ -2080,7 +2080,7 @@ async function checkIdeReadiness() {
 
 async function importWorkspaceToQuration() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before importing a Dogma graph into quration.");
+    vscode.window.showWarningMessage("Open a workspace folder before importing a workspace graph into Dogma's browser graph.");
     return;
   }
 
@@ -2111,15 +2111,15 @@ async function importWorkspaceToQuration() {
       await vscode.env.openExternal(vscode.Uri.parse(result.graph_url));
     }
     const target = result.graph_id ? ` as ${result.graph_id}` : "";
-    vscode.window.showInformationMessage(`Dogma imported ${vscode.workspace.asRelativePath(jsonUri)} into quration${target} and wrote ${vscode.workspace.asRelativePath(recordJsonUri)}.`);
+    vscode.window.showInformationMessage(`Dogma imported ${vscode.workspace.asRelativePath(jsonUri)} into the browser graph${target} and wrote ${vscode.workspace.asRelativePath(recordJsonUri)}.`);
   } catch (error) {
-    vscode.window.showErrorMessage(`Dogma quration import failed: ${error.message}`);
+    vscode.window.showErrorMessage(`Dogma browser graph import failed: ${error.message}`);
   }
 }
 
 async function openLastQurationImport() {
   if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showWarningMessage("Open a workspace folder before opening the last quration import.");
+    vscode.window.showWarningMessage("Open a workspace folder before opening the last browser graph import.");
     return;
   }
 
@@ -2127,13 +2127,13 @@ async function openLastQurationImport() {
     const record = await readWorkspaceJson([".dogma", "quration-import.json"]);
     const url = lastQurationGraphUrl(record);
     if (!url) {
-      vscode.window.showWarningMessage("Dogma found .dogma/quration-import.json, but it does not contain a quration graph URL.");
+      vscode.window.showWarningMessage("Dogma found .dogma/quration-import.json, but it does not contain a browser graph URL.");
       return;
     }
     await vscode.env.openExternal(vscode.Uri.parse(url));
-    vscode.window.showInformationMessage(`Dogma opened the last quration import at ${url}.`);
+    vscode.window.showInformationMessage(`Dogma opened the last browser graph import at ${url}.`);
   } catch (error) {
-    vscode.window.showWarningMessage(`Dogma could not open the last quration import: ${error.message}`);
+    vscode.window.showWarningMessage(`Dogma could not open the last browser graph import: ${error.message}`);
   }
 }
 

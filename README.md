@@ -1,96 +1,127 @@
 # Dogma
 
-Dogma is an in-progress AI-scientist platform for computational biology. It connects
-scientific questions, data, methods, execution, and evidence through graph-grounded
-workflows. This public release brings that approach into the IDE: it scans a
-bioinformatics workspace, applies local guardrails and method checks, keeps an evidence
-ledger, and proposes reviewable patches through a VS Code / Cursor extension backed by
-a dependency-light local sidecar.
+Dogma is a research prototype for graph-grounded computational biology. It keeps
+scientific questions, datasets, methods, planned computations, and resulting evidence
+connected instead of treating an analysis as an unstructured chat or a pile of files.
 
-This repository is the reviewed, MIT-licensed **Dogma IDE and local-control slice**. The
-browser graph workspace and earlier data-curation and analysis surfaces remain in Dogma's
-original working repository, whose repository, Python-package, and API namespace is
-`quration` for historical reasons. They are parts of the same Dogma project, not a separate
-product.
+This is the canonical Dogma monorepo. The browser workspace that was developed in the
+`quration` repository now lives here alongside the VS Code / Cursor extension, local
+Python sidecar, Claude Science skill, and synthetic demo workspace. The Python import
+and API namespace remains `quration` temporarily so existing artifacts and integrations
+do not break; it is not a second product that needs a second repository.
 
-## What's here
+## What Dogma does today
 
-- `dogma-vscode-extension/` — the VS Code / Cursor extension: commands, views, diagnostics,
-  patch proposals, and IDE surfaces.
-- `dogma-local-service/` — the local sidecar (Python, zero runtime dependencies): workspace
-  scanning, method guardrails, run plans, evidence ledgers, and a stable graph-handoff
-  contract.
-- `dogma-demo-workspace/` — synthetic FASTQ / VCF / BED / GTF / sample-sheet / Nextflow
-  fixtures for safe, reproducible checks.
-- `tools/check-dogma-rename.js` — rename-safety preflight.
+- The web workspace represents hypotheses, evidence, and typed graph edges and includes
+  dataset-search and method-planning surfaces.
+- The Python backend provides the graph, search, broker, analysis, persistence, and API
+  implementation used by that workspace.
+- The local sidecar scans a bioinformatics workspace, generates method guardrails and
+  selected-edge evaluation plans, prepares reviewable dry-run or stub-run commands,
+  proposes patches, and writes evidence-ledger artifacts.
+- The VS Code / Cursor extension exposes those local capabilities where the analysis
+  files live.
+- The Claude Science method-validity skill calls the same deterministic local kernel,
+  so Claude can inspect a proposed method without inventing a separate reasoning path.
 
-### Legacy identifiers
+## Causal graph-based execution: current boundary
 
-`quration` was Dogma's original working name. Existing `quration` command IDs, settings,
-environment variables, API fields, and `.dogma/quration-*` filenames remain unchanged for
-compatibility; in this repository they refer to Dogma's browser graph workspace and graph
-handoff contract. They do not denote a separate product. Renaming those identifiers is out
-of scope for this reviewed release because it would break existing integrations and saved
-artifacts.
+The intended loop is:
 
-Inside `dogma-local-service/`, the sidecar's implementation package is still named
-`biocursor_service/` for backward compatibility while `dogma_service` is a thin alias that
-re-exports it — this naming is retained deliberately, since a full package rename carries
-more risk than its marginal benefit.
-
-## Status
-
-Working prototype. Not a clinical, regulatory, or production bioinformatics system —
-method recommendations and graph-grounding outputs need human review, and demo fixtures
-are synthetic unless documented otherwise. MIT licensed.
-
-## What I built
-
-- The graph-first workspace concept: computational-biology hypotheses, evidence paths,
-  and method checks surfaced where the analysis actually happens.
-- A local sidecar that indexes bioinformatics workspaces and emits guardrails, run plans,
-  evidence ledgers, and patch proposals.
-- A VS Code / Cursor extension exposing those capabilities in an IDE workflow.
-- Synthetic demo fixtures for reproducible checks.
-
-## Where coding agents helped
-
-Claude Code and Codex helped implement and revise the extension surfaces, local-service
-modules, tests, and documentation. I directed the product and scientific framing, the
-workflow design, integration decisions, review of claims, and the final publication
-choices. AI tools are not authors; responsibility for the content here stays with me.
-
-## Getting started
-
-Local sidecar (Python 3, no dependencies to install):
-
-```bash
-cd dogma-local-service
-python -m unittest discover -s tests      # 77 tests
+```text
+typed hypothesis edge
+  -> evidence and method checks
+  -> edge evaluation work package
+  -> human review
+  -> allowlisted local dry-run/stub-run
+  -> evidence ledger and graph update
 ```
 
-VS Code / Cursor extension (no dependencies to install):
+The repository contains the graph workspace, evaluation-plan contracts, guarded local
+execution primitives, and evidence-ledger machinery needed for that loop. It does **not**
+yet provide a fully closed, autonomous selected-edge-to-result pipeline. In particular,
+the final graph-bound orchestration and result write-back still need to be joined and
+tested end to end. Dogma should currently be described as a review-first planning and
+local-control prototype, not as an autonomous causal execution engine.
+
+## Repository map
+
+- `src/quration/` — Dogma's Python backend under its compatibility namespace.
+- `frontend/` — browser graph and research workspace.
+- `dogma-local-service/` — dependency-light local sidecar and guarded execution layer.
+- `dogma-vscode-extension/` — VS Code / Cursor interface.
+- `dogma-science-skill/` — Claude Science method-validity skill.
+- `dogma-demo-workspace/` — synthetic FASTQ, VCF, BED, GTF, sample-sheet, and Nextflow
+  fixtures.
+- `tests/` — backend tests; each other runnable component keeps its tests beside it.
+- `MIGRATION.md` — provenance and exclusions for the quration-to-Dogma consolidation.
+
+## Set up the monorepo
+
+Use Python 3.10 or newer and Node.js 20. Create an isolated Python environment, then
+install the backend, sidecar, and frontend dependencies:
 
 ```bash
-cd dogma-vscode-extension
-npm test                                   # node-based test suite
+python -m venv .venv
+source .venv/bin/activate
+npm run install:all
 ```
 
-Point the extension at `dogma-demo-workspace/` for a safe, synthetic run.
+For local configuration, copy `.env.example` to `.env` and fill in only the providers
+you intend to use. Never commit `.env`.
+
+Run the browser workspace and backend together:
+
+```bash
+npm run dev
+```
+
+Run the sidecar against the synthetic workspace:
+
+```bash
+npm run dev:dogma-service
+```
+
+The extension can be opened in a development host with `npm run dev:dogma-vscode` or
+`npm run dev:dogma-cursor`.
 
 ## Verification
 
-Last run on the current public branch (2026-07-11):
+The component checks can be run together:
 
-- `dogma-vscode-extension` — `npm test` passed (full node test suite, including demo
-  workspace, local-service client, and VSIX-package checks).
-- `dogma-local-service` — `python -m unittest discover -s tests` passed: 77 tests OK.
+```bash
+npm run check:all
+```
 
-## Limitations
+This covers the backend, frontend, extension, sidecar, Claude Science skill, frontend
+production build, rename compatibility, and public-safety preflight. Backend Ruff and
+frontend TypeScript strict checking are not release gates yet; the migrated legacy
+surfaces need a separate cleanup pass before those checks can honestly be enabled.
 
-Research / prototype code. No hosted service is implied. The `methods_graph` grounding
-path is optional and degrades gracefully when the broader research package is absent.
+The required gate excludes tests that contact live external archives. Run those
+separately, when network access is intentional, with `npm run test:backend:integration`.
 
-## License
+## Compatibility names
 
-MIT. See [`LICENSE`](LICENSE).
+The following historical identifiers are retained deliberately:
+
+- the Python distribution, imports, and CLI named `quration`;
+- existing quration API fields, extension command IDs, environment variables, local
+  storage keys, and `.dogma/quration-*` artifacts;
+- `biocursor_service`, the sidecar implementation package, with `dogma_service` as its
+  public compatibility alias.
+
+These names should be migrated with explicit compatibility tests, not by a bulk rename.
+
+## Status and responsibility
+
+Dogma is research/prototype software. It is not a clinical, regulatory, or production
+bioinformatics system. Method suggestions, graph edges, generated commands, patches, and
+evidence records require human review; demo inputs are synthetic unless stated otherwise.
+
+Claude Code and Codex helped implement and revise parts of the code, tests, migration,
+and documentation. Manu Arrojwala directed the product and scientific framing, workflow
+design, integration decisions, claim review, and publication decisions, and remains
+responsible for the repository.
+
+MIT licensed. See [`LICENSE`](LICENSE).

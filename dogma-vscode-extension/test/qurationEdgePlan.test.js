@@ -45,8 +45,9 @@ const record = {
 };
 
 const markdown = renderQurationEdgePlan(record);
-assert(markdown.includes("# quration Edge Plan"));
-assert(markdown.includes("quration's canonical graph API"));
+assert(markdown.includes("# Dogma Browser Edge Plan"));
+assert(markdown.includes("canonical browser graph API"));
+assert(markdown.includes("quration compatibility namespace"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- Edge ID: edge-1"));
 assert(markdown.includes("- Source: A"));

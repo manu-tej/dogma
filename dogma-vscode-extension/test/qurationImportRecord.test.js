@@ -43,10 +43,10 @@ assert.strictEqual(lastQurationGraphUrl(record), "http://localhost:3000/canvas/g
 assert.strictEqual(lastQurationGraphUrl({}), null);
 
 const markdown = renderQurationImportRecord(record);
-assert(markdown.includes("# Dogma quration Import"));
+assert(markdown.includes("# Dogma Browser Graph Import"));
 assert(markdown.includes("Graph ID: graph-123"));
 assert(markdown.includes("Does control vs treatment change transcript abundance?"));
 assert(markdown.includes("methods_graph.audited_substrate_missing"));
-assert(markdown.includes("Review the quration canvas as an unvalidated seed graph."));
+assert(markdown.includes("Review the Dogma browser canvas as an unvalidated seed graph."));
 
 console.log("quration import record tests passed");

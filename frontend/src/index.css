@@ -1,0 +1,374 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * dogma design system — "Northern Blot": graphite instrument surfaces with a
+ * single surgical phosphor-green signal accent. Dark-first (oklch, CSS-first).
+ * Depth = a 3-step surface ladder + lit-bevel shadow; the accent EMITS light
+ * (glow) rather than filling large areas.
+ */
+:root,
+.dark {
+  --font-size: 15px;
+
+  /* surface ladder (bg → card → raised) — clear lightness steps so cards read raised */
+  --background: oklch(0.155 0.006 264);
+  --surface-1: oklch(0.205 0.007 264);
+  --surface-2: oklch(0.255 0.008 264);
+  --foreground: oklch(0.97 0.004 264);
+
+  --card: var(--surface-1);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-2);
+  --popover-foreground: var(--foreground);
+
+  /* the signal — phosphor-green autoradiograph band */
+  --signal: oklch(0.82 0.19 150);
+  --signal-2: oklch(0.88 0.13 175);
+  --signal-foreground: oklch(0.18 0.04 150);
+
+  /* primary action carries the signal */
+  --primary: var(--signal);
+  --primary-foreground: var(--signal-foreground);
+
+  /* neutral roles (shadcn "accent" = subtle hover surface, NOT the brand) */
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface-2);
+  --muted-foreground: oklch(0.685 0.013 264);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--foreground);
+
+  --destructive: oklch(0.70 0.19 22);
+  --destructive-foreground: oklch(0.98 0.01 22);
+  --positive: oklch(0.80 0.17 150);
+
+  --border: oklch(0.30 0.008 264);
+  --border-strong: oklch(0.38 0.008 264);
+  --input: oklch(0.30 0.008 264);
+  --input-background: oklch(0.205 0.007 264);
+  --switch-background: oklch(0.34 0.008 264);
+  --ring: var(--signal);
+
+  /* data-viz: sequential phosphor→teal magnitude + reserved up/down regulation */
+  --chart-1: oklch(0.82 0.19 150);
+  --chart-2: oklch(0.84 0.14 175);
+  --chart-3: oklch(0.80 0.11 210);
+  --chart-4: oklch(0.78 0.16 60);
+  --chart-5: oklch(0.70 0.20 12);
+
+  /* sidebar (nav rail) sits slightly inset (darker) than the page */
+  --sidebar: oklch(0.145 0.006 264);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--signal);
+  --sidebar-primary-foreground: var(--signal-foreground);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--signal);
+
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --radius: 0.7rem;
+
+  /* fonts (self-hosted Geist variable) */
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* dark-tuned elevation (definition shadow + large soft ambient + lit top edge) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 18px 50px -14px rgba(0, 0, 0, 0.7);
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --glow-signal: 0 0 0 1px color-mix(in oklab, var(--signal) 42%, transparent),
+    0 4px 22px -3px color-mix(in oklab, var(--signal) 38%, transparent);
+
+  /* motion — one clock for the whole app */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-signal: var(--signal);
+  --color-signal-2: var(--signal-2);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-positive: var(--positive);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
+  --ease-out-quart: var(--ease-out-quart);
+  --ease-spring: var(--ease-spring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    font-size: var(--font-size);
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* tabular figures for data/identifiers in mono */
+  code,
+  kbd,
+  samp,
+  pre,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "ss01" 1;
+  }
+  /* refined dark scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 8px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+    background-clip: padding-box;
+  }
+  /* respect reduced motion globally */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* lit-bevel elevation (close definition shadow + soft ambient + lit top edge) */
+  .elev {
+    box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.5), var(--shadow-lg), var(--bevel);
+  }
+  .elev-sm {
+    box-shadow: var(--shadow-sm), var(--bevel);
+  }
+  /* the signal emits light */
+  .glow-signal {
+    box-shadow: var(--glow-signal);
+  }
+  /* the "trace band": a glowing accent bar marking the one active element */
+  .trace-band {
+    position: relative;
+  }
+  .trace-band::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 60%;
+    width: 2px;
+    transform: translateY(-50%);
+    border-radius: 2px;
+    background: var(--signal);
+    box-shadow: 0 0 8px 0 color-mix(in oklab, var(--signal) 80%, transparent);
+  }
+  /* gel "signal sweep" — a luminous band migrating left→right (loading/active) */
+  .signal-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .signal-sweep::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--signal) 22%, transparent),
+      transparent
+    );
+    transform: translateX(-100%);
+    animation: dogma-sweep 1.6s var(--ease-out-quart) infinite;
+    pointer-events: none;
+  }
+  @keyframes dogma-sweep {
+    to {
+      transform: translateX(100%);
+    }
+  }
+  /* skeleton shimmer */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--surface-1) 25%,
+      var(--surface-2) 37%,
+      var(--surface-1) 63%
+    );
+    background-size: 400% 100%;
+    animation: dogma-shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes dogma-shimmer {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0 50%;
+    }
+  }
+  /* entrance stagger helper (pair with tw-animate-css animate-in) */
+  .stagger > * {
+    animation-fill-mode: both;
+  }
+}
+
+/* base typography — applies only where no Tailwind text-* class is present */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+    h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+    }
+    h4 {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+    p {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+    label {
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+    button {
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+    input {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+/* React Flow chrome → dogma dark instrument theme (overrides @xyflow default CSS) */
+.react-flow__controls {
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: var(--surface-2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+  width: 30px;
+  height: 30px;
+}
+.react-flow__controls-button:hover {
+  background: color-mix(in oklab, var(--surface-2) 80%, var(--foreground) 12%) !important;
+}
+.react-flow__controls-button svg {
+  fill: var(--foreground);
+}
+.react-flow__handle {
+  background: var(--muted-foreground) !important;
+  border: 1px solid var(--background) !important;
+  width: 8px;
+  height: 8px;
+}
+.react-flow__handle:hover {
+  background: var(--signal) !important;
+}
+.react-flow__edge-path {
+  stroke-width: 1.75;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--signal) 60%, transparent));
+}
+.react-flow__minimap {
+  border-radius: var(--radius-md);
+}
+.react-flow__attribution {
+  display: none;
+}

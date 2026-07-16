@@ -18,14 +18,22 @@ class QurationHandoffTests(unittest.TestCase):
         result = build_quration_handoff(DEMO_ROOT)
 
         self.assertEqual(result["contract_version"], "quration-handoff.v1")
-        self.assertTrue(result["invariants"]["quration_web_ui_is_canonical"])
-        self.assertTrue(result["invariants"]["dogma_is_local_ide_layer"])
+        self.assertTrue(result["invariants"]["dogma_monorepo_is_canonical"])
+        self.assertTrue(result["invariants"]["dogma_web_ui_is_canonical_graph_surface"])
+        self.assertTrue(result["invariants"]["quration_is_compatibility_namespace"])
         self.assertFalse(result["invariants"]["stores_biological_verdicts"])
         self.assertFalse(result["invariants"]["stores_confidence_grades"])
         self.assertEqual(result["quration_import"]["frontend_url"], "http://localhost:3000/canvas")
         self.assertEqual(result["quration_import"]["api_url"], "http://localhost:8000")
-        self.assertIsNone(result["quration_import"]["import_endpoint"])
-        self.assertEqual(result["quration_import"]["status"], "handoff_ready_import_endpoint_not_present")
+        self.assertEqual(
+            result["quration_import"]["import_endpoint"],
+            "http://localhost:8000/hypothesis/build",
+        )
+        self.assertEqual(
+            result["quration_import"]["requires_adapter"],
+            "causal_graph_to_seed_skeleton",
+        )
+        self.assertEqual(result["quration_import"]["status"], "adapter_ready_for_seed_import")
         self.assertTrue(result["quration_import"]["handoff_json_path"].endswith(".dogma/quration-handoff.json"))
 
         graph = result["causal_graph"]
@@ -49,8 +57,9 @@ class QurationHandoffTests(unittest.TestCase):
         self.assertNotIn("supports", json.dumps(result, sort_keys=True).lower())
         self.assertNotIn("refutes", json.dumps(result, sort_keys=True).lower())
         self.assertNotIn("SYN_001", json.dumps(result, sort_keys=True))
-        self.assertIn("# Dogma quration Handoff", result["markdown"])
-        self.assertIn("## quration Import", result["markdown"])
+        self.assertIn("# Dogma Graph Handoff (quration compatibility)", result["markdown"])
+        self.assertIn("## Graph Import (quration compatibility)", result["markdown"])
+        self.assertEqual(result["quration_contract"]["repo"], "https://github.com/manu-tej/dogma")
 
     def test_cli_writes_quration_handoff_json_and_markdown(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -66,7 +75,7 @@ class QurationHandoffTests(unittest.TestCase):
         self.assertEqual(payload["service"], "dogma-local-service")
         self.assertIn("causal_graph", payload)
         self.assertIn("quration_import", payload)
-        self.assertIn("# Dogma quration Handoff", markdown)
+        self.assertIn("# Dogma Graph Handoff (quration compatibility)", markdown)
         self.assertIn("Graph UI: http://localhost:3000/canvas", markdown)
 
 

@@ -39,6 +39,7 @@ const markdown = renderIdeReadiness(blocked);
 assert(markdown.includes("# Dogma IDE Readiness"));
 assert(markdown.includes("| Local service | blocked | connect ECONNREFUSED |"));
 assert(markdown.includes("| Workspace trust | blocked | untrusted; human data detected |"));
-assert(markdown.includes("quration backend/frontend"));
+assert(markdown.includes("Dogma's browser workspace as the canonical graph UI"));
+assert(markdown.includes("quration remains the compatibility namespace"));
 
 console.log("IDE readiness renderer tests passed");

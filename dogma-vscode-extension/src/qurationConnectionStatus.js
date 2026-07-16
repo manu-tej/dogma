@@ -17,7 +17,7 @@ function renderQurationConnectionStatus(result = {}) {
     .map((capability) => `| ${capability.label || capability.id} | ${capability.method?.toUpperCase() || "GET"} ${capability.path || "unknown"} | ${capability.available ? "yes" : "no"} |`);
   const settings = result.settings || {};
   const lines = [
-    "# Dogma quration Status",
+    "# Dogma Browser Graph Status",
     "",
     `- Status: ${result.status || "unknown"}`,
     `- Import ready: ${yesNo(result.import_ready)}`,
@@ -67,17 +67,17 @@ function renderQurationConnectionStatus(result = {}) {
   ];
 
   if (result.import_ready) {
-    lines.push("- Run `Dogma: Import Workspace To quration` to persist the current Dogma graph in quration.");
-    lines.push("- Run `Dogma: Open Last quration Import` after a successful import to return to the saved graph.");
+    lines.push("- Run `Dogma: Import Workspace To Browser Graph` to persist the current graph in Dogma's browser workspace.");
+    lines.push("- Run `Dogma: Open Last Graph Import` after a successful import to return to the saved graph.");
   } else {
     if (!backend.reachable) {
-      lines.push("- Start quration's backend on `dogma.qurationApiUrl` before importing.");
+      lines.push("- Start Dogma's graph backend on the compatibility setting `dogma.qurationApiUrl` before importing.");
     }
     if (!canvas.reachable) {
-      lines.push("- Start quration's frontend on `dogma.qurationUrl` before opening imported graphs.");
+      lines.push("- Start Dogma's browser frontend on the compatibility setting `dogma.qurationUrl` before opening imported graphs.");
     }
     if (!graphApi.ready) {
-      lines.push("- Update quration or point `dogma.qurationApiUrl` at a backend exposing the required `/hypothesis` graph contract.");
+      lines.push("- Update Dogma's graph backend or point the compatibility setting `dogma.qurationApiUrl` at a backend exposing the required `/hypothesis` contract.");
     }
   }
 

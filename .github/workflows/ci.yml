@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Backend, sidecar, and Claude Science skill
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install backend test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,database]"
+      - name: Test backend
+        run: python -m pytest tests/ -m "not integration"
+      - name: Test local sidecar
+        working-directory: dogma-local-service
+        run: python -m unittest discover -s tests
+      - name: Verify non-editable sidecar package
+        run: |
+          python -m pip install ./dogma-local-service
+          cd /tmp
+          python -c "import biocursor_service, dogma_service"
+          dogma-service --help
+      - name: Test Claude Science skill
+        run: python -m pytest dogma-science-skill/method-validity/tests
+
+  node:
+    name: Frontend and IDE extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+      - name: Audit frontend dependencies
+        run: npm --prefix frontend audit --audit-level=high
+      - name: Public and rename preflights
+        run: npm run check:public-safety && npm run check:dogma-rename
+      - name: Test IDE extension
+        run: npm run test:dogma-extension
+      - name: Build IDE extension package
+        run: |
+          npm --prefix dogma-vscode-extension run package:vsix -- "$RUNNER_TEMP/dogma.vsix"
+          test -s "$RUNNER_TEMP/dogma.vsix"
+          unzip -t "$RUNNER_TEMP/dogma.vsix"
+      - name: Test frontend
+        run: npm run test:frontend
+      - name: Build frontend
+        run: npm run build:frontend

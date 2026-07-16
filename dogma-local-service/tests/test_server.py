@@ -177,7 +177,7 @@ class ServerTests(unittest.TestCase):
         quration_handoff = request_json(f"{self.base_url}/quration-handoff", {"root": str(DEMO_ROOT), "max_files": 10})
         self.assertEqual(quration_handoff["service"], "dogma-local-service")
         self.assertEqual(quration_handoff["causal_graph"]["edges"][0]["confidence"], 0.0)
-        self.assertTrue(quration_handoff["invariants"]["quration_web_ui_is_canonical"])
+        self.assertTrue(quration_handoff["invariants"]["dogma_monorepo_is_canonical"])
 
         substrate = request_json(f"{self.base_url}/methods-graph-substrate", {})
         self.assertEqual(substrate["service"], "dogma-local-service")

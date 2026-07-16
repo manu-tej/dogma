@@ -42,9 +42,9 @@ function renderQurationEdgeWorkPackage(record = {}) {
   const gaps = dogma.coverage_gaps || [];
 
   return [
-    "# Dogma quration Edge Work Package",
+    "# Dogma Browser Edge Work Package",
     "",
-    "This package is the IDE-side unit of work for one quration edge. quration remains the canonical graph, edge resolve, evidence, and event-history surface; Dogma supplies local workspace context, method guardrails, redaction, patching, and execution gates.",
+    "This package is the IDE-side unit of work for one Dogma browser graph edge. The quration name remains only in compatibility fields and artifact filenames; the local IDE supplies workspace context, method guardrails, redaction, patching, and execution gates.",
     "",
     "## Scope",
     "",
@@ -55,7 +55,7 @@ function renderQurationEdgeWorkPackage(record = {}) {
     `- Claim: ${cleanText(selected.title, `${cleanText(claim.source_symbol, "unknown")} ${cleanText(claim.relation, "relates to")} ${cleanText(claim.target_symbol, "unknown")}`)}`,
     `- Generated: ${cleanText(record.generated_at, "unknown")}`,
     "",
-    "## quration Canonical Edge Plan",
+    "## Dogma Canonical Edge Plan (quration compatibility artifact)",
     "",
     `- Claimed entity: ${cleanText(readout.claimed_entity, "unknown")}`,
     `- Modality: ${cleanText(readout.modality, "unknown")}`,
@@ -81,7 +81,7 @@ function renderQurationEdgeWorkPackage(record = {}) {
     "| --- | --- | --- |",
     ...contractRows(dogma.contracts),
     "",
-    "## quration Assumptions",
+    "## Browser Graph Assumptions",
     "",
     "| Name | Status | Checkable |",
     "| --- | --- | --- |",
@@ -90,14 +90,14 @@ function renderQurationEdgeWorkPackage(record = {}) {
     "## Agent Instructions",
     "",
     "- Do not assert biological support/refute verdicts from this package.",
-    "- Use quration for graph edits, edge resolve, evidence records, and event history.",
+    "- Use Dogma's browser graph workspace for graph edits, edge resolve, evidence records, and event history.",
     "- Use Dogma for local file inspection, workflow edits, patch proposals, tests, and execution gates.",
     "- Treat every coverage gap as blocking real execution until it is resolved or explicitly accepted as a gap.",
     "- If proposing code changes, keep them scoped to workspace files and preserve privacy/redaction constraints.",
     "",
     "## Source Artifacts",
     "",
-    "- `.dogma/quration-edge-plan.json` and `.dogma/quration-edge-plan.md`: quration canonical edge plan skeleton.",
+    "- `.dogma/quration-edge-plan.json` and `.dogma/quration-edge-plan.md`: Dogma canonical edge-plan skeleton under compatibility filenames.",
     "- `.dogma/quration-edge-evaluation-plan.json` and `.dogma/quration-edge-evaluation-plan.md`: Dogma local guardrail plan.",
     ""
   ].join("\n");

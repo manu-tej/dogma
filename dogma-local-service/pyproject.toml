@@ -1,9 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "dogma-local-service"
 version = "0.1.11"
 description = "Dependency-free local workspace indexer for a Dogma-style bioinformatics IDE."
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
+
+[project.scripts]
+dogma-service = "biocursor_service.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["biocursor_service*", "dogma_service*"]
+exclude = ["tests*"]
 
 [tool.dogma]
 service = "local-companion"

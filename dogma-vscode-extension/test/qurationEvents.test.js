@@ -54,8 +54,9 @@ const graphEvents = {
 };
 
 const graphMarkdown = renderQurationEvents(graphEvents);
-assert(graphMarkdown.includes("# Dogma quration Graph Events"));
-assert(graphMarkdown.includes("quration remains the canonical graph"));
+assert(graphMarkdown.includes("# Dogma Browser Graph Events"));
+assert(graphMarkdown.includes("Dogma's browser workspace remains the canonical graph"));
+assert(graphMarkdown.includes("quration compatibility API"));
 assert(graphMarkdown.includes("- Graph ID: graph-1"));
 assert(graphMarkdown.includes("- Events: 2"));
 assert(graphMarkdown.includes("- Failed: 1"));
@@ -89,9 +90,9 @@ const failedMarkdown = renderQurationEvents({
   }
 });
 
-assert(failedMarkdown.includes("# Dogma quration Failed Events"));
+assert(failedMarkdown.includes("# Dogma Failed Browser Graph Events"));
 assert(failedMarkdown.includes("- Limit: 25"));
 assert(failedMarkdown.includes("| none | unknown | unknown | unknown | not available | none |"));
-assert(failedMarkdown.includes("read-only and does not mutate quration"));
+assert(failedMarkdown.includes("read-only and does not mutate the graph"));
 
 console.log("quration events renderer tests passed");
