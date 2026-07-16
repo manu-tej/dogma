@@ -64,8 +64,8 @@ const record = {
 };
 
 const markdown = renderQurationEdgeWorkPackage(record);
-assert(markdown.includes("# Dogma quration Edge Work Package"));
-assert(markdown.includes("quration remains the canonical graph"));
+assert(markdown.includes("# Dogma Browser Edge Work Package"));
+assert(markdown.includes("quration name remains only in compatibility fields"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- Edge ID: bioedge.condition_transcript_abundance"));
 assert(markdown.includes("- Claimed entity: Transcript abundance"));

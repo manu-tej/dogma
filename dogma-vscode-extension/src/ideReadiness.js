@@ -70,13 +70,13 @@ function methodsGraphGate(step = {}) {
 function qurationGate(step = {}) {
   const result = stepResult(step);
   if (!step.ok) {
-    return { id: "quration", label: "quration bridge", state: "unknown", detail: messageFor(step) };
+    return { id: "quration", label: "Dogma graph bridge (quration compatibility)", state: "unknown", detail: messageFor(step) };
   }
   const graphReady = result.graph_api?.ready;
   const graphDetail = graphReady === undefined ? "" : `; graph API ready: ${graphReady ? "yes" : "no"}`;
   return {
     id: "quration",
-    label: "quration bridge",
+    label: "Dogma graph bridge (quration compatibility)",
     state: result.import_ready ? "ready" : "warning",
     detail: `${result.status || "unknown"}; import ready: ${result.import_ready ? "yes" : "no"}${graphDetail}`
   };
@@ -95,8 +95,8 @@ function nextActions(gates) {
   if (byId.workspace_trust?.state === "blocked") actions.push("Run `Dogma: Check Workspace Trust` and explicitly trust the workspace before local operations on human data.");
   if (byId.llm_provider?.state === "warning") actions.push("Run `Dogma: Check LLM Provider`; log in to Claude Code or set `dogma.agentProvider` to `none` for prompt-only mode.");
   if (byId.methods_graph?.state === "warning" || byId.methods_graph?.state === "unknown") actions.push("Run `Dogma: Generate Methods-Graph Preflight` and resolve reported substrate or coverage gaps before treating methods as grounded.");
-  if (byId.quration?.state === "warning" || byId.quration?.state === "unknown") actions.push("Run `Dogma: Check quration Status`; start quration backend/frontend before importing the workspace graph.");
-  if (!actions.length) actions.push("Use `Dogma: Open Agent Workbench`, `Dogma: Generate quration Handoff`, or `Dogma: Import Workspace To quration` for the next IDE step.");
+  if (byId.quration?.state === "warning" || byId.quration?.state === "unknown") actions.push("Run `Dogma: Check Browser Graph Status`; start Dogma's graph backend and frontend before importing the workspace graph through the compatibility API.");
+  if (!actions.length) actions.push("Use `Dogma: Open Agent Workbench`, `Dogma: Generate Browser Graph Handoff`, or `Dogma: Import Workspace To Browser Graph` for the next IDE step.");
   return actions;
 }
 
@@ -128,7 +128,7 @@ function renderIdeReadiness(report = {}) {
   return [
     "# Dogma IDE Readiness",
     "",
-    "This report checks whether the VS Code/Cursor IDE layer is ready to act locally while keeping quration as the canonical graph web UI.",
+    "This report checks whether the VS Code/Cursor IDE layer is ready to act locally with Dogma's browser workspace as the canonical graph UI. quration remains the compatibility namespace for existing commands, settings, routes, and artifacts.",
     "",
     `- Status: ${report.status || "unknown"}`,
     `- Checked: ${report.checked_at || "unknown"}`,
@@ -142,8 +142,8 @@ function renderIdeReadiness(report = {}) {
     "## Settings",
     "",
     `- Local service: ${settings.service_url || "not configured"}`,
-    `- quration canvas: ${settings.quration_canvas_url || "not configured"}`,
-    `- quration API: ${settings.quration_api_url || "not configured"}`,
+    `- Dogma canvas (quration compatibility setting): ${settings.quration_canvas_url || "not configured"}`,
+    `- Dogma graph API (quration compatibility setting): ${settings.quration_api_url || "not configured"}`,
     `- Agent provider: ${settings.agent_provider || "not configured"}`,
     "",
     "## Next Actions",

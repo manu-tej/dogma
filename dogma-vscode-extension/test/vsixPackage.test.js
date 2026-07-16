@@ -123,7 +123,8 @@ assert(packageJson.contributes.commands.some((command) => command.command === "d
 assert(packageJson.contributes.commands.some((command) => command.command === "dogma.applyActiveFilePatch"));
 assert(packageJson.contributes.commands.some((command) => command.command === "dogma.generateQurationHandoff"));
 assert(packageJson.contributes.commands.some((command) => command.command === "dogma.openQurationGraphUi"));
-assert(packageJson.contributes.commands.some((command) => command.command === "dogma.openCurrentQurationGraph" && command.title === "Dogma: Open Current quration Graph"));
+assert(packageJson.contributes.commands.some((command) => command.command === "dogma.openCurrentQurationGraph" && command.title === "Dogma: Open Current Graph"));
+assert(packageJson.contributes.commands.some((command) => command.command === "dogma.importWorkspaceToQuration" && command.title === "Dogma: Import Workspace To Browser Graph"));
 assert(packageJson.contributes.commands.some((command) => command.command === "dogma.openQurationCanvasFromWorkspace"));
 assert(packageJson.contributes.commands.some((command) => command.command === "dogma.checkQurationStatus"));
 assert(packageJson.contributes.commands.some((command) => command.command === "dogma.refreshQurationGraphHistory"));

@@ -9,7 +9,7 @@ function graphRows(graphs = []) {
     return ["| none | unknown | 0 | 0 | unknown | not available |"];
   }
   return graphs.map((graph) => {
-    const label = graph.id ? `${graph.rank || ""}. ${graph.query || graph.id}` : graph.query || "Untitled quration graph";
+    const label = graph.id ? `${graph.rank || ""}. ${graph.query || graph.id}` : graph.query || "Untitled Dogma graph";
     return [
       `| ${escapePipe(label)}`,
       escapePipe(graph.status || "unknown"),
@@ -27,19 +27,19 @@ function renderQurationGraphHistory(record = {}) {
   const newest = graphs[0];
   const actions = graphs.length
     ? [
-      "- Use `Dogma: Open quration Graph UI` or the graph URL above for review in quration.",
-      "- Keep graph edits in quration; use Dogma to inspect local files, guardrails, and workflow patches.",
-      "- Use `Dogma: Import Workspace To quration` when the local workspace should seed a new graph."
+      "- Use `Dogma: Open Browser Graph UI` or the graph URL above for review in Dogma's browser workspace.",
+      "- Keep graph edits in Dogma's browser workspace; use the IDE surface to inspect local files, guardrails, and workflow patches.",
+      "- Use `Dogma: Import Workspace To Browser Graph` when the local workspace should seed a new Dogma graph."
     ]
     : [
-      "- Use `Dogma: Import Workspace To quration` to create a quration graph from the current workspace.",
-      "- Use `Dogma: Open quration Graph UI` to author or inspect graphs directly in quration."
+      "- Use `Dogma: Import Workspace To Browser Graph` to create a Dogma graph from the current workspace.",
+      "- Use `Dogma: Open Browser Graph UI` to author or inspect graphs in Dogma's browser workspace."
     ];
 
   return [
-    "# Dogma quration Graph History",
+    "# Dogma Browser Graph History",
     "",
-    "Dogma reads quration graph history as an IDE client. quration remains the canonical graph canvas and event-history surface.",
+    "Dogma reads graph history through its quration compatibility API. Dogma's browser workspace remains the canonical graph canvas and event-history surface.",
     "",
     `- Status: ${record.status || "unknown"}`,
     `- Fetched: ${record.fetched_at || "unknown"}`,
@@ -54,8 +54,8 @@ function renderQurationGraphHistory(record = {}) {
     "",
     "## Settings",
     "",
-    `- quration API: ${settings.quration_api_url || "not configured"}`,
-    `- quration canvas: ${settings.quration_canvas_url || "not configured"}`,
+    `- Dogma graph API (quration compatibility setting): ${settings.quration_api_url || "not configured"}`,
+    `- Dogma canvas (quration compatibility setting): ${settings.quration_canvas_url || "not configured"}`,
     `- Graph contract: ${settings.graph_contract || "not configured"}`,
     "",
     "## Next Actions",

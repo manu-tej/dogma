@@ -28,9 +28,10 @@ const ready = buildIdeSessionReport({
 assert.strictEqual(ready.contract_version, "dogma-ide-session.v1");
 assert.strictEqual(ready.status, "ready");
 assert.strictEqual(ready.architecture.ide_surface, "VS Code/Cursor extension");
-assert.strictEqual(ready.architecture.graph_surface, "quration web UI");
+assert.strictEqual(ready.architecture.graph_surface, "Dogma browser graph workspace");
+assert.strictEqual(ready.architecture.compatibility_namespace, "quration");
 assert.strictEqual(ready.scan.issue_counts.total, 0);
-assert(ready.next_actions.some((action) => action.includes("quration as the graph web UI")));
+assert(ready.next_actions.some((action) => action.includes("Dogma's browser graph workspace as the canonical graph UI")));
 
 const blocked = buildIdeSessionReport({
   service: {
@@ -63,9 +64,9 @@ assert(blocked.next_actions.some((action) => action.includes("ide-readiness.md")
 
 const markdown = renderIdeSession(blocked);
 assert(markdown.includes("# Dogma IDE Session"));
-assert(markdown.includes("quration remains the graph-native web UI"));
+assert(markdown.includes("quration name is a compatibility namespace"));
 assert(markdown.includes("- IDE surface: VS Code/Cursor extension"));
-assert(markdown.includes("- Graph surface: quration web UI"));
+assert(markdown.includes("- Graph surface: Dogma browser graph workspace"));
 assert(markdown.includes("| Workspace trust | blocked | untrusted; human data detected |"));
 assert(markdown.includes("1 errors, 1 warnings"));
 

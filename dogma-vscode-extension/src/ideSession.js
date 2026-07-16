@@ -28,10 +28,10 @@ function sessionActions(report = {}) {
   if (report.readiness?.status === "blocked") {
     actions.push("Open `.dogma/ide-readiness.md` and clear blocked gates before treating the IDE session as actionable.");
   } else if (report.readiness?.status === "degraded") {
-    actions.push("Review `.dogma/ide-readiness.md` warnings before handing the workspace graph to quration.");
+    actions.push("Review `.dogma/ide-readiness.md` warnings before handing the workspace graph to Dogma's browser workspace.");
   }
 
-  actions.push("Use quration as the graph web UI; Dogma should import, open, or deep-link workspace graphs rather than duplicate the canvas.");
+  actions.push("Use Dogma's browser graph workspace as the canonical graph UI; the quration name is retained only for compatibility commands and artifacts.");
   return actions;
 }
 
@@ -45,7 +45,8 @@ function buildIdeSessionReport(input = {}) {
     status: statusFrom({ service, scan, readiness }),
     architecture: {
       ide_surface: "VS Code/Cursor extension",
-      graph_surface: "quration web UI",
+      graph_surface: "Dogma browser graph workspace",
+      compatibility_namespace: "quration",
       guardrail_surface: "methods-graph-backed Dogma local service"
     },
     service: {
@@ -91,7 +92,7 @@ function renderIdeSession(report = {}) {
   return [
     "# Dogma IDE Session",
     "",
-    "Dogma prepares the VS Code/Cursor extension session. quration remains the graph-native web UI, and methods-graph remains the guardrail substrate.",
+    "Dogma prepares the VS Code/Cursor extension session. Dogma's browser workspace is the canonical graph UI, the quration name is a compatibility namespace, and methods-graph remains the guardrail substrate.",
     "",
     `- Status: ${report.status || "unknown"}`,
     `- Prepared: ${report.prepared_at || "unknown"}`,
@@ -99,7 +100,8 @@ function renderIdeSession(report = {}) {
     "## Boundaries",
     "",
     `- IDE surface: ${report.architecture?.ide_surface || "VS Code/Cursor extension"}`,
-    `- Graph surface: ${report.architecture?.graph_surface || "quration web UI"}`,
+    `- Graph surface: ${report.architecture?.graph_surface || "Dogma browser graph workspace"}`,
+    `- Compatibility namespace: ${report.architecture?.compatibility_namespace || "quration"}`,
     `- Guardrails: ${report.architecture?.guardrail_surface || "methods-graph-backed Dogma local service"}`,
     "",
     "## Local Service",

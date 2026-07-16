@@ -1,0 +1,53 @@
+{
+  "name": "dogma",
+  "version": "0.1.0",
+  "description": "Dogma bioinformatics IDE monorepo: web graph workspace, VS Code/Cursor extension, and local sidecar.",
+  "private": true,
+  "scripts": {
+    "dev": "trap 'kill 0' EXIT; python -m uvicorn quration.api.server:app --reload --host 0.0.0.0 --port 8000 & npm --prefix frontend run dev",
+    "dev:all": "npm run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "python -m uvicorn quration.api.server:app --reload --host 0.0.0.0 --port 8000",
+    "dev:dogma-service": "cd dogma-local-service && python -m dogma_service serve ../dogma-demo-workspace --host 127.0.0.1 --port 8765",
+    "dev:dogma-extension": "npm run dev:dogma-vscode",
+    "dev:dogma-vscode": "code --extensionDevelopmentPath=dogma-vscode-extension .",
+    "dev:dogma-cursor": "cursor --extensionDevelopmentPath=dogma-vscode-extension .",
+    "build": "npm run build:frontend",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:dogma-extension": "npm --prefix dogma-vscode-extension run package:vsix",
+    "install:python": "python -m pip install -e \".[dev,database]\" -e ./dogma-local-service",
+    "install:frontend": "npm --prefix frontend ci",
+    "install:all": "npm run install:python && npm run install:frontend",
+    "install:dogma:vscode": "npm run build:dogma-extension && code --install-extension dogma-$(node -p \"require('./dogma-vscode-extension/package.json').version\").vsix --force",
+    "install:dogma:cursor": "npm run build:dogma-extension && cursor --install-extension dogma-$(node -p \"require('./dogma-vscode-extension/package.json').version\").vsix --force",
+    "install:dogma:editors": "npm run build:dogma-extension && code --install-extension dogma-$(node -p \"require('./dogma-vscode-extension/package.json').version\").vsix --force && cursor --install-extension dogma-$(node -p \"require('./dogma-vscode-extension/package.json').version\").vsix --force",
+    "test:backend": "python -m pytest tests/ -m \"not integration\"",
+    "test:backend:integration": "python -m pytest tests/ -m integration",
+    "test:frontend": "npm --prefix frontend run test",
+    "test:dogma-extension": "npm --prefix dogma-vscode-extension run check && npm --prefix dogma-vscode-extension test",
+    "test:dogma-service": "cd dogma-local-service && python -m unittest discover -s tests",
+    "test:dogma-skill": "python -m pytest dogma-science-skill/method-validity/tests",
+    "test:dogma": "npm run test:dogma-extension && npm run test:dogma-service && npm run test:dogma-skill",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:dogma",
+    "check:dogma-rename": "node tools/check-dogma-rename.js",
+    "check:public-safety": "node tools/check-public-safety.js",
+    "check:dogma": "npm run check:public-safety && npm run check:dogma-rename && npm run test:dogma",
+    "check:all": "npm run check:public-safety && npm run check:dogma-rename && npm test && npm run build:frontend"
+  },
+  "keywords": [
+    "bioinformatics",
+    "genomics",
+    "geo",
+    "causal-graphs",
+    "scientific-workflows",
+    "ide",
+    "vscode",
+    "cursor"
+  ],
+  "author": "Manu Arrojwala",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  }
+}

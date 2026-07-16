@@ -38,15 +38,15 @@ const markdown = renderQurationGraphHistory({
   }
 });
 
-assert(markdown.includes("# Dogma quration Graph History"));
-assert(markdown.includes("quration remains the canonical graph canvas"));
+assert(markdown.includes("# Dogma Browser Graph History"));
+assert(markdown.includes("Dogma's browser workspace remains the canonical graph canvas"));
 assert(markdown.includes("- Graphs: 2"));
 assert(markdown.includes("http://localhost:3000/canvas/graph-1"));
 assert(markdown.includes("Control \\| treatment transcript abundance"));
-assert(markdown.includes("Keep graph edits in quration"));
+assert(markdown.includes("Keep graph edits in Dogma's browser workspace"));
 
 const empty = renderQurationGraphHistory({ status: "ready", count: 0, graphs: [] });
 assert(empty.includes("| none | unknown | 0 | 0 | unknown | not available |"));
-assert(empty.includes("Import Workspace To quration"));
+assert(empty.includes("Import Workspace To Browser Graph"));
 
 console.log("quration graph history renderer tests passed");

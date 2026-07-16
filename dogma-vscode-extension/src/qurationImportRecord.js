@@ -33,8 +33,8 @@ function buildQurationImportRecord({ result = {}, handoff = {}, qurationApiUrl, 
       import_markdown: ".dogma/quration-import.md"
     },
     next_actions: [
-      "Review the quration canvas as an unvalidated seed graph.",
-      "Use quration edge/node chat for graph refinement.",
+      "Review the Dogma browser canvas as an unvalidated seed graph.",
+      "Use Dogma browser edge/node chat for graph refinement.",
       "Use Dogma methods-graph preflight and evidence ledgers before treating any edge as evaluated."
     ]
   };
@@ -54,13 +54,13 @@ function renderQurationImportRecord(record = {}) {
   const quration = record.quration || {};
   const dogma = record.dogma || {};
   return [
-    "# Dogma quration Import",
+    "# Dogma Browser Graph Import",
     "",
     `- Created: ${record.created_at || "unknown"}`,
     `- Graph ID: ${quration.graph_id || "not returned"}`,
     `- Graph URL: ${quration.graph_url || "not returned"}`,
-    `- quration API: ${quration.api_url || "not configured"}`,
-    `- quration canvas: ${quration.canvas_url || "not configured"}`,
+    `- Dogma graph API (quration compatibility setting): ${quration.api_url || "not configured"}`,
+    `- Dogma canvas (quration compatibility setting): ${quration.canvas_url || "not configured"}`,
     "",
     "## Imported Workspace Graph",
     "",

@@ -115,8 +115,8 @@ function deriveNextIdeAction(artifacts = {}) {
   if (gateNeedsAttention(qurationGate) || artifacts.qurationStatus?.status !== "ready") {
     return {
       command: "dogma.checkQurationStatus",
-      label: "Check quration Status",
-      reason: qurationGate?.detail || "quration bridge status is not ready."
+      label: "Check Browser Graph Status",
+      reason: qurationGate?.detail || "Dogma's browser graph bridge is not ready."
     };
   }
 
@@ -125,7 +125,7 @@ function deriveNextIdeAction(artifacts = {}) {
     return {
       command: "dogma.pullQurationGraphContext",
       label: "Pull Graph Context",
-      reason: "No current quration graph context is available in the workspace."
+      reason: "No current Dogma browser graph context is available in the workspace."
     };
   }
 
@@ -133,8 +133,8 @@ function deriveNextIdeAction(artifacts = {}) {
   if (!edge?.id) {
     return {
       command: "dogma.selectQurationEdge",
-      label: "Select quration Edge",
-      reason: "A quration graph is available, but no active edge is selected for IDE work."
+      label: "Select Browser Graph Edge",
+      reason: "A Dogma browser graph is available, but no active edge is selected for IDE work."
     };
   }
 
@@ -142,7 +142,7 @@ function deriveNextIdeAction(artifacts = {}) {
     return {
       command: "dogma.generateQurationEdgeWorkPackage",
       label: "Edge Work Package",
-      reason: "The selected quration edge does not yet have a matching Dogma work package."
+      reason: "The selected browser graph edge does not yet have a matching Dogma work package."
     };
   }
 
@@ -150,7 +150,7 @@ function deriveNextIdeAction(artifacts = {}) {
     return {
       command: "dogma.suggestFromQurationEdgeWorkPackage",
       label: "Suggest From Edge Package",
-      reason: "The selected quration edge has a work package but no matching Dogma agent suggestion."
+      reason: "The selected browser graph edge has a work package but no matching Dogma agent suggestion."
     };
   }
 
@@ -158,7 +158,7 @@ function deriveNextIdeAction(artifacts = {}) {
     return {
       command: "dogma.generateQurationEdgePatchHandoff",
       label: "Edge Patch Handoff",
-      reason: "The edge agent suggestion includes patch preview proposals but no matching quration review handoff yet."
+      reason: "The edge agent suggestion includes patch preview proposals but no matching Dogma browser-graph review handoff yet."
     };
   }
 
@@ -166,14 +166,14 @@ function deriveNextIdeAction(artifacts = {}) {
     return {
       command: "dogma.openCurrentQurationGraph",
       label: "Open Current Graph",
-      reason: "A quration edge patch handoff is ready for review in the canonical web graph UI."
+      reason: "A browser-edge patch handoff is ready for review in Dogma's canonical browser graph workspace."
     };
   }
 
   return {
     command: "dogma.openAgentWorkbench",
     label: "Open Agent Workbench",
-    reason: "Readiness, quration graph context, selected edge, edge work package, and agent suggestion are available."
+    reason: "Readiness, browser graph context, selected edge, edge work package, and agent suggestion are available."
   };
 }
 

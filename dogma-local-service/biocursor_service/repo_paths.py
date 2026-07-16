@@ -5,6 +5,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+DOGMA_REPOSITORY_URL = "https://github.com/manu-tej/dogma"
+
+
+def dogma_source_url(relative_path: str) -> str:
+    """Return a portable source anchor instead of a checkout-specific path."""
+    return f"{DOGMA_REPOSITORY_URL}/blob/master/{relative_path.lstrip('/')}"
+
 
 def dogma_repo_root() -> str:
     for name in ("DOGMA_REPO", "QURATION_REPO"):

@@ -41,7 +41,7 @@ const ready = renderQurationConnectionStatus({
   }
 });
 
-assert(ready.includes("# Dogma quration Status"));
+assert(ready.includes("# Dogma Browser Graph Status"));
 assert(ready.includes("- Status: ready"));
 assert(ready.includes("- Import ready: yes"));
 assert(ready.includes("- URL: http://localhost:8000/health"));
@@ -49,7 +49,7 @@ assert(ready.includes("- URL: http://localhost:3000/canvas"));
 assert(ready.includes("## Graph API Contract"));
 assert(ready.includes("| GraphEdit mutation | POST /hypothesis/{graph_id}/apply-edit | yes |"));
 assert(ready.includes("| Edge chat | POST /hypothesis/{graph_id}/edges/{edge_id}/chat | yes |"));
-assert(ready.includes("Dogma: Import Workspace To quration"));
+assert(ready.includes("Dogma: Import Workspace To Browser Graph"));
 
 const degraded = renderQurationConnectionStatus({
   status: "degraded",
@@ -87,8 +87,8 @@ const degraded = renderQurationConnectionStatus({
 });
 
 assert(degraded.includes("- Status: degraded"));
-assert(degraded.includes("Start quration's backend"));
-assert(degraded.includes("Start quration's frontend"));
-assert(degraded.includes("required `/hypothesis` graph contract"));
+assert(degraded.includes("Start Dogma's graph backend"));
+assert(degraded.includes("Start Dogma's browser frontend"));
+assert(degraded.includes("required `/hypothesis` contract"));
 
 console.log("quration connection status renderer tests passed");

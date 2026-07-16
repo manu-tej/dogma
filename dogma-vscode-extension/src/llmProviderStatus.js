@@ -8,7 +8,7 @@ function renderLlmProviderStatus(result) {
   return [
     "# Dogma LLM Provider Status",
     "",
-    "Dogma follows quration's provider pattern: typed local-service actions, not raw agent/tool access.",
+    "Dogma uses typed local-service actions rather than raw agent/tool access; quration provider identifiers are retained only for compatibility.",
     "",
     `- Status: ${(result && result.status) || "unknown"}`,
     `- Provider: ${(result && result.provider) || "none"}`,

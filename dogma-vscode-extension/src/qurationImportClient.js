@@ -70,14 +70,14 @@ function requestQurationJson(url, options = {}) {
             try {
               payload = JSON.parse(text);
             } catch (error) {
-              reject(new Error(`quration returned invalid JSON: ${error.message}`));
+              reject(new Error(`Dogma graph API returned invalid JSON: ${error.message}`));
               return;
             }
           }
 
           if (response.statusCode < 200 || response.statusCode >= 300) {
             const detail = payload.detail || payload.message || payload.error || `HTTP ${response.statusCode}`;
-            reject(new Error(`quration API request failed: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`));
+            reject(new Error(`Dogma graph API request failed: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`));
             return;
           }
 
@@ -88,7 +88,7 @@ function requestQurationJson(url, options = {}) {
 
     request.on("error", (error) => reject(error));
     request.setTimeout(timeoutMs, () => {
-      request.destroy(new Error(`quration API timed out after ${timeoutMs} ms`));
+      request.destroy(new Error(`Dogma graph API timed out after ${timeoutMs} ms`));
     });
     if (body) request.write(body);
     request.end();
@@ -125,7 +125,7 @@ function requestQurationPage(url, options = {}) {
 
     request.on("error", (error) => reject(error));
     request.setTimeout(timeoutMs, () => {
-      request.destroy(new Error(`quration canvas timed out after ${timeoutMs} ms`));
+      request.destroy(new Error(`Dogma browser canvas timed out after ${timeoutMs} ms`));
     });
     request.end();
   });
@@ -214,8 +214,8 @@ async function checkQurationGraphApi(options = {}) {
       ready: missingRequired.length === 0,
       status: missingRequired.length ? "contract_gap" : "ready",
       message: missingRequired.length
-        ? `missing ${missingRequired.length} required quration graph API endpoint(s)`
-        : "required quration graph API endpoints are available",
+        ? `missing ${missingRequired.length} required Dogma graph API endpoint(s)`
+        : "required Dogma graph API endpoints are available",
       capabilities,
       missing_required: missingRequired.map((item) => ({
         id: item.id,
@@ -338,7 +338,7 @@ function handoffQuery(handoff = {}) {
 function handoffRationale(handoff = {}) {
   const gaps = Array.isArray(handoff.dogma?.coverage_gaps) ? handoff.dogma.coverage_gaps : [];
   const gapText = gaps.length ? ` Coverage gaps: ${gaps.join(", ")}.` : "";
-  return `Imported from Dogma workspace handoff as an unvalidated quration seed graph.${gapText}`;
+  return `Imported from Dogma workspace handoff as an unvalidated seed graph through the quration compatibility API.${gapText}`;
 }
 
 function handoffToSeedSkeleton(handoff = {}) {
@@ -350,7 +350,7 @@ function handoffToSeedSkeleton(handoff = {}) {
     .filter(Boolean);
 
   if (!nodes.length) {
-    throw new Error("Dogma quration handoff has no causal graph nodes to import.");
+    throw new Error("Dogma graph handoff has no causal graph nodes to import.");
   }
 
   return {
@@ -375,7 +375,7 @@ function normalizeGraphSummary(summary = {}, index = 0, canvasUrl) {
   return {
     rank: index + 1,
     id: id || null,
-    query: String(summary.query || "Untitled quration graph").trim() || "Untitled quration graph",
+    query: String(summary.query || "Untitled Dogma graph").trim() || "Untitled Dogma graph",
     status: String(summary.status || "unknown").trim() || "unknown",
     created_at: summary.created_at || null,
     updated_at: summary.updated_at || null,
@@ -456,7 +456,7 @@ async function listQurationGraphs(options = {}) {
     timeoutMs: options.timeoutMs
   });
   if (!Array.isArray(payload)) {
-    throw new Error("quration graph history response was not a list.");
+    throw new Error("Dogma graph history response was not a list.");
   }
   const graphs = payload.map((summary, index) => normalizeGraphSummary(summary, index, options.qurationCanvasUrl));
   return {
@@ -480,7 +480,7 @@ async function listQurationGraphs(options = {}) {
 async function getQurationGraphEvents(options = {}) {
   const graphId = String(options.graphId || "").trim();
   if (!graphId) {
-    throw new Error("quration graph id is required.");
+    throw new Error("Dogma graph id is required.");
   }
 
   const request = options.requestJson || requestQurationJson;
@@ -490,7 +490,7 @@ async function getQurationGraphEvents(options = {}) {
     timeoutMs: options.timeoutMs
   });
   if (!Array.isArray(payload)) {
-    throw new Error("quration graph events response was not a list.");
+    throw new Error("Dogma graph events response was not a list.");
   }
   const events = payload.map(normalizeEvent);
   return {
@@ -528,7 +528,7 @@ async function getQurationFailedEvents(options = {}) {
     timeoutMs: options.timeoutMs
   });
   if (!Array.isArray(payload)) {
-    throw new Error("quration failed events response was not a list.");
+    throw new Error("Dogma failed-events response was not a list.");
   }
   const events = payload.map(normalizeEvent);
   return {
@@ -555,7 +555,7 @@ async function getQurationFailedEvents(options = {}) {
 async function getQurationGraphContext(options = {}) {
   const graphId = String(options.graphId || "").trim();
   if (!graphId) {
-    throw new Error("quration graph id is required.");
+    throw new Error("Dogma graph id is required.");
   }
 
   const request = options.requestJson || requestQurationJson;
@@ -574,7 +574,7 @@ async function getQurationGraphContext(options = {}) {
     status: "ready",
     graph_id: graph.id || graphId,
     graph_url: buildQurationGraphUrl(options.qurationCanvasUrl, graph.id || graphId),
-    query: graph.query || "Untitled quration graph",
+    query: graph.query || "Untitled Dogma graph",
     summary: {
       nodes: nodes.length,
       edges: edges.length,
@@ -601,10 +601,10 @@ async function getQurationEdgePlan(options = {}) {
   const graphId = String(options.graphId || "").trim();
   const edgeId = String(options.edgeId || "").trim();
   if (!graphId) {
-    throw new Error("quration graph id is required.");
+    throw new Error("Dogma graph id is required.");
   }
   if (!edgeId) {
-    throw new Error("quration edge id is required.");
+    throw new Error("Dogma graph edge id is required.");
   }
 
   const request = options.requestJson || requestQurationJson;
@@ -641,10 +641,10 @@ async function resolveQurationEdgeReadout(options = {}) {
   const graphId = String(options.graphId || "").trim();
   const edgeId = String(options.edgeId || "").trim();
   if (!graphId) {
-    throw new Error("quration graph id is required.");
+    throw new Error("Dogma graph id is required.");
   }
   if (!edgeId) {
-    throw new Error("quration edge id is required.");
+    throw new Error("Dogma graph edge id is required.");
   }
 
   const request = options.requestJson || requestQurationJson;

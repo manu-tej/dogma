@@ -75,8 +75,9 @@ const record = {
 };
 
 const markdown = renderQurationEdgeResolve(record);
-assert(markdown.includes("# Dogma quration Edge Resolve"));
-assert(markdown.includes("facts-only edge readout resolve"));
+assert(markdown.includes("# Dogma Browser Edge Resolve"));
+assert(markdown.includes("Dogma's browser graph workspace owns graph edits"));
+assert(markdown.includes("facts-only edge-readout resolve"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- Edge ID: edge-1"));
 assert(markdown.includes("- Matching handoff: yes"));

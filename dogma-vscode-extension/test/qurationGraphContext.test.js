@@ -36,8 +36,9 @@ const markdown = renderQurationGraphContext({
   }
 });
 
-assert(markdown.includes("# Dogma quration Graph Context"));
-assert(markdown.includes("quration remains the canonical canvas"));
+assert(markdown.includes("# Dogma Browser Graph Context"));
+assert(markdown.includes("Dogma's browser workspace remains the canonical canvas"));
+assert(markdown.includes("quration compatibility API"));
 assert(markdown.includes("- Graph ID: graph-1"));
 assert(markdown.includes("- target: 1"));
 assert(markdown.includes("- unvalidated: 1"));

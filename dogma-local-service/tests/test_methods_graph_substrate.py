@@ -15,7 +15,10 @@ class MethodsGraphSubstrateTests(unittest.TestCase):
         self.assertEqual(result["status"], "configuration_gap")
         self.assertFalse(result["configured_graph"]["exists"])
         self.assertIn("audited_kuzu_graph", {item["name"] for item in result["authoritative_surface"]})
-        self.assertIn("COVERAGE_GAP", "\n".join(result["quration_aspiration"]))
+        self.assertIn("COVERAGE_GAP", "\n".join(result["dogma_execution_aspiration"]))
+        self.assertNotIn("quration_repo", result["sources"])
+        self.assertEqual(result["sources"]["dogma_repo"], "https://github.com/manu-tej/dogma")
+        self.assertIn("Dogma Execution Aspiration", result["markdown"])
         self.assertIn("Dogma Methods-Graph Substrate", result["markdown"])
 
     def test_configured_graph_with_lock_is_ready(self) -> None:

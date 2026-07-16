@@ -155,75 +155,75 @@
       },
       {
         "command": "dogma.generateQurationEdgeEvaluationPlan",
-        "title": "Dogma: Generate quration Edge Evaluation Plan"
+        "title": "Dogma: Generate Browser Edge Evaluation Plan"
       },
       {
         "command": "dogma.fetchQurationEdgePlan",
-        "title": "Dogma: Fetch quration Edge Plan"
+        "title": "Dogma: Fetch Browser Edge Plan"
       },
       {
         "command": "dogma.generateQurationEdgeWorkPackage",
-        "title": "Dogma: Generate quration Edge Work Package"
+        "title": "Dogma: Generate Browser Edge Work Package"
       },
       {
         "command": "dogma.suggestFromQurationEdgeWorkPackage",
-        "title": "Dogma: Suggest From quration Edge Work Package"
+        "title": "Dogma: Suggest From Browser Edge Work Package"
       },
       {
         "command": "dogma.previewQurationEdgeSuggestedPatch",
-        "title": "Dogma: Preview quration Edge Suggested Patch"
+        "title": "Dogma: Preview Browser Edge Suggested Patch"
       },
       {
         "command": "dogma.generateQurationEdgePatchHandoff",
-        "title": "Dogma: Generate quration Edge Patch Handoff"
+        "title": "Dogma: Generate Browser Edge Patch Handoff"
       },
       {
         "command": "dogma.resolveQurationSelectedEdgeReadout",
-        "title": "Dogma: Resolve quration Edge Readout"
+        "title": "Dogma: Resolve Browser Edge Readout"
       },
       {
         "command": "dogma.applyQurationEdgeSuggestedPatch",
-        "title": "Dogma: Apply quration Edge Suggested Patch"
+        "title": "Dogma: Apply Browser Edge Suggested Patch"
       },
       {
         "command": "dogma.generateQurationHandoff",
-        "title": "Dogma: Generate quration Handoff"
+        "title": "Dogma: Generate Browser Graph Handoff"
       },
       {
         "command": "dogma.openQurationGraphUi",
-        "title": "Dogma: Open quration Graph UI"
+        "title": "Dogma: Open Browser Graph UI"
       },
       {
         "command": "dogma.openCurrentQurationGraph",
-        "title": "Dogma: Open Current quration Graph"
+        "title": "Dogma: Open Current Graph"
       },
       {
         "command": "dogma.openQurationCanvasFromWorkspace",
-        "title": "Dogma: Open quration Canvas From Workspace"
+        "title": "Dogma: Open Browser Canvas From Workspace"
       },
       {
         "command": "dogma.checkQurationStatus",
-        "title": "Dogma: Check quration Status"
+        "title": "Dogma: Check Browser Graph Status"
       },
       {
         "command": "dogma.refreshQurationGraphHistory",
-        "title": "Dogma: Refresh quration Graph History"
+        "title": "Dogma: Refresh Browser Graph History"
       },
       {
         "command": "dogma.pullQurationGraphContext",
-        "title": "Dogma: Pull quration Graph Context"
+        "title": "Dogma: Pull Browser Graph Context"
       },
       {
         "command": "dogma.pullQurationGraphEvents",
-        "title": "Dogma: Pull quration Graph Events"
+        "title": "Dogma: Pull Browser Graph Events"
       },
       {
         "command": "dogma.pullQurationFailedEvents",
-        "title": "Dogma: Pull quration Failed Events"
+        "title": "Dogma: Pull Failed Browser Graph Events"
       },
       {
         "command": "dogma.selectQurationEdge",
-        "title": "Dogma: Select quration Edge"
+        "title": "Dogma: Select Browser Graph Edge"
       },
       {
         "command": "dogma.checkIdeReadiness",
@@ -231,11 +231,11 @@
       },
       {
         "command": "dogma.importWorkspaceToQuration",
-        "title": "Dogma: Import Workspace To quration"
+        "title": "Dogma: Import Workspace To Browser Graph"
       },
       {
         "command": "dogma.openLastQurationImport",
-        "title": "Dogma: Open Last quration Import"
+        "title": "Dogma: Open Last Graph Import"
       },
       {
         "command": "dogma.generateMethodsGraphSubstrate",
@@ -468,18 +468,18 @@
         "dogma.qurationUrl": {
           "type": "string",
           "default": "http://localhost:3000/canvas",
-          "description": "quration graph web UI URL. Dogma opens this as the canonical graph surface after exporting .dogma/quration-handoff.json."
+          "description": "Dogma browser graph workspace URL. The quration setting name is retained for compatibility; Dogma opens this canonical graph surface after exporting .dogma/quration-handoff.json."
         },
         "dogma.qurationApiUrl": {
           "type": "string",
           "default": "http://localhost:8000",
-          "description": "quration backend API URL used by Dogma: Import Workspace To quration for POST /hypothesis/build."
+          "description": "Dogma graph backend API URL used by Dogma: Import Workspace To Browser Graph for POST /hypothesis/build. The quration setting name is retained for compatibility."
         },
         "dogma.qurationTimeoutMs": {
           "type": "number",
           "default": 5000,
           "minimum": 250,
-          "description": "Timeout in milliseconds for quration backend import requests."
+          "description": "Timeout in milliseconds for Dogma graph-backend import requests through the quration compatibility API."
         }
       }
     }

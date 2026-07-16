@@ -41,11 +41,11 @@ function renderQurationEdgePlan(record = {}) {
   const alternatives = Array.isArray(plan.alternatives) ? plan.alternatives : [];
 
   return [
-    "# quration Edge Plan",
+    "# Dogma Browser Edge Plan",
     "",
-    "Dogma fetched this plan from quration's canonical graph API. It is quration's biology-derived edge plan skeleton, not a Dogma local execution verdict.",
+    "Dogma fetched this plan from its canonical browser graph API through the quration compatibility namespace. It is Dogma's biology-derived edge-plan skeleton, not a local execution verdict.",
     "",
-    "## quration Graph",
+    "## Browser Graph",
     "",
     `- Graph ID: ${cleanText(record.graph_id, "unknown")}`,
     `- Graph URL: ${cleanText(record.graph_url, "not available")}`,
@@ -89,9 +89,9 @@ function renderQurationEdgePlan(record = {}) {
     "",
     "## Dogma Boundary",
     "",
-    "- Use quration for graph edits, edge resolve, evidence records, and event history.",
+    "- Use Dogma's browser graph workspace for graph edits, edge resolve, evidence records, and event history.",
     "- Use Dogma for local workspace context, method guardrails, redaction, patches, and execution gates.",
-    "- Fetching this plan is side-effect-free; resolving a quration edge is a separate evidence-writing operation.",
+    "- Fetching this plan is side-effect-free; resolving a browser graph edge is a separate evidence-writing operation.",
     ""
   ].join("\n");
 }
