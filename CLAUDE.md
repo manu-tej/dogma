@@ -37,8 +37,12 @@ and kept only until a fresh clone of this one is verified.
 
 ## Checks
 
-The npm scripts call bare `python`, so put the venv on PATH first — otherwise
-`test:dogma-service` fails with `python: command not found`:
+On a fresh clone, run the `## Set up the monorepo` steps in `README.md` first —
+there is no `.venv` yet, and `npm run install:python` / `install:frontend` have
+not run.
+
+After that, the npm scripts call bare `python`, so keep the venv on PATH —
+otherwise `test:dogma-service` fails with `python: command not found`:
 
 ```bash
 export PATH="$PWD/.venv/bin:$PATH"
@@ -53,10 +57,15 @@ npm run check:all             # everything above plus the frontend build
 git diff --check
 ```
 
-Verified 2026-07-25 on `codex/unify-dogma-quration`: public-safety passed
-(731 files); `test:dogma` green (extension suites, 77 service tests, 14 skill
-tests); `test:backend` 789 passed / 41 skipped / 3 deselected; frontend build
-untested in that run.
+Verified 2026-07-25 from a fresh `git clone` of `master` with no pre-existing
+`.venv`, on Python 3.14.3: `check:public-safety` passed (732 files); `test:dogma`
+green (extension suites, 77 service tests, 14 skill tests); `test:backend` 789
+passed / 41 skipped / 3 deselected; `test:frontend` 219 passed across 50 files;
+`build:frontend` succeeded. That closes the fresh-clone gate in `MIGRATION.md`.
+
+The extension and the root package have no npm dependencies of their own - the
+extension suite is plain `node --check` plus plain node test files - so only
+`frontend/` needs `npm ci`.
 
 `npm run check:dogma-rename` is vestigial here — it compared a `quration`
 checkout against a `dogma` rename target, so in this repo it always reports
