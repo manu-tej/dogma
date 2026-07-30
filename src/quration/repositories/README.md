@@ -311,4 +311,4 @@ pytest tests/integration/test_repositories_integration.py -v
 - [Database Models](../database/models.py)
 - [Cache Client](../cache/redis_client.py)
 - [Context Service](../services/context_service.py)
-- [Example Usage](../../examples/repository_usage_example.py)
+- [Repository tests](../../../tests/hypothesis/test_repository.py) - usage examples
