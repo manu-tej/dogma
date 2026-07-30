@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    Near-full-bleed variant for the 16 and 32px slots. See icon.svg for the
+    colour tokens and the strand geometry.
+
+    Two differences from the large master, both about surviving a downsample to
+    16px:
+      - The tile grows to 960. At 16px the Big Sur inset would spend a quarter of
+        an already tiny canvas on empty margin.
+      - Two base pairs instead of four. Four rungs plus three crossings is about
+        eleven features across 16 pixels, which averages into a smudge.
+
+    What is deliberately kept is the full 1.5-period strand run. An earlier pass
+    cut it to a single half-period, on the theory that fewer features downsample
+    better - but one crossing between two bars reads as an hourglass, not as DNA.
+    The repeated crossing IS the cue, so the strands stay and the rungs go.
+
+    Scaled about the centre rather than redrawn, so stroke-width scales with the
+    group and comes out proportionally heavier than the large master.
+  -->
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="#51e57e"/>
+
+  <g transform="translate(512 512) scale(1.16) translate(-512 -512)"
+     fill="none" stroke="#041608" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Only the two interior base pairs; the ones at the strand ends are what
+         flattened the silhouette into a closed ladder at this size. -->
+    <g stroke-width="32">
+      <path d="M362 425h300"/>
+      <path d="M362 599h300"/>
+    </g>
+
+    <!-- Same 1.5-period strands as the large master. -->
+    <g stroke-width="46">
+      <path d="M662 250C662 313 362 362 362 425C362 488 662 536 662 599C662 662 362 711 362 774"/>
+      <path d="M362 250C362 313 662 362 662 425C662 488 362 536 362 599C362 662 662 711 662 774"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    App icon master for 128px and up. icon-small.svg is the near-full-bleed
+    variant used for the 16 and 32 slots; make-icon.sh renders both.
+
+    Colours are design tokens from src/index.css converted to sRGB, so the icon,
+    the splash and the in-app Brand mark are one green instead of three
+    near-misses. The pairing is the system's own "content on signal", using the
+    tokens named "signal" and "signal-foreground" (spelled without their CSS
+    double-dash prefix, which an XML comment cannot contain):
+      signal            oklch(0.82 0.19 150) = #51e57e
+      signal-foreground oklch(0.18 0.04 150) = #041608
+    This inverts the in-app Brand, which is a green mark on a graphite tile. A
+    saturated tile carries much further in the Dock, and it keeps the structure
+    the icon already had; only the hue was wrong.
+
+    Drawn at icon scale in absolute canvas coordinates, not scaled up from a 24px
+    UI glyph. Scaling one up welds the strands to the rungs: a 24px icon's
+    negative space is about one unit, which at 27x is narrower than the stroke.
+
+    Geometry. Two mirrored strands about x=512, extremes at x=362 and x=662, and
+    a phase chosen so the strands START at an extreme rather than at a crossing.
+    An earlier pass had them meet at both ends of every half-period, which closed
+    each period into a lens and read as a stack of ovals rather than a twist.
+    Extremes sit at y=250/425/599/774 and the crossings fall between them.
+
+    Each half-period is one cubic from extreme to extreme. With both control
+    points held at the endpoints' own x, and offset along y by 0.36 of the step,
+    the curve passes exactly through (512, midpoint) - so the strands cross on
+    the axis, which is what makes the projection read as a helix.
+
+    macOS Big Sur grid: 824x824 body centred in the 1024 canvas, r = 22.5%.
+  -->
+  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="#51e57e"/>
+
+  <g fill="none" stroke="#041608" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Base pairs, at the extremes where the backbones are furthest apart.
+         Lighter than the strands so the backbone stays dominant. -->
+    <g stroke-width="32">
+      <path d="M362 250h300"/>
+      <path d="M362 425h300"/>
+      <path d="M362 599h300"/>
+      <path d="M362 774h300"/>
+    </g>
+
+    <g stroke-width="44">
+      <!-- right, left, right, left -->
+      <path d="M662 250C662 313 362 362 362 425C362 488 662 536 662 599C662 662 362 711 362 774"/>
+      <!-- the mirror -->
+      <path d="M362 250C362 313 662 362 662 425C662 488 362 536 362 599C362 662 662 711 662 774"/>
+    </g>
+  </g>
+</svg>

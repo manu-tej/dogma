@@ -4,7 +4,7 @@
  * into tool-grounded biological claims.
  */
 
-const API_BASE = import.meta.env.VITE_GEO_API_URL || "http://localhost:8000";
+import { API_BASE_URL as API_BASE } from "@/lib/apiBaseUrl";
 
 export interface GeneItem {
   geneSymbol: string;

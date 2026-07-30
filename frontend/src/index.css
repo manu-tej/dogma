@@ -76,6 +76,14 @@
   --font-weight-semibold: 600;
   --radius: 0.7rem;
 
+  /*
+   * Strip reserved at the top of the shell for window chrome the app draws
+   * around rather than under. Zero on the web and on any desktop platform whose
+   * window keeps a native title bar; the Electron shell overrides it inline on
+   * macOS. See src/lib/desktopChrome.ts.
+   */
+  --titlebar-inset: 0px;
+
   /* fonts (self-hosted Geist variable) */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
@@ -162,6 +170,25 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /*
+   * Window dragging, for the desktop shell only.
+   *
+   * `-webkit-app-region` is inert in a browser, but these rules are still gated
+   * on the `.dogma-custom-titlebar` class so the web build carries no trace of
+   * desktop behaviour. The class is only added when the window has no native
+   * title bar — see src/lib/desktopChrome.ts.
+   *
+   * Drag is opt-in per element rather than inherited from a wrapper: a draggable
+   * ancestor swallows clicks on everything inside it, so each interactive child
+   * would need an explicit opt-out and any new one would silently break.
+   */
+  .dogma-custom-titlebar .titlebar-drag {
+    -webkit-app-region: drag;
+  }
+  .dogma-custom-titlebar .titlebar-no-drag {
+    -webkit-app-region: no-drag;
   }
   /* tabular figures for data/identifiers in mono */
   code,

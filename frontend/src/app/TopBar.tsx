@@ -15,8 +15,13 @@ interface TopBarProps {
 
 /** The shell's top bar: breadcrumbs on the left, search + help + theme on the right. */
 export function TopBar({ onOpenPalette, onOpenHelp, onOpenNav }: TopBarProps) {
+  // The height mirrors the NavRail brand header exactly — see the note there —
+  // so both clear the macOS traffic lights by the same amount and stay on one
+  // line. `--titlebar-inset` is 0px everywhere but the macOS desktop shell. On
+  // mobile the NavRail is a drawer, so this is the only thing the traffic lights
+  // could collide with.
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/70 px-4 backdrop-blur-xl">
+    <header className="flex h-[calc(3.5rem+var(--titlebar-inset))] shrink-0 items-center gap-3 border-b border-border bg-card/70 px-4 pt-[var(--titlebar-inset)] backdrop-blur-xl">
       {onOpenNav && (
         <Button variant="ghost" size="icon" aria-label="Open navigation" onClick={onOpenNav}>
           <Menu className="h-5 w-5" />

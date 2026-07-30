@@ -33,6 +33,17 @@ coverage.xml
 *.db-shm
 *.db-wal
 
+# Absolute path to this checkout, written at package time so the packaged
+# desktop app can find the repo's .venv. Machine-specific, and nothing but a
+# developer-local path — which check:public-safety rejects in tracked text.
+frontend/electron/repo-root.generated.json
+
+# Intermediate render from make-icon.sh. The .icns beside it IS tracked, because
+# electron-builder needs it and it cannot be regenerated without a window server
+# (qlmanage), so CI could not rebuild it. This PNG is only a step on the way
+# there; the SVG masters are the source of truth.
+frontend/electron/assets/icon.png
+
 # Generated and private working material
 .vite/
 scratch_notes/

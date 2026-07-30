@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+    />
+    <title>dogma</title>
+    <style>
+      /* Self-contained: the splash must render before any bundle is loaded. */
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        /* Design tokens from src/index.css, converted to sRGB. Matching them
+           exactly means the splash hands off to the real UI without a flash of a
+           different background or a different-coloured mark:
+             background  oklch(0.155 0.006 264) = #0b0c0f
+             surface-2   oklch(0.255 0.008 264) = #212327
+             signal      oklch(0.82  0.19  150) = #51e57e   */
+        background: #0b0c0f;
+        color: #fafafa;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      /* Mirrors the in-app Brand mark: a graphite tile with a green glyph and
+         the signal glow, not the app icon's inverted treatment. */
+      .mark {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.75rem;
+        background: #212327;
+        display: grid;
+        place-items: center;
+        box-shadow:
+          0 0 0 1px rgba(81, 229, 126, 0.42),
+          0 4px 22px -3px rgba(81, 229, 126, 0.38);
+      }
+      .mark svg {
+        width: 1.75rem;
+        height: 1.75rem;
+      }
+      h1 {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      #status {
+        font-size: 0.8125rem;
+        color: #a1a1aa;
+        min-height: 1.25rem;
+        text-align: center;
+        max-width: 32rem;
+        padding: 0 1.5rem;
+        line-height: 1.5;
+      }
+      .track {
+        width: 12rem;
+        height: 2px;
+        border-radius: 999px;
+        background: #27272a;
+        overflow: hidden;
+      }
+      .track span {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: 999px;
+        background: #51e57e;
+        animation: slide 1.4s ease-in-out infinite;
+      }
+      @keyframes slide {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(250%);
+        }
+      }
+      body.failed .track {
+        display: none;
+      }
+      body.failed #status {
+        color: #f87171;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .track span {
+          animation: none;
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mark" aria-hidden="true">
+      <!-- lucide-react's `Dna`, the same path Brand.tsx renders, inlined because
+           the splash must draw before any bundle loads. -->
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#51e57e"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m10 16 1.5 1.5" />
+        <path d="m14 8-1.5-1.5" />
+        <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" />
+        <path d="m16.5 10.5 1 1" />
+        <path d="m17 6-2.891-2.891" />
+        <path d="M2 15c6.667-6 13.333 0 20-6" />
+        <path d="m20 9 .891.891" />
+        <path d="M3.109 14.109 4 15" />
+        <path d="m6.5 12.5 1 1" />
+        <path d="m7 18 2.891 2.891" />
+        <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" />
+      </svg>
+    </div>
+    <h1>dogma</h1>
+    <p id="status" role="status" aria-live="polite">Starting up…</p>
+    <div class="track" aria-hidden="true"><span></span></div>
+    <script>
+      // Driven from the main process via executeJavaScript.
+      window.setStatus = function (text, failed) {
+        document.getElementById("status").textContent = text;
+        document.body.classList.toggle("failed", Boolean(failed));
+      };
+    </script>
+  </body>
+</html>

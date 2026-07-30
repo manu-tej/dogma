@@ -77,7 +77,17 @@ export function NavRail({ onNavigate }: { onNavigate?: () => void }) {
         collapsed ? "w-16" : "w-60",
       )}
     >
-      <div className={cn("flex h-14 items-center px-3", collapsed && "justify-center px-0")}>
+      {/* Grows by `--titlebar-inset` (0px outside the macOS desktop shell) so the
+          brand mark clears the traffic lights. The height is stated as a total
+          rather than left to padding, because `box-sizing: border-box` would
+          otherwise eat the 3.5rem of content box. TopBar does the same, which is
+          what keeps the two headers on one line. */}
+      <div
+        className={cn(
+          "flex h-[calc(3.5rem+var(--titlebar-inset))] items-center px-3 pt-[var(--titlebar-inset)]",
+          collapsed && "justify-center px-0",
+        )}
+      >
         <NavLink to="/" end aria-label="dogma home">
           <Brand collapsed={collapsed} />
         </NavLink>

@@ -60,6 +60,20 @@ export function AppShell() {
         }}
       />
 
+      {/* Stands in for the hidden macOS title bar: the one region of the window
+          you can drag. Its height is `--titlebar-inset`, which is 0px on the web
+          and on any platform whose window keeps native chrome, so this is inert
+          everywhere else. It deliberately covers only the padding that NavRail
+          and TopBar reserve above their content — because nothing interactive
+          lives there, no control needs a drag opt-out, and a control added later
+          cannot silently become unclickable. Below the skip link's z-50 so that
+          still takes clicks ahead of it. */}
+      <div
+        aria-hidden
+        data-testid="titlebar-drag-region"
+        className="titlebar-drag fixed inset-x-0 top-0 z-20 h-[var(--titlebar-inset)]"
+      />
+
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-1.5 focus:text-sm focus:text-primary-foreground"

@@ -18,8 +18,7 @@ import type {
   UserInteraction,
 } from '@/types/context';
 import { getAnonUserId } from '@/lib/anonUser';
-
-const API_BASE_URL = import.meta.env.VITE_GEO_API_URL || 'http://localhost:8000';
+import { API_BASE_URL } from '@/lib/apiBaseUrl';
 
 /**
  * Error class for Context API errors

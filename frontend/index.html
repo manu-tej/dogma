@@ -5,9 +5,17 @@
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta name="description" content="dogma — one-stop-shop for computational biology and bioinformatics." />
+      <!--
+        Matches the desktop app icon (frontend/electron/assets/icon-small.svg):
+        a "signal" green tile with a dark helix. Previously this was blue
+        (#2563eb), which agreed with nothing else — the design system's accent is
+        the phosphor green declared in src/index.css, and the splash and in-app
+        Brand mark both use it. Colours here are those tokens in sRGB:
+        signal #51e57e on signal-foreground #041608.
+      -->
       <link
         rel="icon"
-        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='24' height='24' rx='5' fill='%232563eb' stroke='none'/%3E%3Cg stroke='white'%3E%3Cpath d='M6 5c5 0 7 14 12 14M6 19c5 0 7-14 12-14'/%3E%3Cpath d='M8 7h8M8 17h8M9.5 12h5'/%3E%3C/g%3E%3C/svg%3E"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2351e57e'/%3E%3Cg fill='none' stroke='%23041608' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke-width='1.2' d='M8 9.67h8M8 14.33h8'/%3E%3Cpath stroke-width='1.7' d='M16 5C16 6.68 8 7.99 8 9.67C8 11.35 16 12.65 16 14.33C16 16.01 8 17.32 8 19'/%3E%3Cpath stroke-width='1.7' d='M8 5C8 6.68 16 7.99 16 9.67C16 11.35 8 12.65 8 14.33C8 16.01 16 17.32 16 19'/%3E%3C/g%3E%3C/svg%3E"
       />
       <title>dogma — computational biology workspace</title>
     </head>
