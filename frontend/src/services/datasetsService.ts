@@ -3,7 +3,7 @@
  * (GEO search has its own geoSearchService; this covers the other two tabs.)
  */
 
-const API_BASE = import.meta.env.VITE_GEO_API_URL || "http://localhost:8000";
+import { API_BASE_URL as API_BASE } from "@/lib/apiBaseUrl";
 
 // --- Single-cell (GET /single-cell/search) -------------------------------
 // Note: this endpoint returns raw snake_case dicts, not camelCased models.

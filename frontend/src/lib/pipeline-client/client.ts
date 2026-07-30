@@ -2,6 +2,7 @@
  * API client for Nextflow pipeline operations.
  */
 
+import { API_BASE_URL, DEFAULT_API_BASE_URL } from "../apiBaseUrl";
 import type {
   PipelineCatalogEntry,
   PipelineExecution,
@@ -16,7 +17,7 @@ import type {
 export class PipelineClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "http://localhost:8000") {
+  constructor(baseUrl: string = DEFAULT_API_BASE_URL) {
     this.baseUrl = baseUrl;
   }
 
@@ -229,6 +230,4 @@ export class PipelineClient {
 }
 
 // Default client instance
-export const pipelineClient = new PipelineClient(
-  import.meta.env.VITE_API_URL || "http://localhost:8000"
-);
+export const pipelineClient = new PipelineClient(API_BASE_URL);

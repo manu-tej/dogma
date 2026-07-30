@@ -55,6 +55,9 @@
       globals: true,
       setupFiles: ["./src/test/setup.ts"],
       css: false,
+      // Scoped to src/ so vitest does not try to run the Electron main-process
+      // suites, which are plain `node:test` files.
+      include: ["src/**/*.{test,spec}.{ts,tsx,js,jsx}"],
     },
     build: {
       target: 'esnext',
@@ -62,7 +65,8 @@
     },
     server: {
       port: 3000,
-      open: true,
+      // Electron opens its own window; a browser tab too would be noise.
+      open: !process.env.DOGMA_ELECTRON,
       proxy: {
         '/api': {
           target: process.env.VITE_GEO_API_URL || 'http://localhost:8000',

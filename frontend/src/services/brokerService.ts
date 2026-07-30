@@ -2,7 +2,7 @@
  * Service for interacting with the Method Broker API
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE_URL } from "@/lib/apiBaseUrl";
 
 export interface MethodRequest {
   query: string;

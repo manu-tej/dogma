@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 import { PageHeader } from "../components/PageHeader";
 
-const API_BASE = import.meta.env.VITE_GEO_API_URL || "http://localhost:8000";
+import { API_BASE_URL as API_BASE } from "@/lib/apiBaseUrl";
 
 interface HealthState {
   loading: boolean;

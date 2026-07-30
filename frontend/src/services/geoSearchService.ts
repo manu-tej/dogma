@@ -5,12 +5,13 @@
  * Provides natural language query parsing and search capabilities.
  */
 
+import { API_BASE_URL } from "@/lib/apiBaseUrl";
 import { GeoSearchClient } from "@/lib/geo-client";
 import type { QuerySpec, GeoDatasetCandidate } from "@/lib/geo-client";
 
 // Initialize the GEO search client
 const geoClient = new GeoSearchClient({
-  baseUrl: import.meta.env.VITE_GEO_API_URL || "http://localhost:8000",
+  baseUrl: API_BASE_URL,
 });
 
 /**
@@ -365,8 +366,7 @@ export async function searchGeoStreaming(
   console.log("[GeoSearchService] Parsed QuerySpec:", querySpec);
 
   // Build URL with query parameters
-  const baseUrl = import.meta.env.VITE_GEO_API_URL || "http://localhost:8000";
-  const url = new URL(`${baseUrl}/geo/search/stream`);
+  const url = new URL(`${API_BASE_URL}/geo/search/stream`);
   url.searchParams.append("max_results", maxResults.toString());
   if (conversationId) {
     url.searchParams.append("conversation_id", conversationId);
