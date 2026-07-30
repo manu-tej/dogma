@@ -418,13 +418,14 @@ console.log("Datasets by number of conditions:", byConditions);
 
 ## Contributing
 
-See [MONOREPO_SETUP.md](../MONOREPO_SETUP.md) for development setup.
+See [Set up the monorepo](../README.md#set-up-the-monorepo) in the root README for
+development setup.
 
 ## Links
 
 - [Main README](../README.md) - Project overview
-- [API Documentation](../docs/API.md) - Backend API reference
-- [Setup Guide](../MONOREPO_SETUP.md) - Detailed setup instructions
+- [API reference](http://localhost:8000/docs) - interactive OpenAPI docs, served by `npm run dev:backend`
+- [Setup Guide](../README.md#set-up-the-monorepo) - monorepo setup instructions
 
 ## License
 

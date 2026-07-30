@@ -1,0 +1,186 @@
+# Quration Configuration
+# Copy this to config.yaml and fill in your values
+
+# LLM Configuration
+llm:
+  provider: "anthropic"  # Options: anthropic, openrouter, aws_bedrock, gcp_vertex
+
+  # Direct Anthropic API
+  anthropic:
+    api_key: "your-api-key-here"  # Or use ANTHROPIC_API_KEY env var
+
+    # Model selection for cost optimization (Updated October 2025)
+    fast_model: "claude-haiku-4-5-20251001"      # Claude Haiku 4.5 - Fast & efficient
+    smart_model: "claude-sonnet-4-5-20250929"    # Claude Sonnet 4.5 - Most capable
+
+    # Cost controls
+    max_tokens: 4096
+    temperature: 0.0  # Deterministic for production
+    enable_prompt_caching: true  # 90% cost reduction on repeated prompts
+
+  # OpenRouter (unified LLM access - alternative to Anthropic)
+  openrouter:
+    api_key: ""  # Or use OPENROUTER_API_KEY env var
+    site_url: ""  # Optional: Your site URL (for OpenRouter rankings)
+    app_name: "quration"  # Optional: App name for tracking
+
+    # Model selection - OpenRouter uses provider/model format (Updated November 2025)
+    # Default: Claude models (production-grade)
+    fast_model: "anthropic/claude-haiku-4.5"      # $1/$5 per 1M tokens
+    smart_model: "anthropic/claude-sonnet-4.5"    # $3/$15 per 1M tokens
+
+    # Alternative: Ultra-budget (FREE!)
+    # fast_model: "deepseek/deepseek-r1:free"     # FREE - o1 performance
+    # smart_model: "deepseek/deepseek-r1"         # $0.20/$0.80 - 90% cheaper!
+
+    # Alternative: Balanced performance/cost
+    # fast_model: "google/gemini-2.5-flash"       # $0.30/$2.50 - 1M context!
+    # smart_model: "deepseek/deepseek-r1"         # $0.20/$0.80 - best value
+
+    # Alternative: Maximum context
+    # fast_model: "google/gemini-2.5-flash"       # 1M tokens context
+    # smart_model: "google/gemini-2.5-pro"        # $1.25/$5 - 1M context
+
+    # Alternative: Latest OpenAI GPT-5 family (Nov 2025)
+    # fast_model: "openai/gpt-5-mini"             # $0.25/$2 - 272K context
+    # smart_model: "openai/gpt-5.1"               # $1.25/$10 - Latest flagship
+
+    # Cost controls
+    max_tokens: 4096
+    temperature: 0.0
+
+  # AWS Bedrock (use AWS credits)
+  aws_bedrock:
+    region: "us-east-1"
+    access_key_id: ""  # Or use AWS_ACCESS_KEY_ID env var
+    secret_access_key: ""  # Or use AWS_SECRET_ACCESS_KEY env var
+    model_id: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+  # GCP Vertex AI (use GCP credits)
+  gcp_vertex:
+    project_id: "your-project-id"
+    location: "us-central1"
+    credentials_path: ""  # Path to service account JSON
+
+# Data Sources
+data_sources:
+  geo:
+    base_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+    tool: "quration"  # Tool name for NCBI (required)
+    email: "your-email@example.com"  # REQUIRED: Your email (NCBI policy, avoids 403)
+    api_key: ""  # Optional NCBI API key (increases rate limit from 3 to 10 req/sec)
+    rate_limit: 3  # Requests per second (3 without key, 10 with key)
+
+  ontologies:
+    # Ontology Lookup Service
+    ols:
+      base_url: "https://www.ebi.ac.uk/ols4/api"
+      ontologies: ["efo", "uberon", "cl", "doid", "mondo"]
+
+    # BioPortal (optional, requires API key)
+    bioportal:
+      api_key: ""
+      base_url: "https://data.bioportal.org"
+
+  proteomics:
+    # PRIDE Archive API (primary proteomics repository)
+    pride_base_url: "https://www.ebi.ac.uk/pride/ws/archive/v2"
+    pride_api_key: ""  # Optional API key for increased rate limits
+
+    # ProteomeXchange Central
+    px_base_url: "http://proteomecentral.proteomexchange.org/cgi/GetDataset"
+
+    # MassIVE (UCSD)
+    massive_base_url: "https://massive.ucsd.edu/ProteoSAFe/proxi/v0.1"
+
+    # jPOST (Japan ProteOme STandard Repository)
+    jpost_base_url: "https://repository.jpostdb.org/proxi"
+
+    # PeptideAtlas
+    peptide_atlas_base_url: "http://www.peptideatlas.org"
+
+    # Rate limiting
+    rate_limit: 10  # Requests per second
+
+    # Tool identification
+    tool: "quration"
+    email: "your-email@example.com"
+
+    # Search and filtering options
+    default_organisms:
+      - "Homo sapiens"
+      - "Mus musculus"
+      - "Rattus norvegicus"
+
+    default_instruments:
+      - "Orbitrap"
+      - "Q Exactive"
+      - "TripleTOF"
+      - "timsTOF"
+      - "Fusion"
+
+    # Data download settings
+    enable_data_download: false  # Whether to download actual data files
+    download_dir: "./data/proteomics"
+    max_file_size_mb: 1000  # Maximum file size to download
+
+# Processing
+processing:
+  # Batch size for processing multiple datasets
+  batch_size: 10
+
+  # Enable parallel processing
+  parallel: true
+  max_workers: 4
+
+  # Caching
+  cache_enabled: true
+  cache_dir: "./data/cache"
+  cache_ttl_hours: 24
+
+# Output
+output:
+  # Default output directory
+  output_dir: "./data/output"
+
+  # Formats to generate
+  formats:
+    - "json"       # Standard JSON
+    - "jsonld"     # JSON-LD (semantic web)
+    - "parquet"    # Parquet (analytics)
+
+  # Output options
+  pretty_print: true
+  include_provenance: true  # Track curation history
+
+# Validation
+validation:
+  # Strictness level: strict, normal, permissive
+  level: "normal"
+
+  # Required fields for each sample
+  required_fields:
+    - "organism"
+    - "tissue"
+    - "sample_type"
+
+  # Ontology validation
+  validate_ontologies: true
+
+  # Quality checks
+  checks:
+    - "completeness"
+    - "consistency"
+    - "ontology_compliance"
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "rich"  # rich (colored) or json (for production)
+  log_file: "./logs/quration.log"
+
+# Cost tracking (optional)
+cost_tracking:
+  enabled: true
+  budget_alert_threshold: 100.0  # Alert if cost exceeds $100
+  log_token_usage: true
