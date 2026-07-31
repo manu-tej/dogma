@@ -1,6 +1,8 @@
 # tests/hypothesis/orchestrator/test_real_pipeline_path_wiring.py
-"""build_real_loop wires the LlmAuthoringSuggester (B-lean) in live mode, and still
-degrades to the demo seams when no provider is available."""
+"""build_real_loop wires the LlmAuthoringSuggester (B-lean) in live mode, and
+refuses to run at all when no provider is available."""
+
+import pytest
 
 import quration.hypothesis.orchestrator.real_pipeline as rp
 from quration.hypothesis.orchestrator.authoring_suggester import LlmAuthoringSuggester
@@ -20,13 +22,17 @@ def test_wires_llm_authoring_suggester_in_live_mode(monkeypatch):
     assert isinstance(loop._supervisor, _GroundingSupervisor)
 
 
-def test_provider_failure_still_degrades_to_demo(monkeypatch):
-    from quration.hypothesis.orchestrator.demo import DemoSuggester
+def test_provider_failure_raises_rather_than_seeding_from_demo(monkeypatch):
+    """Inverted on purpose — see the note on the sibling test in
+    test_real_pipeline_wiring.py. Silently substituting synthetic seeds for a real
+    question is the one failure mode this engine must not have."""
+    from quration.llm.providers import LLMProviderUnavailableError
 
     def boom(*a, **k):
         raise RuntimeError("no creds")
 
     monkeypatch.setattr("quration.llm.providers.get_provider_from_config", boom)
     monkeypatch.setattr("quration.broker.method_broker.MethodBroker", lambda cfg: object())
-    loop = rp.build_real_loop()
-    assert isinstance(loop._suggester, DemoSuggester)
+
+    with pytest.raises(LLMProviderUnavailableError):
+        rp.build_real_loop()

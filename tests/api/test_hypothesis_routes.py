@@ -276,7 +276,13 @@ def test_resolve_chat_llm_none_for_demo_sentinel(monkeypatch):
     assert hr._resolve_chat_llm() is None
 
 
-def test_resolve_chat_llm_none_when_provider_unconstructible(monkeypatch):
+def test_resolve_chat_llm_raises_when_provider_unconstructible(monkeypatch):
+    """Inverted deliberately: this used to assert ``None``, which selected the
+    Demo chat seams. A prose answer carries no provenance field to inspect, so a
+    demo reply to a real question is indistinguishable from a real one. See
+    tests/api/test_no_silent_demo_degradation.py."""
+    from quration.llm.providers import LLMProviderUnavailableError
+
     monkeypatch.setattr(
         hr, "get_config", lambda: SimpleNamespace(llm=SimpleNamespace(provider="anthropic")))
 
@@ -284,7 +290,8 @@ def test_resolve_chat_llm_none_when_provider_unconstructible(monkeypatch):
         raise ValueError("ANTHROPIC_API_KEY environment variable not set")
 
     monkeypatch.setattr(hr, "get_provider_from_config", _boom)
-    assert hr._resolve_chat_llm() is None
+    with pytest.raises(LLMProviderUnavailableError):
+        hr._resolve_chat_llm()
 
 
 def test_resolve_chat_llm_returns_provider_and_smart_model(monkeypatch):

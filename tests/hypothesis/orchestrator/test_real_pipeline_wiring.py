@@ -6,11 +6,16 @@ were removed. The loop's only runner is now MethodsGraphEvaluationRunner, and th
 supervisor is a _GroundingSupervisor (live triage/seeds/propose, methods-graph
 interpret). The primary-suggester assertions live in test_real_pipeline_path_wiring.py;
 this file retains the supervisor/fallback, degradation, and runner-type coverage.
+
+NOTE: "degradation" no longer means substituting the demo seams. An unusable
+provider raises LLMProviderUnavailableError; see
+test_provider_failure_raises_instead_of_degrading_to_demo below.
 """
+
+import pytest
 
 import quration.hypothesis.orchestrator.real_pipeline as rp
 from quration.hypothesis.orchestrator.authoring_suggester import LlmAuthoringSuggester
-from quration.hypothesis.orchestrator.demo import DemoSuggester
 from quration.hypothesis.orchestrator.methods_eval import MethodsGraphEvaluationRunner
 from quration.hypothesis.orchestrator.real_pipeline import _GroundingSupervisor
 
@@ -31,18 +36,27 @@ def test_wires_llm_authoring_suggester_grounding_supervisor_and_fallback(monkeyp
     assert loop._empty_seed_fallback is not None
 
 
-def test_provider_failure_degrades_to_demo(monkeypatch):
+def test_provider_failure_raises_instead_of_degrading_to_demo(monkeypatch):
+    """This assertion is the inverse of what it used to be, deliberately.
+
+    It previously required `build_real_loop` to return a loop wired to
+    `DemoSuggester` when the provider could not be constructed. That is what made
+    a machine with no API key answer every question with the same synthetic
+    EGFR -> KRAS graph at HTTP 200. Demo mode is still reachable — via
+    `build_demo_loop`, or `QURATION_PROVIDER=demo` — but not by accident.
+    """
+    from quration.llm.providers import LLMProviderUnavailableError
+
     def boom(*a, **k):
         raise RuntimeError("no creds")
 
     monkeypatch.setattr("quration.llm.providers.get_provider_from_config", boom)
     monkeypatch.setattr("quration.broker.method_broker.MethodBroker", lambda cfg: object())
-    loop = rp.build_real_loop()
-    # Demo-degraded path still grounds against the methods graph (no correlation).
-    assert isinstance(loop._suggester, DemoSuggester)
-    assert isinstance(loop._supervisor, _GroundingSupervisor)
-    assert isinstance(loop._runner, MethodsGraphEvaluationRunner)
-    assert loop._empty_seed_fallback is None
+
+    with pytest.raises(LLMProviderUnavailableError) as caught:
+        rp.build_real_loop()
+    # The underlying cause survives, so the remedy is actionable.
+    assert "no creds" in str(caught.value)
 
 
 def test_fallback_authors_skeleton_via_seeding_service(monkeypatch):

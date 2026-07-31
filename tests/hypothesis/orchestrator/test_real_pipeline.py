@@ -7,9 +7,30 @@ What remains is the advisory method-selector wiring, which is independent of the
 runner and still valid.
 """
 
+import pytest
+
 from quration.hypothesis.graph import CausalGraph, Edge, Node, NodeType
 from quration.hypothesis.orchestrator.checkpoint import ProposedTest
 from quration.hypothesis.orchestrator.real_pipeline import build_real_loop
+
+
+@pytest.fixture
+def live_provider(monkeypatch):
+    """A constructible provider, so `build_real_loop` reaches the live path.
+
+    These tests used to call `build_real_loop()` with no provider at all and get a
+    loop back, because an unusable provider silently degraded to the demo seams.
+    That fallback is gone, so the provider now has to be stubbed explicitly.
+
+    Only the provider is stubbed — `MethodBroker` is left real, because the point
+    of these tests is what the selector recommends from the actual registry.
+    """
+    monkeypatch.setattr(
+        "quration.llm.providers.get_provider_from_config", lambda *a, **k: object()
+    )
+    monkeypatch.setattr(
+        "quration.llm.providers.get_model_for_config", lambda *a, **k: "m"
+    )
 
 
 def _graph():
@@ -29,14 +50,14 @@ def _proposed(**kw):
     return ProposedTest(**base)
 
 
-def test_build_real_loop_wires_a_method_selector():
+def test_build_real_loop_wires_a_method_selector(live_provider):
     from quration.hypothesis.orchestrator.method_selection import BrokerMethodSelector
 
     loop = build_real_loop()
     assert isinstance(loop._selector, BrokerMethodSelector)
 
 
-def test_real_loop_selector_recommends_a_registry_method():
+def test_real_loop_selector_recommends_a_registry_method(live_provider):
     """The wired selector, on a gene-gene RNA-seq edge, recommends a real method
     from the broker (default registry, or methods-graph when env-grounded).
     Advisory only — selecting touches no repository/runner state."""

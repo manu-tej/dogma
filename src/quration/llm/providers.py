@@ -45,6 +45,33 @@ class LLMProvider(ABC):
         pass
 
 
+class LLMProviderUnavailableError(RuntimeError):
+    """A live provider is configured but cannot be constructed.
+
+    Raised instead of quietly substituting the demo seams. The hypothesis engine
+    used to catch provider-construction failures and fall back to synthetic
+    content, on the reasoning that the app should never fail to start. For a tool
+    whose output is read as science that trade is backwards: a missing API key
+    produced an HTTP 200 graph about EGFR and KRAS no matter what question was
+    asked, with `proposal_source="llm"` on edges no model had ever seen.
+
+    Subclasses RuntimeError because `_real_mode()` already signals unusable
+    provider configuration that way, and callers that catch RuntimeError should
+    keep catching this.
+
+    Demo mode remains available, but only when asked for explicitly.
+    """
+
+    #: Message shared by every raise site, so the remedy is always stated.
+    REMEDY = (
+        "no usable LLM provider: set ANTHROPIC_API_KEY, or set "
+        "QURATION_PROVIDER=demo for synthetic offline mode"
+    )
+
+    def __init__(self, detail: str | None = None):
+        super().__init__(f"{self.REMEDY}{f' ({detail})' if detail else ''}")
+
+
 class AnthropicProvider(LLMProvider):
     """Anthropic Claude provider."""
 
