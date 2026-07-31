@@ -1,0 +1,21 @@
+{
+  "name": "dogma",
+  "owner": {
+    "name": "Manu Arrojwala",
+    "url": "https://github.com/manu-tej/dogma"
+  },
+  "plugins": [
+    {
+      "name": "dogma-method-validity",
+      "source": "./",
+      "description": "Factual method-validity checks for bioinformatics workflows: which steps have a grounded method contract, which are coverage gaps, which containers are unpinned, and which per-method assumptions are unmet — reported before an analysis runs. Outputs facts, never a support/refute verdict or a confidence score.",
+      "category": "science",
+      "keywords": [
+        "bioinformatics",
+        "computational-biology",
+        "method-validation",
+        "reproducibility"
+      ]
+    }
+  ]
+}

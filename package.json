@@ -32,7 +32,7 @@
     "test:desktop-smoke": "npm run build:frontend && npm --prefix frontend run electron:smoke",
     "test:dogma-extension": "npm --prefix dogma-vscode-extension run check && npm --prefix dogma-vscode-extension test",
     "test:dogma-service": "cd dogma-local-service && python -m unittest discover -s tests",
-    "test:dogma-skill": "python -m pytest dogma-science-skill/method-validity/tests",
+    "test:dogma-skill": "python -m pytest .claude/skills/method-validity/tests",
     "test:dogma": "npm run test:dogma-extension && npm run test:dogma-service && npm run test:dogma-skill",
     "test": "npm run test:backend && npm run test:frontend && npm run test:electron && npm run test:dogma",
     "check:dogma-rename": "node tools/check-dogma-rename.js",

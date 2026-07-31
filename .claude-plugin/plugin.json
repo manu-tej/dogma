@@ -1,0 +1,19 @@
+{
+  "name": "dogma-method-validity",
+  "version": "0.1.0",
+  "description": "Factual method-validity checks for bioinformatics workflows: which steps have a grounded method contract, which are coverage gaps, which assumptions are unmet. Reports facts, never a verdict.",
+  "author": {
+    "name": "Manu Arrojwala"
+  },
+  "repository": "https://github.com/manu-tej/dogma",
+  "license": "MIT",
+  "keywords": [
+    "bioinformatics",
+    "computational-biology",
+    "method-validation",
+    "nextflow",
+    "nf-core",
+    "reproducibility"
+  ],
+  "skills": "./.claude/skills"
+}

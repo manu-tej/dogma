@@ -45,7 +45,7 @@ jobs:
           python -c "import biocursor_service, dogma_service"
           dogma-service --help
       - name: Test Claude Science skill
-        run: python -m pytest dogma-science-skill/method-validity/tests
+        run: python -m pytest .claude/skills/method-validity/tests
 
   node:
     name: Frontend and IDE extension

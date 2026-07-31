@@ -18,8 +18,14 @@ venv/
 .ruff_cache/
 .mypy_cache/
 coverage.xml
+.coverage
+.coverage.*
 *.egg-info/
 *.whl
+
+# Per-developer Claude Code settings. `.claude/skills/` IS tracked — it is how a
+# fresh clone discovers the method-validity skill — but local settings are not.
+.claude/settings.local.json
 
 # Secrets / local
 .env
