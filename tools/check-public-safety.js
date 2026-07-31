@@ -56,9 +56,53 @@ const sensitiveContent = [
   [/\/Users\/(?!test\/|example\/)[^/\s]+\/(?:20\d\d|Documents|Desktop)\//, "developer-local absolute path"],
   [/github\.com\/yourusername\//, "placeholder repository URL"],
   [/production[- ]ready/i, "overstated readiness claim"],
-  [/generateMockBio(?:Response)/, "unlabeled synthetic scientific-result fallback"],
   [/GSE(?:253718|149276)/, "legacy real-looking demo accession"],
 ];
+
+/**
+ * Patterns that are legitimate inside a clearly-marked fixture but not in code
+ * that can reach a user as a result.
+ *
+ * This replaces a `generateMockBio(?:Response)` pattern that guarded a function
+ * deleted long ago — it matched nothing anywhere in the tree except itself, so
+ * the "unlabeled synthetic scientific-result fallback" rule had been passing
+ * vacuously while `magnitude="log2FC=1.8, padj=1e-4"` sat live in the demo seams.
+ * A denylist entry whose target no longer exists is worse than no entry: it reads
+ * as coverage.
+ *
+ * Scoped rather than absolute, because a hardcoded statistic in a file named
+ * `demo.py` or `fixtures.ts` is honest scaffolding. The same literal in a service
+ * or a component is a fabricated measurement.
+ */
+const fabricatedStatistic = [
+  [
+    // An effect size AND its significance, together in one short span: the shape
+    // of a synthesized result summary, e.g. `magnitude="log2FC=1.8, padj=1e-4"`.
+    // Requiring the pair keeps the precision high. Either half alone is far too
+    // common to flag — a column name in a parser, a threshold in a config, or a
+    // worked example in a comment. A first attempt at this matched exactly such a
+    // comment in interpretation/parsers.py, which is a filter that *rejects*
+    // annotation dumps; a check that cries wolf gets suppressed and then ignored.
+    /log2?_?f(?:old)?_?c(?:hange)?\s*[=:]\s*-?[0-9][^\n]{0,40}?(?:padj|adj_?p(?:val)?|fdr|q_?value)\s*[=:]\s*[0-9]/i,
+    "fabricated effect-size + significance pair outside a fixture",
+  ],
+];
+
+/**
+ * True for paths where synthetic scientific values are expected and understood.
+ * Deliberately narrow: "demo" or "fixture" in the name, or a test file.
+ */
+function isDeclaredFixture(relativePath) {
+  const name = relativePath.toLowerCase();
+  return (
+    /(?:^|\/)(?:tests?|__tests__|conftest\.py)(?:\/|$)/.test(name) ||
+    /\.test\.[cm]?[jt]sx?$/.test(name) ||
+    /(?:^|\/|[._-])(?:demo|demos|fixture|fixtures|sample_data|example)s?(?:[._-]|\/|$)/.test(
+      name,
+    ) ||
+    name.includes("dogma-demo-workspace/")
+  );
+}
 
 for (const relativePath of files) {
   const pathProblem = isForbiddenPath(relativePath);
@@ -78,6 +122,16 @@ for (const relativePath of files) {
   const content = buffer.toString("utf8");
   for (const [pattern, label] of sensitiveContent) {
     if (pattern.test(content)) problems.push(`${relativePath}: possible ${label}`);
+  }
+
+  // This file is a denylist; it necessarily contains every pattern it searches
+  // for, and scanning itself would guarantee a permanent self-report.
+  const isThisChecker = relativePath === "tools/check-public-safety.js";
+
+  if (!isThisChecker && !isDeclaredFixture(relativePath)) {
+    for (const [pattern, label] of fabricatedStatistic) {
+      if (pattern.test(content)) problems.push(`${relativePath}: ${label}`);
+    }
   }
 }
 
