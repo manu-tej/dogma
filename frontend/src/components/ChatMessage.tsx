@@ -196,7 +196,7 @@ export function ChatMessage({ message, onAction }: ChatMessageProps) {
                           Download Summary
                         </button>
                         <button
-                          onClick={() => onAction?.('runSurvivalAnalysis', message.analysis?.data.datasetDetails?.filter((d: any) => d.survivalData))}
+                          onClick={() => onAction?.('runSurvivalAnalysis', message.analysis?.data.datasetDetails?.filter((d: any) => d.maybeHasSurvivalData))}
                           className="px-4 py-2 bg-surface-2 hover:bg-accent text-foreground/90 text-sm rounded-lg transition-colors duration-150 ease-out active:scale-[0.98] flex items-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

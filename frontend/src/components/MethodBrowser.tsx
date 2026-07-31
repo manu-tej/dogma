@@ -134,21 +134,34 @@ export function MethodBrowser() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-xs mb-3 text-muted-foreground">
-          <div>
-            <span className="font-semibold text-foreground">Reproducibility:</span>{" "}
-            <span className="font-mono">{(method.quality_metrics.reproducibility_score * 100).toFixed(0)}%</span>
+        {/* Labelled as estimates, and deliberately not in monospace.
+            These are hand-entered curator judgements: reproducibility, rating and
+            documentation have no rubric or rater pool behind them, and the
+            citation count was typed once and never refreshed. Rendering them as
+            `95%` / `15,000` / `4.8/5.0` in monospace read as measurement, which is
+            what the styling convention means. See MethodQualityMetrics. */}
+        <div className="mb-3 text-xs text-muted-foreground">
+          <div className="mb-1 italic">
+            {method.quality_metrics.provenance === "measured"
+              ? "Measured:"
+              : "Curator estimates — not measured:"}
           </div>
-          <div>
-            <span className="font-semibold text-foreground">Citations:</span>{" "}
-            <span className="font-mono">{method.quality_metrics.citation_count.toLocaleString()}</span>
-          </div>
-          {method.quality_metrics.community_rating && (
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <span className="font-semibold text-foreground">Rating:</span>{" "}
-              <span className="font-mono">{method.quality_metrics.community_rating.toFixed(1)}/5.0</span>
+              <span className="font-semibold text-foreground">Reproducibility:</span>{" "}
+              <span>~{(method.quality_metrics.reproducibility_score * 100).toFixed(0)}%</span>
             </div>
-          )}
+            <div>
+              <span className="font-semibold text-foreground">Citations:</span>{" "}
+              <span>~{method.quality_metrics.citation_count.toLocaleString()}</span>
+            </div>
+            {method.quality_metrics.community_rating && (
+              <div>
+                <span className="font-semibold text-foreground">Rating:</span>{" "}
+                <span>~{method.quality_metrics.community_rating.toFixed(1)}/5.0</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {method.tags.length > 0 && (
@@ -272,11 +285,17 @@ export function MethodBrowser() {
           </Card>
           <Card className="bg-card border-border elev transition-[transform,box-shadow,border-color] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-strong">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Quality</CardTitle>
+              {/* An average of curator estimates is still an estimate. The tile
+                  said "Avg Quality" over a monospace percentage, which presented
+                  the mean of some hand-typed numbers as a measured property of the
+                  registry. */}
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Avg Quality (estimated)
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono text-foreground">
-                {(stats.registry.average_quality_score * 100).toFixed(0)}%
+              <div className="text-2xl font-bold text-foreground">
+                ~{(stats.registry.average_quality_score * 100).toFixed(0)}%
               </div>
             </CardContent>
           </Card>

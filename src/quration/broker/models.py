@@ -4,7 +4,7 @@ Data models for the Method Broker system.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -78,8 +78,29 @@ class MethodCaveat(BaseModel):
 
 
 class MethodQualityMetrics(BaseModel):
-    """Quality metrics for a method."""
+    """Quality metrics for a method.
 
+    IMPORTANT: every value in the bundled registry is a hand-entered curator
+    estimate, not a measurement. `reproducibility_score`, `documentation_quality`
+    and `community_rating` have no defined measurement procedure at all — there is
+    no rubric, no rater pool and no source. `citation_count` could be sourced
+    (Europe PMC, Semantic Scholar) but currently is not; the registry literals were
+    typed once and never revisited.
+
+    They were rendered in the UI in monospace as "95%", "15,000" and "4.8/5.0",
+    which is the typographic convention for a measured quantity, and averaged into
+    a headline "Avg Quality" tile. `provenance` exists so a consumer cannot mistake
+    an estimate for a measurement; it defaults to the truthful value, so any new
+    entry is an estimate until someone does the work to measure it.
+    """
+
+    provenance: Literal["measured", "curator_estimate"] = Field(
+        default="curator_estimate",
+        description=(
+            "Where these numbers came from. 'curator_estimate' means hand-entered "
+            "judgement, not a measurement — do not present as one."
+        ),
+    )
     reproducibility_score: float = Field(
         ge=0.0, le=1.0, description="Reproducibility score (0-1)"
     )

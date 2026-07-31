@@ -46,6 +46,9 @@ export interface MethodCaveat {
 }
 
 export interface MethodQualityMetrics {
+  /** "curator_estimate" for everything in the bundled registry — hand-entered
+   *  judgement, not a measurement. Never render these as measured values. */
+  provenance?: "measured" | "curator_estimate";
   reproducibility_score: number;
   code_availability: boolean;
   documentation_quality: number;

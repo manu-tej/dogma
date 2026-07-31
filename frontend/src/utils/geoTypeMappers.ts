@@ -13,7 +13,20 @@ export interface Dataset {
   tissue: string;
   sampleCount: number;
   platform: string;
-  survivalData: boolean;
+  /**
+   * The backend field is `maybe_has_survival_data` — a heuristic over the study
+   * metadata, not a confirmed fact. The name keeps the "maybe", because dropping
+   * it is how a guess became a green "Available" badge and a definite sentence in
+   * the summary text.
+   */
+  maybeHasSurvivalData: boolean;
+  /**
+   * The study's own abstract, straight from GEO. Undefined when GEO did not
+   * supply one — in which case say so, rather than composing a sentence. This
+   * field was fetched and then thrown away, while the UI rendered a synthesized
+   * "Study Description" in its place.
+   */
+  summary?: string;
 }
 
 /**
@@ -221,7 +234,7 @@ function formatPlatforms(platforms: string[] | null | undefined): string {
  * //   tissue: "Breast",
  * //   sampleCount: 6,
  * //   platform: "GPL16791",
- * //   survivalData: true
+ * //   maybeHasSurvivalData: true
  * // }
  * ```
  */
@@ -232,7 +245,12 @@ export function transformGeoDataset(geo: GeoDatasetCandidate): Dataset {
     tissue: getTissueFromGeoData(geo),
     sampleCount: geo.nSamples ?? 0,
     platform: formatPlatforms(geo.platforms),
-    survivalData: geo.maybeHasSurvivalData ?? false,
+    maybeHasSurvivalData: geo.maybeHasSurvivalData ?? false,
+    // Carried through rather than mined and dropped. getOrganismFromGeoData and
+    // getTissueFromGeoData already read this field to extract terms; the abstract
+    // itself was then discarded, and the UI displayed a template sentence under
+    // the heading "Study Description".
+    summary: geo.summary?.trim() || undefined,
   };
 }
 
@@ -343,11 +361,22 @@ export function generateGeoResponseContent(
                        ? analysisData.totalSamples.toLocaleString()
                        : analysisData.totalSamples;
 
-  // Count datasets with survival data
-  const survivalDataCount = analysisData.datasetDetails.filter(d => d.survivalData).length;
+  // Count datasets that MAY have survival data.
+  //
+  // Numerator and denominator must describe the same population. The count ran
+  // over every candidate while the denominator was Math.min(5, candidates.length),
+  // so 8 hits among 20 datasets rendered as "8 out of 5 top datasets".
+  //
+  // The wording is hedged because the backend field is `maybe_has_survival_data`,
+  // a heuristic over study metadata. Stating it as fact sends someone to download
+  // a dataset expecting clinical outcomes that may not be there.
+  const considered = analysisData.datasetDetails.length;
+  const survivalDataCount = analysisData.datasetDetails.filter(
+    d => d.maybeHasSurvivalData,
+  ).length;
   const survivalText = survivalDataCount > 0
-    ? `**Survival data available**: ${survivalDataCount} out of ${Math.min(5, candidates.length)} top datasets include clinical survival information`
-    : '**Survival data**: Not available in the top datasets';
+    ? `**Survival data**: ${survivalDataCount} of ${considered} dataset${considered === 1 ? '' : 's'} may include clinical survival information (inferred from study metadata; confirm against the series record)`
+    : '**Survival data**: none of the datasets examined appear to include clinical survival information';
 
   // Extract common themes from match reasons
   const matchReasons = candidates.slice(0, 3).flatMap(c => c.matchReasons || []);

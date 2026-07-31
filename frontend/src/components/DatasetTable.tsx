@@ -17,7 +17,10 @@ interface Dataset {
   tissue: string;
   sampleCount: number;
   platform: string;
-  survivalData: boolean;
+  /** Heuristic, not confirmed — see the note on Dataset in utils/geoTypeMappers. */
+  maybeHasSurvivalData: boolean;
+  /** The study's own abstract from GEO, when it supplied one. */
+  summary?: string;
 }
 
 interface DatasetTableProps {
@@ -125,7 +128,7 @@ export function DatasetTable({ datasets }: DatasetTableProps) {
             'Visualize enrichment results',
           ],
         },
-        ...(dataset.survivalData
+        ...(dataset.maybeHasSurvivalData
           ? [
               {
                 phase: 'Phase 6: Survival Analysis',
@@ -140,7 +143,7 @@ export function DatasetTable({ datasets }: DatasetTableProps) {
             ]
           : []),
       ],
-      estimatedTotalTime: dataset.survivalData ? '10-14 days' : '8-11 days',
+      estimatedTotalTime: dataset.maybeHasSurvivalData ? '10-14 days' : '8-11 days',
       requiredResources: [
         'High-performance computing cluster (16+ cores, 64GB+ RAM)',
         'Reference genome and annotation files',
@@ -196,9 +199,16 @@ export function DatasetTable({ datasets }: DatasetTableProps) {
                     <td className="py-3 px-4 text-foreground/90 font-mono">{dataset.sampleCount}</td>
                     <td className="py-3 px-4 text-muted-foreground text-xs">{dataset.platform}</td>
                     <td className="py-3 px-4">
-                      {dataset.survivalData ? (
-                        <Badge className="bg-surface-2 text-positive border-border text-xs">
-                          Available
+                      {dataset.maybeHasSurvivalData ? (
+                        // "Likely", not "Available". The backend field is
+                        // `maybe_has_survival_data`, inferred from study metadata.
+                        // A definite green badge sent people to download a series
+                        // expecting clinical outcomes that may not be in it.
+                        <Badge
+                          className="bg-surface-2 text-positive border-border text-xs"
+                          title="Inferred from study metadata — confirm against the GEO series record"
+                        >
+                          Likely
                         </Badge>
                       ) : (
                         <Badge
@@ -237,10 +247,21 @@ export function DatasetTable({ datasets }: DatasetTableProps) {
                       <td colSpan={9} className="py-4 px-4">
                         <div className="space-y-3 text-sm">
                           <div>
+                            {/* The study's own abstract, or an honest blank.
+                                This used to render "RNA-Seq analysis of {tissue}
+                                samples from {organism}" — a sentence Dogma wrote,
+                                under a heading that reads as GEO's own text, in
+                                the same styling as the real fields beside it. It
+                                also asserted the assay: a microarray or ChIP-seq
+                                series was described as RNA-Seq. */}
                             <span className="text-muted-foreground">Study Description: </span>
-                            <span className="text-foreground/90">
-                              RNA-Seq analysis of {dataset.tissue} samples from {dataset.organism}
-                            </span>
+                            {dataset.summary ? (
+                              <span className="text-foreground/90">{dataset.summary}</span>
+                            ) : (
+                              <span className="italic text-muted-foreground">
+                                not provided by GEO for this series
+                              </span>
+                            )}
                           </div>
                           <div>
                             <span className="text-muted-foreground">Recommended First Step: </span>
@@ -251,7 +272,7 @@ export function DatasetTable({ datasets }: DatasetTableProps) {
                           <div>
                             <span className="text-muted-foreground">Estimated Analysis Time: </span>
                             <span className="text-foreground/90">
-                              {dataset.survivalData ? '10-14 days' : '8-11 days'} (full pipeline)
+                              {dataset.maybeHasSurvivalData ? '10-14 days' : '8-11 days'} (full pipeline)
                             </span>
                           </div>
                         </div>
