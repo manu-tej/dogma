@@ -4,10 +4,13 @@ import {
 
 import type { ClaimRFEdge } from "../../lib/hypothesis-ui/layout";
 import { edgeValidationStyle, resolveEdgeStatus } from "../../lib/hypothesis-ui/styling";
+import { ClaimEdgeLabel } from "./ClaimEdgeLabel";
+import { useSelectEdge } from "./edgeSelection";
 
 export function ClaimEdge(props: EdgeProps<ClaimRFEdge>) {
-  const { data, selected } = props;
+  const { data, selected, id } = props;
   const edge = data!.edge;
+  const selectEdge = useSelectEdge();
   // Drive stroke colour/dash/opacity from the epistemic validation status, not
   // from EdgeState or node grounding — an LLM-proposed edge must read as weak
   // even if its entity nodes are grounded.
@@ -31,22 +34,23 @@ export function ClaimEdge(props: EdgeProps<ClaimRFEdge>) {
         }}
       />
       <EdgeLabelRenderer>
-        <div
-          className="nodrag nopan pointer-events-none absolute rounded-full border bg-surface-2/80 px-2 py-0.5 font-mono text-xs backdrop-blur"
+        <ClaimEdgeLabel
+          relation={edge.relation}
+          selected={!!selected}
+          onSelect={() => selectEdge(id)}
+          borderColor={vstyle.color}
+          color={vstyle.color}
           style={{
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            borderColor: vstyle.color,
-            color: vstyle.color,
           }}
         >
-          {edge.relation}
           {vstyle.badge && (
             <span className="ml-1 opacity-80">· {vstyle.badge}</span>
           )}
           {edge.suggested_by.length > 0 && (
             <span className="ml-1 text-muted-foreground">· {edge.suggested_by.length}</span>
           )}
-        </div>
+        </ClaimEdgeLabel>
         {selected && (
           <div
             className="nodrag nopan pointer-events-none absolute whitespace-nowrap rounded-full border border-signal/50 bg-surface-2/90 px-2 py-0.5 text-[10px] font-medium text-signal backdrop-blur"
