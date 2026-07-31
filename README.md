@@ -44,14 +44,40 @@ the final graph-bound orchestration and result write-back still need to be joine
 tested end to end. Dogma should currently be described as a review-first planning and
 local-control prototype, not as an autonomous causal execution engine.
 
+## Use Dogma from another coding agent
+
+Dogma runs standalone, and it also works as a toolset inside whatever agent you
+already use. No install is needed for this — `bin/dogma` finds its own
+interpreter, and the local service imports only the Python standard library, so
+a fresh clone is enough.
+
+```sh
+# MCP stdio server — Cursor, Codex, Zed, Windsurf, VS Code, Claude Code
+bin/dogma mcp
+
+# the same facts over plain argv, for agents that only run shell commands
+bin/dogma guardrails dogma-demo-workspace --format markdown
+```
+
+Six read-only tools answer questions a model cannot answer about itself: which
+method contracts are grounded, which are coverage gaps, which containers are
+unpinned, which assumptions are unmet, and which claims nothing has measured
+yet. They report facts, never a support/refute verdict or a confidence score.
+
+Per-host configuration is in
+[docs/integration/coding-agents.md](docs/integration/coding-agents.md).
+`AGENTS.md` carries the working rules for agents editing this repo.
+
 ## Repository map
 
+- `bin/dogma` — zero-install launcher for the MCP server and the CLI.
+- `AGENTS.md` — instructions for any coding agent working here.
 - `src/quration/` — Dogma's Python backend under its compatibility namespace.
 - `frontend/` — browser graph and research workspace.
 - `frontend/electron/` — Electron main process for the desktop build of that workspace.
 - `dogma-local-service/` — dependency-light local sidecar and guarded execution layer.
 - `dogma-vscode-extension/` — VS Code / Cursor interface.
-- `dogma-science-skill/` — Claude Science method-validity skill.
+- `.claude/skills/method-validity/` — the method-validity skill, auto-discovered on clone.
 - `dogma-demo-workspace/` — synthetic FASTQ, VCF, BED, GTF, sample-sheet, and Nextflow
   fixtures.
 - `tests/` — backend tests; each other runnable component keeps its tests beside it.
@@ -70,6 +96,28 @@ npm run install:all
 
 For local configuration, copy `.env.example` to `.env` and fill in only the providers
 you intend to use. Never commit `.env`.
+
+### The hypothesis engine needs either a key or explicit demo mode
+
+`/hypothesis/*` requires a usable LLM provider. Without one it returns **503** naming
+the remedy, rather than answering:
+
+```bash
+export ANTHROPIC_API_KEY=...        # live mode
+export QURATION_PROVIDER=demo       # or: synthetic offline mode, explicitly
+```
+
+This is deliberate, and it is a change in behaviour. Previously a missing key was
+caught and quietly swapped for a set of built-in "demo seams", which meant the engine
+answered *every* question with the same synthetic graph — asked whether SOD1
+aggregation drives motor neuron death in ALS, it returned EGFR → KRAS → drug
+resistance, at HTTP 200, with `proposal_source: "llm"` on edges no model had produced
+and a `UniProt:RESIST` accession that does not exist. The only signal was a warning in
+the server log.
+
+Demo mode is still fully supported and is a reasonable way to explore the UI offline.
+It just has to be asked for, because output that reads as science must not appear by
+accident. See `tests/api/test_no_silent_demo_degradation.py`.
 
 Run the browser workspace and backend together:
 
