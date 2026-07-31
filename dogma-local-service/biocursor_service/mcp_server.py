@@ -103,6 +103,42 @@ def tool_names() -> list[str]:
     return [tool["name"] for tool in TOOLS]
 
 
+# Mirrors quration.hypothesis.graph.EdgeState. This adapter stays dependency-free
+# on purpose (see quration_handoff.py), so the vocabulary is duplicated rather
+# than imported — and that duplication is precisely how the filter below drifted:
+# it tested `state != "tested"`, and "tested" has never been a member of
+# EdgeState. Being the left side of an `or`, it was unconditionally true, so the
+# tool named for listing untested claims returned every edge, always.
+#
+# It looked correct because quration_handoff.py hardcodes every edge to
+# "untested", so the two errors cancelled. It would have started lying the moment
+# the handoff learned to emit a measured edge — reporting a measured claim as
+# untested, which is the inverse of this tool's purpose.
+MEASURED_EDGE_STATE = "examined"  # only a measurement reaches this; see CLAUDE.md
+KNOWN_EDGE_STATES = frozenset(
+    {
+        "untested",  # nothing has looked at it
+        "assessed",  # a feasibility verdict exists; nothing measured it
+        MEASURED_EDGE_STATE,
+        # Deprecated in EdgeState but still accepted, so drift is not misreported
+        # as an unknown state.
+        "contested",
+        "supported",
+        "refuted",
+    }
+)
+
+
+def edge_is_unmeasured(edge: dict[str, Any]) -> bool:
+    """True unless something actually measured this edge.
+
+    An unrecognised state counts as unmeasured: claiming a measurement landed is
+    the assertion that needs evidence, so an unknown value must never be the
+    reason an edge disappears from this list.
+    """
+    return edge.get("state") != MEASURED_EDGE_STATE
+
+
 def root_arg(arguments: dict[str, Any]) -> Path:
     root = arguments.get("root")
     if not isinstance(root, str) or not root.strip():
@@ -200,13 +236,24 @@ def list_untested_or_stale_claims(arguments: dict[str, Any]) -> dict[str, Any]:
             "validation_status": edge.get("validation_status"),
         }
         for edge in graph.get("edges", [])
-        if edge.get("state") != "tested" or edge.get("validation_status") != "validated"
+        if edge_is_unmeasured(edge)
     ]
+    # Surface vocabulary drift instead of absorbing it. If the handoff starts
+    # emitting a state this adapter does not know, that is a contract change the
+    # caller should see, not something to silently classify.
+    unrecognised = sorted(
+        {
+            str(edge.get("state"))
+            for edge in graph.get("edges", [])
+            if edge.get("state") not in KNOWN_EDGE_STATES
+        }
+    )
     return {
         "contract_version": "dogma-mcp-result.v1",
         "tool": "list_untested_or_stale_claims",
         "root": str(root),
         "untested_claims": untested,
+        "unrecognised_edge_states": unrecognised,
         "stale_claims": [],
         "stale_detection": {
             "status": "not_available_without_persisted_claim_edit_history",
@@ -298,7 +345,15 @@ def handle_jsonrpc_message(message: dict[str, Any]) -> dict[str, Any] | None:
     method = message.get("method")
     message_id = message.get("id")
 
-    if method == "notifications/initialized":
+    # A JSON-RPC notification is any message with no `id`, and the spec forbids
+    # replying to one at all. This previously special-cased only
+    # `notifications/initialized`; every other notification fell through to the
+    # unknown-method branch and got an error response with `"id": null`. That
+    # fires the first time a host cancels a request or reports progress — both
+    # routine — and a strict client treats the stray reply as a protocol error.
+    # Keyed on the absence of `id` rather than on the method name, so a
+    # notification added to a later protocol version cannot reintroduce this.
+    if message_id is None:
         return None
     if method == "initialize":
         return make_result(

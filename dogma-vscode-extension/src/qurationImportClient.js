@@ -33,7 +33,24 @@ const ALLOWED_NODE_TYPES = new Set([
   "compound",
   "other"
 ]);
-const ALLOWED_EDGE_STATES = new Set(["untested", "examined", "contested", "supported", "refuted"]);
+// Mirrors quration.hypothesis.graph.EdgeState. "assessed" was missing, and the
+// coercion below rewrites anything unrecognised to "untested" — so this silently
+// downgraded the state most real edges actually reach.
+//
+// The two words mean different things and the distinction is the point:
+// "untested" is nothing has looked at this claim; "assessed" is we established
+// whether it COULD be measured and nothing has measured it. Collapsing them is
+// the failure CLAUDE.md records as repaired on the Python side, reappearing here
+// on the import path a few weeks later.
+const ALLOWED_EDGE_STATES = new Set([
+  "untested",
+  "assessed",
+  "examined",
+  // Deprecated in EdgeState, still accepted so old artifacts import unchanged.
+  "contested",
+  "supported",
+  "refuted"
+]);
 
 function joinApiEndpoint(baseUrl, endpoint) {
   const raw = String(baseUrl || DEFAULT_QURATION_API_URL).trim() || DEFAULT_QURATION_API_URL;
