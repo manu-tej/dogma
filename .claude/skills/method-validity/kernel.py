@@ -333,3 +333,91 @@ def dogma_method_assumptions(root=".", max_files=DOGMA_DEFAULT_MAX_FILES,
     _, build_edge_evaluation_plan = dogma_load_builders(service_root)
     result = build_edge_evaluation_plan(root, max_files=int(max_files))
     return result if include_markdown else dogma_strip_markdown(result)
+
+
+def dogma_load_journal(service_root=None):
+    """Import and return the journal + claim-shape modules.
+
+    Reuses ``dogma_load_builders`` for its side effect rather than duplicating
+    the resolution: that function does the shadow-module checks and puts the
+    verified root at the front of ``sys.path``. Repeating any of that here would
+    give the notebook a second, weaker path to the same package.
+    """
+    dogma_load_builders(service_root)
+    from dogma_service import claim_shape, journal
+
+    return journal, claim_shape
+
+
+def dogma_journal(root=".", service_root=None):
+    """What has already been done in this workspace, and who says so.
+
+    Call at the start of a session, before re-deriving anything. Returns::
+
+        {"summary": {...}, "observed": [...], "reported": [...]}
+
+    The split is the point. ``observed`` entries were written by the Dogma
+    service inside the function that acted — a stub run really ran, a patch
+    really landed. ``reported`` entries are claims an agent recorded, carrying
+    ``self_reported: true``; nothing verified them.
+
+    No entry here is a measurement. The only commands the service can run are
+    dry-run and stub-run, so the strongest thing the record can hold is a
+    compile check.
+    """
+    journal, _ = dogma_load_journal(service_root)
+    entries = journal.read(root)
+    return {
+        "summary": journal.summary(root),
+        "observed": [e for e in entries if not e.get("self_reported")],
+        "reported": [e for e in entries if e.get("self_reported")],
+    }
+
+
+def dogma_record_decision(root=".", agent=None, about=None, chose=None,
+                          because=None, over=None, supersedes=None,
+                          service_root=None):
+    """Record a method decision so the next session does not re-litigate it.
+
+    Stored as a self-reported claim. It asserts that a choice was made and why —
+    never that anything ran.
+
+    ``because`` is required. A recorded choice with no reason is the least
+    useful thing in a notebook and the easiest to fill with filler, so it is
+    refused rather than defaulted. ``supersedes`` takes a prior ``entry_id``;
+    the earlier entry is kept, in the strike-through tradition — a correction is
+    a new entry, never an erasure.
+    """
+    journal, _ = dogma_load_journal(service_root)
+    missing = [
+        name for name, value in
+        (("agent", agent), ("about", about), ("chose", chose), ("because", because))
+        if not (value or "").strip()
+    ]
+    if missing:
+        raise ValueError(
+            "dogma_record_decision requires non-empty: " + ", ".join(missing)
+        )
+    return journal.append(
+        root, "decision",
+        {"about": about, "chose": chose, "because": because, "over": over or None},
+        agent=agent, supersedes=supersedes or None,
+    )
+
+
+def dogma_check_claim_shape(root=".", max_files=DOGMA_DEFAULT_MAX_FILES,
+                            service_root=None):
+    """Does any edge claim a measurement the record cannot support?
+
+    Call before reporting a conclusion. Returns ``findings`` (facts, with
+    ``code`` and ``detail``), ``edges`` counted by state, and ``limitations``
+    stated explicitly — a clean result would otherwise read as "everything was
+    measured", which is never what it means here.
+
+    ``UNSUPPORTED_MEASUREMENT_CLAIM`` means the journal holds no measurement for
+    an edge whose state says one landed. That is a fact about the record, not a
+    claim that the biology is wrong. This helper emits no verdict, no score and
+    no grade, in keeping with the rest of the skill.
+    """
+    _, claim_shape = dogma_load_journal(service_root)
+    return claim_shape.check_claim_shape(root, max_files=int(max_files))

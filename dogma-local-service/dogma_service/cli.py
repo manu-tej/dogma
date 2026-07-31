@@ -133,6 +133,26 @@ def build_parser() -> argparse.ArgumentParser:
     trust_write_parser.add_argument("--max-files", type=int, default=500, help="Maximum candidate files to scan after writing trust.")
     trust_write_parser.add_argument("--out", help="Optional output path for the JSON trust result.")
 
+    journal_parser = subparsers.add_parser("journal", help="Read the workspace's append-only bench journal.")
+    journal_parser.add_argument("root", help="Workspace root.")
+    journal_parser.add_argument("--format", choices=["json", "markdown"], default="json")
+    journal_parser.add_argument("--out", help="Optional output path.")
+
+    decision_parser = subparsers.add_parser("record-decision", help="Record a method decision and its reason in the journal.")
+    decision_parser.add_argument("root", help="Workspace root.")
+    decision_parser.add_argument("--agent", required=True, help="Who is making the claim, e.g. 'claude-code'.")
+    decision_parser.add_argument("--about", required=True, help="What the decision concerns.")
+    decision_parser.add_argument("--chose", required=True, help="What was chosen.")
+    decision_parser.add_argument("--because", required=True, help="Why. An unexplained choice is not worth recording.")
+    decision_parser.add_argument("--over", help="What was rejected, if anything.")
+    decision_parser.add_argument("--supersedes", help="entry_id this corrects; the earlier entry is kept.")
+    decision_parser.add_argument("--out", help="Optional output path.")
+
+    shape_parser = subparsers.add_parser("check-claim-shape", help="Does any edge claim a measurement the journal cannot support?")
+    shape_parser.add_argument("root", help="Workspace root.")
+    shape_parser.add_argument("--max-files", type=int, default=500)
+    shape_parser.add_argument("--out", help="Optional output path.")
+
     subparsers.add_parser("mcp", help="Run the dependency-free Dogma MCP stdio server.")
 
     serve_parser = subparsers.add_parser("serve", help="Run the local HTTP API.")
@@ -268,12 +288,106 @@ def main(argv: list[str] | None = None) -> int:
         scan = scan_workspace(args.root, max_files=args.max_files)
         write_json({"service": "dogma-local-service", "root": scan["root"], "write": write_result, "trust": scan["trust"], "summary": scan["summary"]}, args.out)
         return 0
+    if args.command == "journal":
+        from . import journal as journal_module
+
+        summary = journal_module.summary(args.root)
+        entries = journal_module.read(args.root)
+        if args.format == "markdown":
+            write_text(render_journal_markdown(summary, entries), args.out)
+        else:
+            write_json({"summary": summary, "entries": entries}, args.out)
+        return 0
+    if args.command == "record-decision":
+        from . import journal as journal_module
+
+        entry = journal_module.append(
+            args.root,
+            "decision",
+            {
+                "about": args.about,
+                "chose": args.chose,
+                "because": args.because,
+                "over": args.over or None,
+            },
+            agent=args.agent,
+            supersedes=args.supersedes or None,
+        )
+        write_json({"entry": entry, "self_reported": True}, args.out)
+        return 0
+    if args.command == "check-claim-shape":
+        from .claim_shape import check_claim_shape
+
+        write_json(check_claim_shape(args.root, max_files=args.max_files), args.out)
+        return 0
     if args.command == "mcp":
         return run_mcp_stdio()
     if args.command == "serve":
         serve(args.root, host=args.host, port=args.port, max_files=args.max_files)
         return 0
     return 2
+
+
+def render_journal_markdown(summary: dict, entries: list[dict]) -> str:
+    """The journal as a page you could paste into a methods section.
+
+    Entries are grouped by who is asserting them, because that is the first
+    question a reader has and the distinction the record exists to preserve.
+    """
+    lines = ["# Bench Journal", ""]
+    if not summary.get("present"):
+        lines += [f"No journal at `{summary.get('path')}` yet.", ""]
+        return "\n".join(lines)
+
+    lines += [
+        f"- Entries: {summary['entries']} "
+        f"({summary['service_observed']} observed by the service, "
+        f"{summary['self_reported']} self-reported)",
+        f"- First: {summary.get('first_recorded_at')}",
+        f"- Last: {summary.get('last_recorded_at')}",
+        "",
+    ]
+    if summary.get("unreadable_lines"):
+        lines += [
+            f"> {summary['unreadable_lines']} unreadable line(s) — a process died "
+            "mid-append. The rest of the record is intact.",
+            "",
+        ]
+
+    observed = [e for e in entries if not e.get("self_reported")]
+    reported = [e for e in entries if e.get("self_reported")]
+
+    lines += ["## What the service did", ""]
+    if not observed:
+        lines += ["_Nothing recorded. No command was run and no file was patched._", ""]
+    for entry in observed:
+        body = entry.get("body", {})
+        detail = body.get("argv") or body.get("target_file") or body.get("policy_path") or ""
+        lines.append(
+            f"- `{entry['recorded_at']}` **{entry['kind']}** "
+            f"({entry['entry_id']}) — {detail}"
+        )
+    lines.append("")
+
+    lines += ["## What agents reported", ""]
+    if not reported:
+        lines += ["_Nothing recorded._", ""]
+    for entry in reported:
+        body = entry.get("body", {})
+        lines.append(
+            f"- `{entry['recorded_at']}` **{entry['kind']}** by {entry.get('agent')} "
+            f"({entry['entry_id']}): chose {body.get('chose')!r} for "
+            f"{body.get('about')!r} because {body.get('because')!r}"
+            + (f", over {body.get('over')!r}" if body.get("over") else "")
+            + (f" — supersedes {entry['supersedes']}" if entry.get("supersedes") else "")
+        )
+    lines.append("")
+    lines += [
+        "> Self-reported entries are claims by an agent. Only the entries above "
+        "them were written by the service inside the function that acted.",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def write_json(result: dict, output: str | None) -> None:

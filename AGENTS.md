@@ -32,16 +32,46 @@ Use an absolute path — MCP hosts launch servers from their own working
 directory, not yours. This repo's own `.mcp.json` uses `./bin/dogma` because
 Claude Code resolves it against the project root.
 
-Six tools, all read-only and all deterministic:
+Nine tools. Eight are read-only; `record_decision` is the only one that writes,
+and it appends to the journal rather than touching the workspace.
 
 | Tool | Answers |
 | --- | --- |
+| `open_journal` | What has already been done here, and who says so? |
+| `check_claim_shape` | Does any edge claim a measurement the record cannot support? |
+| `record_decision` | *(writes)* Record a method choice and its reason for the next session. |
 | `create_claim_graph` | What causal claims does this workspace actually assert? |
 | `check_method_assumptions` | Are this method's preconditions met, and what is ungrounded? |
 | `list_untested_or_stale_claims` | Which edges has nothing measured yet? |
 | `attach_evidence` | What evidence records does the workspace support? |
 | `record_analysis_run` | What would run, without running it? |
 | `export_evidence_bundle` | All of the above as one JSON artifact. |
+
+### The bench journal
+
+`<workspace>/.dogma/journal.ndjson` is append-only and has two halves that must
+not be confused:
+
+- **Service-observed** entries (`self_reported: false`) are written *inside* the
+  function that acted — `execute_command`, `apply_patch_proposal`,
+  `write_trust_policy`. No tool you can call produces one, so they mean the
+  thing happened.
+- **Self-reported** entries (`self_reported: true`) are your claims. They record
+  that a choice was made and why; they assert nothing about what ran.
+
+Useful shape for a session: `open_journal` before starting, `record_decision`
+when you pick a method, `check_claim_shape` before reporting a conclusion.
+
+Three properties are deliberate. Only digests of command output are stored,
+never the text — redaction here runs when `human_data and not trusted`, but
+execution *requires* trusted, so persisting bytes would write un-redacted output
+every time. `recorded_at` is stamped by the service and a supplied one is
+refused. Corrections use `supersedes`; nothing is ever erased.
+
+**No journal entry can support an `EXAMINED` edge.** The only commands the
+service can run are dry-run and stub-run, so the strongest thing the record can
+hold is a compile check. `check_claim_shape` says so in its `limitations`
+rather than letting a clean result read as "everything was measured".
 
 ### Over the shell (agents without MCP)
 

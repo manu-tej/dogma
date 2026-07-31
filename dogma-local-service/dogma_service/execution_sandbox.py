@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from shlex import quote
 from typing import Any
 
 from .indexer import scan_workspace
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 30
 
@@ -144,6 +148,7 @@ def execute_command(root: str | Path, command_id: str | None = None, max_files: 
             "run_plan": plan,
         }
 
+    started = time.time()
     try:
         completed = subprocess.run(
             selected["argv"],
@@ -152,6 +157,21 @@ def execute_command(root: str | Path, command_id: str | None = None, max_files: 
             text=True,
             timeout=timeout_seconds,
             check=False,
+        )
+        # Recorded here, inside the function that ran the command, on its success
+        # path. That placement is the whole point: no tool a caller can reach can
+        # produce this entry, so it means a command really ran. It is also why the
+        # kind is `stub_run`/`dry_run` and never `run` — `build_command` can only
+        # ever emit `nextflow -stub-run` or `snakemake --dry-run`, so calling this
+        # a run would overstate it by exactly the margin that matters.
+        _record_execution(
+            root,
+            selected,
+            return_code=completed.returncode,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+            duration_seconds=time.time() - started,
+            timed_out=False,
         )
         return {
             "status": "completed" if completed.returncode == 0 else "failed",
@@ -163,13 +183,69 @@ def execute_command(root: str | Path, command_id: str | None = None, max_files: 
             "run_plan": plan,
         }
     except subprocess.TimeoutExpired as error:
+        stdout = error.stdout if isinstance(error.stdout, str) else ""
+        stderr = error.stderr if isinstance(error.stderr, str) else ""
+        # A timeout is a thing that happened to the workspace, so it is recorded
+        # too. Leaving it out would make the journal quietly optimistic: only
+        # runs that finished would exist in the record.
+        _record_execution(
+            root,
+            selected,
+            return_code=None,
+            stdout=stdout,
+            stderr=stderr,
+            duration_seconds=time.time() - started,
+            timed_out=True,
+        )
         return {
             "status": "timeout",
             "executed": True,
             "command": selected,
             "return_code": None,
-            "stdout": (error.stdout or "")[-20000:] if isinstance(error.stdout, str) else "",
-            "stderr": (error.stderr or "")[-20000:] if isinstance(error.stderr, str) else "",
+            "stdout": stdout[-20000:],
+            "stderr": stderr[-20000:],
             "message": f"Command timed out after {timeout_seconds} seconds.",
             "run_plan": plan,
         }
+
+
+def _record_execution(
+    root: str | Path,
+    selected: dict[str, Any],
+    *,
+    return_code: int | None,
+    stdout: str,
+    stderr: str,
+    duration_seconds: float,
+    timed_out: bool,
+) -> None:
+    """Append the machine-observed record of one stub/dry run.
+
+    Only digests of stdout/stderr are stored, never the text. Redaction in this
+    codebase runs when `human_data and not trusted`, and execution *requires*
+    trusted — so persisting the bytes here would write un-redacted output every
+    single time, in exactly the regime where the redactor is switched off.
+    """
+    from dogma_service import journal
+
+    mode = str(selected.get("mode") or "")
+    kind = "dry_run" if mode == "dry-run" else "stub_run"
+    try:
+        journal.append(root, kind, {
+            "command_id": selected.get("id"),
+            "engine": selected.get("engine"),
+            "mode": mode,
+            "argv": list(selected.get("argv") or []),
+            "workflow_file": selected.get("workflow_file"),
+            "return_code": return_code,
+            "timed_out": timed_out,
+            "duration_seconds": round(duration_seconds, 3),
+            "stdout": journal.digest(stdout),
+            "stderr": journal.digest(stderr),
+            "executed_real_pipeline": False,
+        })
+    except journal.JournalError:
+        # The command already ran; failing the call now would misreport a real
+        # side effect as not having happened. The gap is surfaced instead by
+        # `unreadable_lines` and by the shape check finding a run it cannot see.
+        logger.warning("could not record execution in the journal", exc_info=True)

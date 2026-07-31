@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import difflib
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 from .indexer import scan_workspace
+
+logger = logging.getLogger(__name__)
 
 SAMPLE_TUPLE_PATTERN = ".map { row -> tuple(row.sample_id, [file(row.fastq_1), file(row.fastq_2)]) }"
 SAMPLE_ID_POLICY = "Sample identifiers must be unique, stable, and de-identified before local analysis."
@@ -229,6 +232,12 @@ def apply_patch_proposal(root: str | Path, proposal_id: str | None = None, max_f
         }
 
     target.write_text(selected["after"], encoding="utf-8")
+    # Recorded inside the function that wrote the file, so the entry means the
+    # write happened. Digests rather than the file text: a patched sample sheet
+    # can carry human identifiers, and this record is meant to be committable.
+    # Keeping both digests is what makes the change checkable later without the
+    # journal holding a copy of either version.
+    _record_patch(root, selected, before=current, after=selected["after"])
     return {
         "status": "applied",
         "applied": True,
@@ -237,3 +246,21 @@ def apply_patch_proposal(root: str | Path, proposal_id: str | None = None, max_f
         "methods_graph_preflight": result.get("methods_graph_preflight", {}),
         "proposal_result": result,
     }
+
+
+def _record_patch(root: str | Path, selected: dict[str, Any], *, before: str, after: str) -> None:
+    """Append the machine-observed record of one applied patch."""
+    from dogma_service import journal
+
+    try:
+        journal.append(root, "patch_applied", {
+            "proposal_id": selected.get("id"),
+            "target_file": selected.get("target_file"),
+            "rationale": selected.get("rationale"),
+            "before": journal.digest(before),
+            "after": journal.digest(after),
+        })
+    except journal.JournalError:
+        # The file is already written. Failing here would report a completed
+        # side effect as not having happened, which is the worse error.
+        logger.warning("could not record patch application in the journal", exc_info=True)

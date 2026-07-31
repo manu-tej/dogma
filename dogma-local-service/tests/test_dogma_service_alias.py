@@ -28,7 +28,7 @@ class DogmaServicePackageTests(unittest.TestCase):
         from dogma_service import cli, mcp_server
 
         self.assertTrue(callable(cli.main))
-        self.assertEqual(len(mcp_server.tool_names()), 6)
+        self.assertEqual(len(mcp_server.tool_names()), 9)
 
     def test_the_retired_name_is_gone(self) -> None:
         """A leftover `biocursor_service` on the path would let imports keep
