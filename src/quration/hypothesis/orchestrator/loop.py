@@ -14,7 +14,7 @@ from quration.hypothesis.epistemics import (
     record_validation,
 )
 from quration.hypothesis.evidence import EvidenceEntry
-from quration.hypothesis.graph import CausalGraph, NodePosition
+from quration.hypothesis.graph import CausalGraph, NodePosition, mark_llm_authored
 from quration.hypothesis.orchestrator.checkpoint import (
     MethodChoice,
     PipelineResult,
@@ -131,10 +131,11 @@ class HypothesisLoop:
         # A seed is the LLM's *proposal*: every seed edge is an unvalidated draft,
         # regardless of how the skeleton arrived. Validation happens later (KG /
         # dataset / literature), never at seed time.
-        for edge in edges:
-            edge.proposal_source = ProposalSource.LLM
-            edge.validation_status = EdgeValidationStatus.UNVALIDATED
-            edge.validations = []
+        #
+        # Shared with the `/start` suggesters rather than repeated here — this was
+        # the only site that stamped, so `start` silently reported model-authored
+        # edges as SYSTEM.
+        mark_llm_authored(edges)
         graph = CausalGraph(
             id=graph_id,
             query=query,

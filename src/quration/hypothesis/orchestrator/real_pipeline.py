@@ -67,7 +67,14 @@ class _GroundingSupervisor:
 
 
 def _skeleton_to_suggestion(skeleton) -> SuggestionResult:
-    return SuggestionResult(nodes=list(skeleton.nodes), edges=list(skeleton.edges))
+    """The empty-KG fallback path. Its edges are LLM-authored too, and were
+    inheriting the SYSTEM default just like the primary suggester's."""
+    from quration.hypothesis.graph import mark_llm_authored
+
+    return SuggestionResult(
+        nodes=list(skeleton.nodes),
+        edges=mark_llm_authored(list(skeleton.edges)),
+    )
 
 
 def _build_live_seeding(provider, config=None):
