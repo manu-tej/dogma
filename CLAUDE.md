@@ -7,6 +7,22 @@ Keep changes scoped and factual.
 
 - `dogma-vscode-extension/` is the VS Code/Cursor extension.
 - `dogma-local-service/` is the local Python sidecar (`dogma_service`, 127.0.0.1:8765).
+- `bin/dogma` is the zero-install launcher other coding agents use — `bin/dogma mcp`
+  for MCP hosts, `bin/dogma <subcommand>` for agents that only run shell commands.
+  Read its header before changing it; four constraints there are load-bearing and
+  each records an observed failure. The two least obvious: in `mcp` mode **stdout
+  is the JSON-RPC channel**, so a single stray `echo` corrupts the session and the
+  host reports a protocol error naming neither the shell nor the line; and an
+  explicitly set `DOGMA_PYTHON` is honoured or refused, never silently replaced,
+  because the fallback chain would otherwise reach the repo `.venv` and look
+  healthy on a developer machine while staying broken for every external agent.
+  `.mcp.json` previously ran bare `python -m biocursor_service`, which works only
+  in a venv-activated shell — `python` is not a command on stock macOS, and MCP
+  hosts launch servers from their own environment. The server never started, which
+  reads to a user as "no biology tools" rather than as a misconfiguration.
+- `AGENTS.md` is the cross-agent instruction file. Codex, Cursor, Zed, Gemini CLI
+  and Aider read it; none of them read this file. When a rule here matters to an
+  agent *using* the repo rather than editing it, it belongs in both.
 - `.claude/skills/method-validity/` is the method-validity skill (`SKILL.md` +
   `kernel.py`). It lives under `.claude/skills/` so a fresh clone discovers it with
   no copying, and `.claude-plugin/` publishes the same directory as an installable
@@ -68,7 +84,46 @@ and kept only until a fresh clone of this one is verified.
   diagnostic, or production system. Avoid asserting production readiness, hosted
   availability, or benchmark superiority.
 - Never present synthetic or fallback output as a real scientific result. The
-  public-safety check greps for unlabeled mock-result paths for this reason.
+  public-safety check greps for fabricated-result literals, but a pass is still
+  not proof: it is a text grep and cannot see reachability, so the question "can
+  this synthetic value reach a user as a result?" has to be answered by reading
+  the fallback paths. It previously carried a `generateMockBio` pattern guarding a
+  function that had been deleted, so that rule passed vacuously for however long
+  while the demo seams carried a hardcoded fold-change-and-adjusted-p-value pair
+  as an edge's `magnitude` (see `hypothesis/orchestrator/demo.py`). If you add a
+  pattern, plant a matching string in a non-fixture file and confirm the check
+  fails — a denylist entry that matches nothing reads as coverage. Note the rule
+  is deliberately strict enough that quoting such a literal in prose trips it;
+  describe it instead.
+- `PipelineRunProvenance` means a pipeline actually ran, and `EvidenceEntry`
+  enforces it: a `MEASUREMENT` must carry one, a `FEASIBILITY` entry must not.
+  Registry consultations carry `GroundingProvenance`, which has no `run_id` or
+  `data_accession` fields — so there is nothing to fabricate. The methods-graph
+  evaluator used to stamp a synthesized run id and the literal string
+  `"methods-graph"` where an accession belongs, which made the type's own promise
+  unfalsifiable for every consumer downstream. This firewall is the part of the
+  epistemics layer that is genuinely hard to copy; it is worth nothing unenforced.
+- An edge is `EXAMINED` only if something measured it. `EvidenceEntry.kind`
+  distinguishes a `MEASUREMENT` from a `FEASIBILITY` verdict (GROUNDED /
+  PARTIALLY_GROUNDED / COVERAGE_GAP / NOT_EVALUABLE), and `rollup_edge` maps
+  assessments-only to the `ASSESSED` state. The default is `FEASIBILITY`, because
+  every live producer emits assessments — claiming a measurement must be
+  deliberate. Do not collapse these back together: doing so is what let the loop
+  report itself finished with both edges `examined` and nothing measured. Note the
+  demo loop reaches `EXAMINED` while the live loop reaches `ASSESSED`; that
+  asymmetry is the real gap, now visible rather than hidden. Rationale and the
+  deliberately-unresolved half (which edges the loop should re-propose) are in
+  `docs/decisions/2026-07-30-what-a-measurement-may-change-on-an-edge.md`.
+  This does not reintroduce verdicts — confidence stays 0.0 and no
+  SUPPORTED/REFUTED is emitted, per north-star §2.2.
+- Fail closed, never into synthetic content. `/hypothesis/*` returns 503 when no
+  LLM provider is usable; demo mode requires an explicit `QURATION_PROVIDER=demo`.
+  Do not reintroduce a catch-all that substitutes the demo seams — that is what
+  made the engine answer an ALS question with an EGFR/KRAS graph at HTTP 200,
+  labelled `proposal_source: "llm"`, with a `UniProt:RESIST` accession that does
+  not exist. `tests/api/test_no_silent_demo_degradation.py` locks this down; the
+  two `test_provider_failure_*` tests were inverted for the same reason, so a
+  "helpful" revert will look like it is restoring intended behaviour.
 - Attribute coding-agent help at the task level and keep human review and
   responsibility explicit. See `PUBLICATION.md` for the standing language.
 
@@ -88,6 +143,12 @@ export PATH="$PWD/.venv/bin:$PATH"
 ```bash
 npm run check:public-safety   # tracked-file safety sweep
 npm run test:dogma            # extension + local service + method-validity skill
+                              # includes test_agent_integration.py, which asserts
+                              # bin/dogma works with no venv. Careful there: the
+                              # venv's editable install masks a broken PYTHONPATH,
+                              # so TestNeedsNoVirtualenv forces a foreign
+                              # interpreter — those are the only two cases that
+                              # actually fail when the launcher regresses.
 npm run test:backend          # pytest, excludes the integration marker
 npm run test:frontend         # vitest
 npm run test:electron         # Electron main-process suites (fast, no display)
@@ -151,6 +212,34 @@ inset to 0 makes the smoke run fail with `brand mark starts at y=11, underneath
 the traffic lights (which end at y=26)`. If you change that layout, check the
 assertion still fails when the fix is removed — a passing check that cannot fail
 is worse than none.
+
+Re-verified 2026-07-30 in-place after `bin/dogma` and the cross-agent
+integration surface: `check:public-safety` passed (786 files); `test:backend`
+900 passed / 41 skipped / 3 deselected, up from 899 by the new
+`test_the_declared_command_actually_serves_tools`; `test:dogma-service` 90
+passed, up from 77 by `test_agent_integration.py`; `test:dogma-skill` 14;
+`test:frontend` 247 across 53 files, unchanged; `test:electron` 106, unchanged;
+`git diff --check` clean.
+
+Four mutations were run rather than assumed, and the first two are the reason
+this section exists — both initially passed, i.e. the checks were vacuous:
+
+- Removing `export PYTHONPATH` from `bin/dogma` at first failed nothing, because
+  `npm run install:python` editable-installs `dogma-local-service` into `.venv`
+  and the launcher's fallback chain silently reached it. Fixed in the launcher,
+  not the test: an explicit `DOGMA_PYTHON` is now honoured or refused.
+- It then still failed nothing under the documented workflow, because
+  `export PATH="$PWD/.venv/bin:$PATH"` made the test's own interpreter search
+  return the venv copy and skip. `system_python()` now probes for an interpreter
+  that genuinely cannot import `biocursor_service`, from a neutral cwd — the
+  suite runs from `dogma-local-service/`, which otherwise puts the package on
+  `sys.path` implicitly and makes every candidate look capable.
+- Adding a stray `echo` to `bin/dogma` fails `test_every_stdout_line_is_json_rpc`.
+- Reverting `.mcp.json` to `python -m biocursor_service` fails both manifest
+  tests. The old assertion compared the string to itself and could not fail.
+
+If you touch the launcher, re-run those mutations. On this machine three of the
+four regressions are masked by local setup that an external agent does not have.
 
 The extension and the root package have no npm dependencies of their own - the
 extension suite is plain `node --check` plus plain node test files - so only
