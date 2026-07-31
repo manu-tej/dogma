@@ -7,7 +7,10 @@ Keep changes scoped and factual.
 
 - `dogma-vscode-extension/` is the VS Code/Cursor extension.
 - `dogma-local-service/` is the local Python sidecar (`dogma_service`, 127.0.0.1:8765).
-- `dogma-science-skill/method-validity/` is the Claude Science skill (`SKILL.md` + `kernel.py`).
+- `.claude/skills/method-validity/` is the method-validity skill (`SKILL.md` +
+  `kernel.py`). It lives under `.claude/skills/` so a fresh clone discovers it with
+  no copying, and `.claude-plugin/` publishes the same directory as an installable
+  plugin — one copy, both channels.
 - `dogma-demo-workspace/` contains synthetic demo bioinformatics files.
 - `src/quration/` and `frontend/` are the backend API and web graph surfaces. The
   `quration` Python namespace is a compatibility identifier, not a second product.

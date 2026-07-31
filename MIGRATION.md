@@ -22,7 +22,7 @@ scratch, deployment, or private material into a public repository.
 - `src/quration/`
 - backend `tests/`, excluding load-test material
 - `frontend/`, after the exclusions below
-- `dogma-science-skill/`
+- `.claude/skills/method-validity/` (was `dogma-science-skill/`)
 - the root Python and command-orchestration manifests
 
 The destination's existing `dogma-local-service/`, `dogma-vscode-extension/`, synthetic

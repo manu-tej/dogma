@@ -46,7 +46,7 @@ untrusted user data and must not shadow Dogma's `biocursor_service` package.
 ## Test
 
 ```bash
-python -m pytest dogma-science-skill/method-validity/tests/ -q
+python -m pytest .claude/skills/method-validity/tests/ -q
 ```
 
 ## Publish into Claude Science
@@ -57,7 +57,7 @@ Code. In a Claude Science repl, run:
 
 ```python
 import pathlib
-src = pathlib.Path("/path/to/dogma/dogma-science-skill/method-validity")
+src = pathlib.Path("/path/to/dogma/.claude/skills/method-validity")
 sk = "method-validity"
 host.skills.edit(sk, "SKILL.md", (src / "SKILL.md").read_text())
 host.skills.edit(sk, "kernel.py", (src / "kernel.py").read_text())
