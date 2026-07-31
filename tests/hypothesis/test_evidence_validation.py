@@ -7,13 +7,14 @@ with evidence is simply EXAMINED — the per-run facts live in the ledger.
 """
 
 from quration.hypothesis.epistemics import EdgeValidationStatus as S, ProposalSource
-from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry, dataset_validation_for
+from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry, dataset_validation_for, EvidenceKind
 from quration.hypothesis.graph import EdgeState
 from quration.hypothesis.provenance import PipelineRunProvenance
 
 
 def _entry(direction, weight=1.0):
     return EvidenceEntry(
+        kind=EvidenceKind.MEASUREMENT,
         edge_id="e1", direction=direction, weight=weight,
         provenance=PipelineRunProvenance(run_id="r1", data_accession="GSE1"))
 

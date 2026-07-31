@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from quration.hypothesis.evidence import (
+    EvidenceKind,
     EvidenceDirection,
     EvidenceEntry,
     dataset_validation_for,
@@ -15,6 +16,7 @@ from quration.hypothesis.provenance import PipelineRunProvenance
 
 def _entry(direction: EvidenceDirection, weight: float = 1.0) -> EvidenceEntry:
     return EvidenceEntry(
+        kind=EvidenceKind.MEASUREMENT,
         edge_id="e1",
         direction=direction,
         weight=weight,

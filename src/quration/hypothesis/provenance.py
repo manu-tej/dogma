@@ -58,18 +58,56 @@ class LiteratureProvenance(BaseModel):
 
 
 class PipelineRunProvenance(BaseModel):
-    """A reproducible pipeline run on named data. The only source of edge evidence."""
+    """A reproducible pipeline run on named data.
+
+    Construct this ONLY where a pipeline actually ran. It is the type that makes
+    "this evidence came from a real computation" checkable, and it is worth nothing
+    if anything else mints one.
+
+    It was being minted by the methods-graph evaluator, which runs no pipeline: it
+    passed `run_id="methods-graph-eval-<edge_id>"` and the literal string
+    `data_accession="methods-graph"` — a fabricated run against a fabricated
+    accession. Use `GroundingProvenance` for that; see EvidenceEntry, which now
+    enforces the pairing.
+    """
 
     kind: Literal["pipeline_run"] = "pipeline_run"
     run_id: str
     data_accession: str
 
 
+class GroundingProvenance(BaseModel):
+    """A methods-graph consultation: did a method exist for this claim's readout?
+
+    Answers "can this be measured", never "what was measured". No run id and no data
+    accession, because neither exists — a consultation reads a method registry, it
+    does not touch data. Inventing placeholders for those fields is precisely what
+    this type is here to stop.
+    """
+
+    kind: Literal["grounding"] = "grounding"
+    #: One of GROUNDED / PARTIALLY_GROUNDED / COVERAGE_GAP / NOT_EVALUABLE.
+    verdict: str
+    #: The method the registry resolved, when it resolved one.
+    method_id: str | None = None
+    #: What was consulted, e.g. "methods-graph".
+    source: str = "methods-graph"
+
+
 Provenance = Annotated[
     OntologyTermProvenance
     | KGEdgeProvenance
     | LiteratureProvenance
-    | PipelineRunProvenance,
+    | PipelineRunProvenance
+    | GroundingProvenance,
+    Field(discriminator="kind"),
+]
+
+#: What may back an entry in the edge evidence ledger. Discriminated on `kind`, so
+#: rows persisted before `grounding` existed still deserialize as `pipeline_run`.
+#: `EvidenceEntry` enforces which of the two each kind of entry may carry.
+EvidenceProvenance = Annotated[
+    PipelineRunProvenance | GroundingProvenance,
     Field(discriminator="kind"),
 ]
 

@@ -9,7 +9,7 @@ import threading
 
 import pytest
 
-from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry
+from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry, EvidenceKind
 from quration.hypothesis.graph import CausalGraph, Edge, EdgeState, Node, NodeType
 from quration.hypothesis.observability import HypothesisEvent
 from quration.hypothesis.provenance import OntologyTermProvenance, PipelineRunProvenance
@@ -50,6 +50,7 @@ def _rich_graph() -> CausalGraph:
 
 def _evidence(direction: EvidenceDirection, edge_id: str = "e1") -> EvidenceEntry:
     return EvidenceEntry(
+        kind=EvidenceKind.MEASUREMENT,
         edge_id=edge_id,
         direction=direction,
         provenance=PipelineRunProvenance(run_id="r1", data_accession="GSE1"),

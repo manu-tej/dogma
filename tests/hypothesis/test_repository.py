@@ -2,7 +2,7 @@
 
 import pytest
 
-from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry
+from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry, EvidenceKind
 from quration.hypothesis.graph import CausalGraph, Edge, EdgeState, Node, NodeType
 from quration.hypothesis.provenance import PipelineRunProvenance
 from quration.hypothesis.repository import HypothesisRepository, InMemoryHypothesisRepository
@@ -18,6 +18,7 @@ def _graph_with_one_edge() -> CausalGraph:
 
 def _evidence(direction: EvidenceDirection) -> EvidenceEntry:
     return EvidenceEntry(
+        kind=EvidenceKind.MEASUREMENT,
         edge_id="e1",
         direction=direction,
         provenance=PipelineRunProvenance(run_id="r1", data_accession="GSE1"),
@@ -86,6 +87,7 @@ def test_add_evidence_for_unknown_edge_raises():
         repo.add_evidence(
             "g1",
             EvidenceEntry(
+                kind=EvidenceKind.MEASUREMENT,
                 edge_id="ghost",
                 direction=EvidenceDirection.SUPPORTS,
                 provenance=PipelineRunProvenance(run_id="r", data_accession="GSE1"),

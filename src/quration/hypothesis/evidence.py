@@ -8,7 +8,7 @@ KG provenance never participates here — only the user's pipeline runs do.
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from quration.hypothesis.epistemics import (
     EdgeValidation,
@@ -16,7 +16,11 @@ from quration.hypothesis.epistemics import (
     summarize_status,
 )
 from quration.hypothesis.graph import EdgeState
-from quration.hypothesis.provenance import PipelineRunProvenance
+from quration.hypothesis.provenance import (
+    EvidenceProvenance,
+    GroundingProvenance,
+    PipelineRunProvenance,
+)
 
 
 class EvidenceDirection(str, Enum):
@@ -27,34 +31,103 @@ class EvidenceDirection(str, Enum):
     INCONCLUSIVE = "inconclusive"
 
 
-class EvidenceEntry(BaseModel):
-    """One pipeline-derived result bearing on one edge.
+class EvidenceKind(str, Enum):
+    """Whether an entry records a measurement or only an assessment of one.
 
-    `provenance` is a PipelineRunProvenance specifically: edge evidence may only
-    come from a reproducible pipeline run (provenance-or-silence at the type level).
+    The distinction is load-bearing: `rollup_edge` used to mark an edge EXAMINED for
+    *any* entry, and the only runner wired into the loop emits an entry for every
+    edge it inspects — including one meaning "no method exists for this readout". So
+    edges reported as examined had never been measured.
+
+    See docs/decisions/2026-07-30-what-a-measurement-may-change-on-an-edge.md
+    """
+
+    #: A pipeline ran and produced a result bearing on the claim.
+    MEASUREMENT = "measurement"
+    #: A pre-execution judgement about whether the claim *can* be measured —
+    #: GROUNDED / PARTIALLY_GROUNDED / COVERAGE_GAP / NOT_EVALUABLE. Not a result.
+    FEASIBILITY = "feasibility"
+
+
+class EvidenceEntry(BaseModel):
+    """One record bearing on one edge: either a measurement or an assessment of one.
+
+    `provenance` is constrained by `kind`, and the pairing is enforced below rather
+    than left to convention — a MEASUREMENT must carry `PipelineRunProvenance`, and a
+    FEASIBILITY entry must not. That is what makes "this evidence came from a real
+    computation" a checkable property instead of a naming habit.
+
     `weight` is the quality weight in (0, 1].
     """
 
     edge_id: str
+    # Defaults to FEASIBILITY, not MEASUREMENT, on purpose. Every entry any
+    # production path has ever written is a feasibility assessment, so this is
+    # accurate for existing rows; and it makes "this is a measurement" something a
+    # producer has to assert rather than inherit.
+    kind: EvidenceKind = EvidenceKind.FEASIBILITY
     direction: EvidenceDirection
     weight: float = Field(default=1.0, gt=0.0, le=1.0)
     magnitude: str | None = None  # effect size / statistic summary from the pipeline
     rationale: str | None = None
-    provenance: PipelineRunProvenance
+    provenance: EvidenceProvenance
     # The (source_id, target_id, relation) the evidence was gathered against, stamped
     # at ingestion. If the edge's claim signature later changes, this evidence stays in
     # the ledger but no longer supports the edited claim. None = legacy row (assumed
     # to apply to the current claim, preserving pre-existing graphs).
     claim_signature: tuple[str, str, str] | None = None
 
+    @model_validator(mode="after")
+    def _provenance_matches_kind(self) -> "EvidenceEntry":
+        """A MEASUREMENT must be backed by a real run; an assessment must not claim one.
+
+        This is the firewall the epistemics layer exists to provide, made checkable
+        rather than conventional. Without it, `PipelineRunProvenance` means only
+        "somebody constructed this object" — which is how the methods-graph
+        evaluator came to stamp `run_id="methods-graph-eval-<edge>"` and
+        `data_accession="methods-graph"` on evidence for a pipeline that never ran.
+        """
+        if self.kind is EvidenceKind.MEASUREMENT and not isinstance(
+            self.provenance, PipelineRunProvenance
+        ):
+            raise ValueError(
+                "a MEASUREMENT entry requires PipelineRunProvenance; got "
+                f"{type(self.provenance).__name__}"
+            )
+        if self.kind is EvidenceKind.FEASIBILITY and isinstance(
+            self.provenance, PipelineRunProvenance
+        ):
+            raise ValueError(
+                "a FEASIBILITY entry must not carry PipelineRunProvenance — no "
+                "pipeline ran. Use GroundingProvenance."
+            )
+        return self
+
 
 def rollup_edge(entries: list[EvidenceEntry]) -> tuple[EdgeState, float]:
-    """The edge's state IS its ledger. There is no verdict (north-star §2.2):
-    an edge with any evidence record is EXAMINED, otherwise UNTESTED. The second
-    element (a deprecated `confidence`) is always 0.0; it is kept only so callers
-    and serialization that still read a float keep working until they are removed.
+    """The edge's state IS its ledger. There is still no verdict (north-star §2.2) —
+    this reports only what kind of work happened, which is a fact about the system,
+    not a claim about the biology:
+
+        no entries                  -> UNTESTED
+        at least one MEASUREMENT    -> EXAMINED
+        otherwise (assessments only) -> ASSESSED
+
+    Previously any entry at all produced EXAMINED, so an edge whose only record said
+    "no method exists for this readout" was reported as examined, and the loop
+    declared itself finished having measured nothing.
+
+    The second element (a deprecated `confidence`) is always 0.0; it is kept only so
+    callers and serialization that still read a float keep working until they are
+    removed.
+
+    See docs/decisions/2026-07-30-what-a-measurement-may-change-on-an-edge.md
     """
-    return (EdgeState.EXAMINED if entries else EdgeState.UNTESTED), 0.0
+    if not entries:
+        return EdgeState.UNTESTED, 0.0
+    if any(e.kind == EvidenceKind.MEASUREMENT for e in entries):
+        return EdgeState.EXAMINED, 0.0
+    return EdgeState.ASSESSED, 0.0
 
 
 def dataset_validation_for(

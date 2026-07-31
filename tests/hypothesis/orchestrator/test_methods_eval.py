@@ -136,7 +136,27 @@ def test_interpret_returns_inconclusive_low_weight_evidence():
     assert entry.direction == EvidenceDirection.INCONCLUSIVE
     assert 0.0 < entry.weight <= 0.05
     assert entry.edge_id == "e1"
-    assert entry.provenance.data_accession == "methods-graph"
+
+    # Inverted deliberately. This used to assert
+    # `entry.provenance.data_accession == "methods-graph"` — pinning in place a
+    # PipelineRunProvenance carrying a fabricated run id and the literal string
+    # "methods-graph" where a data accession belongs, for a path that runs no
+    # pipeline and touches no data. That made the type's own promise ("a
+    # reproducible pipeline run on named data") unfalsifiable.
+    from quration.hypothesis.evidence import EvidenceKind
+    from quration.hypothesis.provenance import (
+        GroundingProvenance,
+        PipelineRunProvenance,
+    )
+
+    assert entry.kind is EvidenceKind.FEASIBILITY
+    assert isinstance(entry.provenance, GroundingProvenance)
+    assert not isinstance(entry.provenance, PipelineRunProvenance)
+    assert entry.provenance.verdict == entry.magnitude
+    assert entry.provenance.source == "methods-graph"
+    # No accession and no run id, because there is no run and no data.
+    assert not hasattr(entry.provenance, "data_accession")
+    assert not hasattr(entry.provenance, "run_id")
 
 
 def test_run_coverage_gap_when_resolve_method_ids_raises():

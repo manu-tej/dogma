@@ -29,6 +29,11 @@ class ProposalSource(str, Enum):
     LITERATURE = "literature"
     DATASET = "dataset"
     SYSTEM = "system"
+    #: Built-in offline fixture content. Distinct from LLM: nothing was inferred,
+    #: and distinct from SYSTEM: it is not a derivation either. Demo-seeded edges
+    #: used to report LLM, which claimed a model had proposed a relation when no
+    #: model had run at all.
+    DEMO = "demo"
 
 
 class EdgeValidationStatus(str, Enum):

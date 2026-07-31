@@ -13,9 +13,13 @@ from __future__ import annotations
 
 import logging
 
-from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry
+from quration.hypothesis.evidence import (
+    EvidenceDirection,
+    EvidenceEntry,
+    EvidenceKind,
+)
 from quration.hypothesis.orchestrator.checkpoint import PipelineResult, ProposedTest
-from quration.hypothesis.provenance import PipelineRunProvenance
+from quration.hypothesis.provenance import GroundingProvenance
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +61,24 @@ class MethodsGraphSupervisor:
             logger.warning("Unknown verdict for %s: %s", proposed.edge_id, verdict)
         return EvidenceEntry(
             edge_id=proposed.edge_id,
+            # Stated explicitly, though it is also the default: every verdict this
+            # runner emits (GROUNDED / PARTIALLY_GROUNDED / COVERAGE_GAP /
+            # NOT_EVALUABLE) is a judgement about whether the claim can be measured.
+            # None of them is a measurement, and recording them as such is what made
+            # the loop report edges as examined that it had never measured.
+            kind=EvidenceKind.FEASIBILITY,
             direction=EvidenceDirection.INCONCLUSIVE,
             weight=0.01,
             magnitude=verdict,
             rationale=result.summary,
-            provenance=PipelineRunProvenance(run_id=result.run_id,
-                                             data_accession=result.data_accession),
+            # GroundingProvenance, not PipelineRunProvenance. This path consults a
+            # method registry; it runs nothing. It used to stamp
+            # run_id="methods-graph-eval-<edge_id>" and the literal
+            # data_accession="methods-graph" onto a type documented as "a
+            # reproducible pipeline run on named data", which made that guarantee
+            # unfalsifiable for every consumer downstream.
+            provenance=GroundingProvenance(
+                verdict=verdict,
+                method_id=result.raw.get("method_id"),
+            ),
         )
