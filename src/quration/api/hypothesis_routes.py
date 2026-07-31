@@ -69,7 +69,11 @@ from quration.hypothesis.orchestrator.seeding import (
 )
 from quration.hypothesis.provenance import OntologyTermProvenance
 from quration.hypothesis.store import SqliteHypothesisRepository
-from quration.llm.providers import get_model_for_config, get_provider_from_config
+from quration.llm.providers import (
+    LLMProviderUnavailableError,
+    get_model_for_config,
+    get_provider_from_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +109,17 @@ def get_repo() -> SqliteHypothesisRepository:
     return _repo
 
 
+def unavailable(exc: LLMProviderUnavailableError) -> HTTPException:
+    """Map an unusable provider onto 503 with the remedy in the body.
+
+    503 rather than 500: the service is correctly configured code in a wrong
+    environment, and the caller can fix it. The detail is user-facing on purpose —
+    the previous behaviour logged a warning server-side and returned a synthetic
+    graph, so the one person who needed to know never found out.
+    """
+    return HTTPException(status_code=503, detail=str(exc))
+
+
 def get_loop() -> HypothesisLoop:
     """Process-wide loop, backed by the durable SQLite repository so every query's
     graph survives restarts. Real (correlation-backed) runs in real mode, demo otherwise."""
@@ -114,7 +129,12 @@ def get_loop() -> HypothesisLoop:
         if _real_mode():
             from quration.hypothesis.orchestrator.real_pipeline import build_real_loop
 
-            _loop = build_real_loop(repository=repo)
+            try:
+                _loop = build_real_loop(repository=repo)
+            except LLMProviderUnavailableError as exc:
+                # Do not cache a broken loop: the key may appear in the environment
+                # before the next request, and a cached failure would outlive the fix.
+                raise unavailable(exc) from exc
         else:
             _loop = build_demo_loop(repository=repo)
     return _loop
@@ -172,19 +192,35 @@ def _seed_tier() -> str:
 
 
 def _resolve_chat_llm() -> tuple[object, str] | None:
-    """Return ``(provider, smart_model)`` when a real LLM provider is configured
-    and constructible; ``None`` to fall back to the deterministic Demo seams.
+    """Return ``(provider, smart_model)`` for a live provider, or ``None`` in demo
+    mode, where the deterministic Demo seams are the intended behaviour.
 
-    Construction failures (e.g. a missing API key) degrade to ``None`` so the app
-    always starts — the demo brain is the safety net, never a crash.
+    A configured live provider that cannot be constructed raises. It previously
+    returned ``None`` here, on the reasoning that "the demo brain is the safety
+    net, never a crash" — but that put synthetic answers behind a real question
+    with nothing in the response to say so. Failing is the safer default when the
+    output is read as science; demo mode stays available via
+    ``QURATION_PROVIDER=demo``.
     """
     if not _real_mode():
         return None
     try:
         return get_provider_from_config(), get_model_for_config(tier="smart")
     except Exception as exc:  # missing creds, unreachable CLI, etc.
-        logger.warning("LLM provider unavailable, using demo seams: %s", exc)
-        return None
+        logger.error("LLM provider unavailable; refusing to answer with demo seams")
+        raise LLMProviderUnavailableError(str(exc)) from exc
+
+
+def _chat_llm_or_503() -> tuple[object, str] | None:
+    """``_resolve_chat_llm`` for use inside a FastAPI dependency.
+
+    ``None`` still means demo mode, which is a legitimate configuration. An
+    unusable live provider becomes 503 rather than an unhandled 500.
+    """
+    try:
+        return _resolve_chat_llm()
+    except LLMProviderUnavailableError as exc:
+        raise unavailable(exc) from exc
 
 
 _grounding: GroundingService | None = None
@@ -310,7 +346,7 @@ def get_seeding_service() -> SeedingService:
     """
     global _seeding
     if _seeding is None:
-        llm = _resolve_chat_llm()
+        llm = _chat_llm_or_503()
         if llm is not None:
             provider, _ = llm
             model = get_model_for_config(tier=_seed_tier())
@@ -330,7 +366,7 @@ def get_edge_chat_service() -> EdgeChatService:
     """
     global _edge_chat
     if _edge_chat is None:
-        llm = _resolve_chat_llm()
+        llm = _chat_llm_or_503()
         _edge_chat = LlmEdgeChatService(*llm) if llm else DemoEdgeChatService()
     return _edge_chat
 
@@ -345,7 +381,7 @@ def get_node_chat_service() -> NodeChatService:
     """
     global _node_chat
     if _node_chat is None:
-        llm = _resolve_chat_llm()
+        llm = _chat_llm_or_503()
         _node_chat = LlmNodeChatService(*llm) if llm else DemoNodeChatService()
     return _node_chat
 

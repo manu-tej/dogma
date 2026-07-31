@@ -16,7 +16,7 @@ import logging
 from quration.hypothesis.connectors.base import SuggestionResult
 from quration.hypothesis.graph import NodeType
 from quration.hypothesis.orchestrator.checkpoint import ProposedTest
-from quration.hypothesis.orchestrator.demo import DemoSuggester, DemoSupervisor
+from quration.hypothesis.orchestrator.demo import DemoSupervisor
 from quration.hypothesis.orchestrator.loop import HypothesisLoop
 from quration.hypothesis.repository import HypothesisRepository, InMemoryHypothesisRepository
 
@@ -129,22 +129,25 @@ def build_real_loop(repository: HypothesisRepository | None = None, **_ignored) 
     # (returns COVERAGE_GAP), so non-grounded edges are honest "execution pending".
     runner = MethodsGraphEvaluationRunner(methods_provider)
 
-    # Only a missing/unusable LLM provider (no creds, no claude CLI) degrades to the
-    # demo seams. Wiring errors inside _build_live_seeding are bugs and must surface.
-    try:
-        from quration.llm.providers import get_provider_from_config
+    # A configured-but-unusable LLM provider is a configuration error, not something
+    # to paper over. This used to degrade to DemoSuggester() on any exception, which
+    # meant a machine with no ANTHROPIC_API_KEY answered every question — about ALS,
+    # about anything — with the same synthetic EGFR -> KRAS -> drug-resistance graph,
+    # at HTTP 200, with `proposal_source="llm"` on edges no model had produced. The
+    # warning it logged went to the server log, where no user of the API sees it.
+    #
+    # Demo mode is still fully supported; it now has to be requested, via
+    # QURATION_PROVIDER=demo. Silence is the thing being removed, not the capability.
+    from quration.llm.providers import (
+        LLMProviderUnavailableError,
+        get_provider_from_config,
+    )
 
+    try:
         provider = get_provider_from_config()
-    except Exception:
-        logger.warning("live LLM provider unavailable; using demo seams", exc_info=True)
-        return HypothesisLoop(
-            repository=repository or InMemoryHypothesisRepository(),
-            suggester=DemoSuggester(),
-            supervisor=_GroundingSupervisor(LiveSupervisor(), MethodsGraphSupervisor()),
-            runner=runner,
-            selector=selector,
-            empty_seed_fallback=None,
-        )
+    except Exception as exc:
+        logger.error("live LLM provider unavailable; refusing to seed with demo content")
+        raise LLMProviderUnavailableError(str(exc)) from exc
 
     # Live path: LLM provider is available. Build live seeding components.
     live_suggester, live_supervisor, fallback = _build_live_seeding(provider)
