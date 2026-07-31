@@ -157,6 +157,26 @@ npm run check:all             # everything above plus the frontend build
 git diff --check
 ```
 
+`npm run prove:integration` is the only check that tests the cross-agent claim
+from outside. Everything else is written by us, run by our tooling, on a machine
+with a populated `.venv` and an editable install — conditions no external agent
+has. It clones the current branch into a temp dir, strips the repo's `.venv` from
+`PATH`, launches `bin/dogma mcp` from an unrelated directory, speaks the real MCP
+handshake including `notifications/initialized` and `notifications/cancelled`,
+and asserts the answers describe the clone rather than this checkout.
+
+The `PATH` scrub is the load-bearing part. `npm run install:python`
+editable-installs the sidecar, and a setuptools editable install registers a
+**meta-path finder**, which Python consults *before* `sys.path` — so a clone
+launched with this repo's `.venv` on `PATH` would silently serve this repo's
+code and every assertion would pass against the wrong checkout. The script
+proves the scrub worked rather than assuming it.
+
+It is outside `check:all` because it clones and is slower than a unit test. Run
+it after touching `bin/dogma`, `.mcp.json`, or the sidecar's package layout. It
+was mutation-tested: commenting out the launcher's `export PYTHONPATH` makes it
+fail with the launcher's own stderr quoted back.
+
 `npm run test:desktop-smoke` builds and boots the real desktop app, asserting the
 renderer mounted, routed under `app://`, kept Node out of the renderer, and that
 Cmd+K still reaches the palette. It is deliberately outside `check:all` because
