@@ -390,6 +390,34 @@ importQurationHandoff({
   assert.strictEqual(degraded.status, "degraded");
   assert.strictEqual(degraded.import_ready, false);
   assert.strictEqual(degraded.backend.reachable, false);
+  // "assessed" was absent from ALLOWED_EDGE_STATES, and normalizeEdge rewrites any
+  // unrecognised state to "untested" — silently downgrading the state most real
+  // edges reach. The two words are not synonyms: "untested" means nothing has
+  // looked at the claim, "assessed" means we established whether it COULD be
+  // measured and nothing has. Collapsing them is the exact failure CLAUDE.md
+  // records as repaired on the Python side, reappearing on the import path.
+  const states = handoffToSeedSkeleton({
+    causal_graph: {
+      nodes: [
+        { id: "a", label: "A", type: "target" },
+        { id: "b", label: "B", type: "phenotype" }
+      ],
+      edges: [
+        { id: "e-assessed", source_id: "a", target_id: "b", relation: "changes", state: "assessed" },
+        { id: "e-examined", source_id: "a", target_id: "b", relation: "changes", state: "examined" },
+        { id: "e-untested", source_id: "a", target_id: "b", relation: "changes", state: "untested" },
+        { id: "e-bogus", source_id: "a", target_id: "b", relation: "changes", state: "not_a_state" }
+      ]
+    }
+  }).edges.reduce((acc, edge) => Object.assign(acc, { [edge.id]: edge.state }), {});
+
+  assert.strictEqual(states["e-assessed"], "assessed", "an assessed edge was downgraded to untested");
+  assert.strictEqual(states["e-examined"], "examined");
+  assert.strictEqual(states["e-untested"], "untested");
+  // Coercing the genuinely unknown to the weakest state is right: claiming a
+  // measurement landed is the assertion that needs evidence.
+  assert.strictEqual(states["e-bogus"], "untested");
+
   console.log("quration import client tests passed");
 }).catch((error) => {
   console.error(error);
