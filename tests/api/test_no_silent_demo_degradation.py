@@ -34,8 +34,10 @@ QUESTION = "Does SOD1 aggregation drive motor neuron death in ALS?"
 
 @pytest.fixture
 def clean_singletons(monkeypatch):
-    """The module memoises the loop and chat services process-wide."""
-    monkeypatch.setattr(hr, "_loop", None)
+    """The module memoises the loops and chat services process-wide."""
+    # One loop per provider, so several can be live at once. A fresh dict per
+    # test, not `.clear()`, so a leaked reference cannot survive into the next.
+    monkeypatch.setattr(hr, "_loops", {})
     monkeypatch.setattr(hr, "_repo", None)
     monkeypatch.setattr(hr, "_seeding", None)
     monkeypatch.setattr(hr, "_edge_chat", None)
@@ -70,7 +72,12 @@ def _break_provider(monkeypatch, on_call=None):
     """
     from quration.llm import providers as providers_module
 
-    def failing():
+    # `*args` is load-bearing. `build_real_loop` passes a config through so a
+    # loop can be built for a provider other than the configured one. A zero-arg
+    # stub raises TypeError *before* its body runs, which still surfaces as 503 —
+    # so the route assertions keep passing while `on_call` never fires and the
+    # not-cached test silently measures nothing.
+    def failing(*args, **kwargs):
         if on_call is not None:
             on_call()
         raise ValueError("ANTHROPIC_API_KEY environment variable not set")
@@ -160,7 +167,7 @@ def test_a_failed_loop_is_not_cached(monkeypatch, clean_singletons):
     for _ in range(2):
         assert client.post("/hypothesis/start", json={"query": QUESTION}).status_code == 503
 
-    assert hr._loop is None, "a broken loop was memoised"
+    assert hr._loops == {}, "a broken loop was memoised"
     assert calls["n"] >= 2, "the second request reused a cached failure"
 
 

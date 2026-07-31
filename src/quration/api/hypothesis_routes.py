@@ -80,13 +80,30 @@ logger = logging.getLogger(__name__)
 # Providers that ``get_provider_from_config`` knows how to construct. Only an
 # explicit demo sentinel keeps the synthetic Demo seams; configured but
 # unsupported providers must fail visibly instead of masquerading as demo data.
-_REAL_PROVIDERS = {"anthropic", "openrouter", "claude_subscription"}
+_REAL_PROVIDERS = {
+    "anthropic",
+    "openrouter",
+    "claude_subscription",
+    "codex_subscription",
+}
 _DEMO_PROVIDERS = {"demo", "offline_demo"}
 _UNIMPLEMENTED_PROVIDERS = {"aws_bedrock", "gcp_vertex"}
 
+#: Providers that drive a locally logged-in coding-agent CLI instead of a
+#: metered key. Listed separately because availability is a question about this
+#: machine (is the CLI installed and authenticated?) rather than about config.
+_SUBSCRIPTION_PROVIDERS = {
+    "claude_subscription": "claude",
+    "codex_subscription": "codex",
+}
+
 router = APIRouter(prefix="/hypothesis", tags=["Hypothesis Engine"])
 
-_loop: HypothesisLoop | None = None
+#: One loop per provider, so several can be live in the same process. Keyed by
+#: resolved provider name; the configured default is just one more key. Holding
+#: a single `_loop` meant switching provider needed a restart, and there was no
+#: way to ask two models the same question without one.
+_loops: dict[str, HypothesisLoop] = {}
 _repo: SqliteHypothesisRepository | None = None
 
 
@@ -120,24 +137,82 @@ def unavailable(exc: LLMProviderUnavailableError) -> HTTPException:
     return HTTPException(status_code=503, detail=str(exc))
 
 
-def get_loop() -> HypothesisLoop:
-    """Process-wide loop, backed by the durable SQLite repository so every query's
-    graph survives restarts. Real (correlation-backed) runs in real mode, demo otherwise."""
-    global _loop
-    if _loop is None:
-        repo = get_repo()
-        if _real_mode():
-            from quration.hypothesis.orchestrator.real_pipeline import build_real_loop
+def resolve_provider(requested: str | None = None) -> str:
+    """Which provider a request should run on: the asked-for one, else config.
 
-            try:
-                _loop = build_real_loop(repository=repo)
-            except LLMProviderUnavailableError as exc:
-                # Do not cache a broken loop: the key may appear in the environment
-                # before the next request, and a cached failure would outlive the fix.
-                raise unavailable(exc) from exc
-        else:
-            _loop = build_demo_loop(repository=repo)
-    return _loop
+    Rejecting an unknown name here rather than deeper down matters — an
+    unrecognised provider must not reach `_real_mode()`, whose fall-through is a
+    500. A caller mistyping a provider deserves a 400 naming the real ones.
+    """
+    if requested is None:
+        return (get_config().llm.provider or "anthropic").lower()
+    name = requested.strip().lower()
+    known = _REAL_PROVIDERS | _DEMO_PROVIDERS | _UNIMPLEMENTED_PROVIDERS
+    if name not in known:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown provider {requested!r}; available: {sorted(_REAL_PROVIDERS | _DEMO_PROVIDERS)}",
+        )
+    return name
+
+
+def build_loop_for(provider: str) -> HypothesisLoop:
+    """Build (and cache) the loop for one provider.
+
+    The cache is per provider so several can be live at once. A failure is still
+    never cached: the key or CLI login may appear before the next request, and a
+    cached failure would outlive the fix.
+    """
+    if provider in _loops:
+        return _loops[provider]
+
+    repo = get_repo()
+    if provider in _DEMO_PROVIDERS:
+        _loops[provider] = build_demo_loop(repository=repo)
+        return _loops[provider]
+
+    if provider in _UNIMPLEMENTED_PROVIDERS:
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                f"LLM provider {provider!r} is configured but is not implemented "
+                "by the Dogma hypothesis engine."
+            ),
+        )
+
+    from quration.hypothesis.orchestrator.real_pipeline import build_real_loop
+
+    try:
+        loop = build_real_loop(repository=repo, config=_config_for(provider))
+    except LLMProviderUnavailableError as exc:
+        raise unavailable(exc) from exc
+    _loops[provider] = loop
+    return loop
+
+
+def _config_for(provider: str):
+    """The process config with ``llm.provider`` overridden, as a copy.
+
+    A copy, not a mutation of the global: two requests naming different
+    providers can be in flight at once, and swapping the global provider around
+    a build would let one request's loop pick up the other's provider. That race
+    is precisely what "both providers live at once" invites, so the override
+    never leaves this object.
+    """
+    config = get_config()
+    if (config.llm.provider or "").lower() == provider:
+        return config
+    # Pydantic deep copy: `llm` must not be shared, or the override would land on
+    # the global config after all.
+    overridden = config.model_copy(deep=True)
+    overridden.llm.provider = provider
+    return overridden
+
+
+def get_loop() -> HypothesisLoop:
+    """The configured default loop. FastAPI dependency for routes with no
+    per-request provider choice."""
+    return build_loop_for(resolve_provider(None))
 
 
 def _real_mode() -> bool:
@@ -406,6 +481,27 @@ def get_kg_service() -> KGService:
 
 class StartRequest(BaseModel):
     query: str
+    #: Which provider answers this one request. Omit for the configured default.
+    #: Several can be live at once, so asking two models the same question no
+    #: longer needs a restart between them.
+    provider: str | None = None
+
+
+class ProviderInfo(BaseModel):
+    name: str
+    kind: str  #: "subscription" | "api_key" | "demo"
+    available: bool
+    #: Why not, when `available` is false. Never a guess — for subscription
+    #: providers this is "the CLI is not on PATH", which is a fact about this
+    #: machine, not a claim that the login is valid. Availability here means
+    #: "worth attempting", and a real attempt still fails closed with a 503.
+    detail: str = ""
+    is_default: bool = False
+
+
+class ProvidersResponse(BaseModel):
+    default: str
+    providers: list[ProviderInfo]
 
 
 class SeedRequest(BaseModel):
@@ -444,8 +540,59 @@ class LayoutRequest(BaseModel):
     positions: dict[str, NodePosition]  # node_id -> position
 
 
+@router.get("/providers", response_model=ProvidersResponse)
+def providers() -> ProvidersResponse:
+    """Which providers this machine could answer with, and which is the default.
+
+    Exists so a caller does not have to guess. The two subscription providers
+    were previously undiscoverable — nothing in the API mentioned them, so the
+    only way to learn they existed was to read the source.
+    """
+    import shutil
+
+    default = resolve_provider(None)
+    infos: list[ProviderInfo] = []
+
+    for name in sorted(_REAL_PROVIDERS):
+        cli = _SUBSCRIPTION_PROVIDERS.get(name)
+        if cli:
+            found = shutil.which(cli) is not None
+            infos.append(ProviderInfo(
+                name=name,
+                kind="subscription",
+                available=found,
+                detail="" if found else f"the {cli!r} CLI is not on PATH",
+                is_default=(name == default),
+            ))
+            continue
+        env_var = "ANTHROPIC_API_KEY" if name == "anthropic" else "OPENROUTER_API_KEY"
+        has_key = bool(os.environ.get(env_var))
+        infos.append(ProviderInfo(
+            name=name,
+            kind="api_key",
+            available=has_key,
+            detail="" if has_key else f"{env_var} is not set",
+            is_default=(name == default),
+        ))
+
+    infos.append(ProviderInfo(
+        name="demo",
+        kind="demo",
+        available=True,
+        detail="synthetic offline content; never a real scientific result",
+        is_default=(default in _DEMO_PROVIDERS),
+    ))
+    return ProvidersResponse(default=default, providers=infos)
+
+
 @router.post("/start", response_model=StartResult)
 def start(req: StartRequest, loop: HypothesisLoop = Depends(get_loop)) -> StartResult:
+    # The injected loop stays the default path, so `dependency_overrides` still
+    # works — bypassing it entirely broke every test that swaps in a fake loop,
+    # and would have broken any caller relying on the same mechanism. Only an
+    # explicit `provider` in the body diverges from it.
+    if req.provider:
+        loop = build_loop_for(resolve_provider(req.provider))
     with traced_op("start", query=req.query) as op:
         result = loop.start(req.query)
         op.graph_id = result.graph_id
