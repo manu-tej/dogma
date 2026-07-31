@@ -11,24 +11,45 @@ from typing import Any
 
 @dataclass
 class MetricResult:
-    """Result of a metric calculation."""
+    """Result of a metric calculation.
+
+    ``value`` may be ``None``, meaning *not measured* — distinct from a measured
+    zero. A detector with no reference data to compare against has not found zero
+    hallucinations; it has not looked. Reporting 0.0 in that case is a false
+    negative dressed as a result, and it is what `HallucinationDetector` used to
+    do on its default construction.
+    """
 
     name: str
-    value: float
+    value: float | None
     max_value: float = 1.0
     details: dict[str, Any] = field(default_factory=dict)
 
     @property
-    def normalized(self) -> float:
-        """Get normalized value (0-1)."""
+    def measured(self) -> bool:
+        """False when the metric could not be computed, e.g. no reference set."""
+        return self.value is not None
+
+    @property
+    def normalized(self) -> float | None:
+        """Normalised value in 0-1, or None when not measured.
+
+        NOTE: this clamps. A `value` above `max_value` normalises to 1.0, which
+        means a broken calculator can look perfect here while publishing nonsense
+        in `value`. Calculators are responsible for staying in range; see
+        `AccuracyCalculator`, which used to return 2.5.
+        """
+        if self.value is None:
+            return None
         if self.max_value == 0:
             return 0.0
         return min(1.0, max(0.0, self.value / self.max_value))
 
     @property
-    def percentage(self) -> float:
-        """Get percentage value."""
-        return self.normalized * 100
+    def percentage(self) -> float | None:
+        """Get percentage value, or None when not measured."""
+        norm = self.normalized
+        return None if norm is None else norm * 100
 
 
 @dataclass
@@ -63,18 +84,47 @@ class BenchmarkMetrics:
 
         for metric_name, weight in weights.items():
             metric = getattr(self, metric_name)
-            if metric is not None:
-                value = metric.normalized
-                # Invert hallucination rate (lower is better)
-                if metric_name == "hallucination_rate":
-                    value = 1.0 - value
-                weighted_sum += value * weight
-                total_weight += weight
+            if metric is None or not metric.measured:
+                continue
+            value = metric.normalized
+            # Invert hallucination rate (lower is better)
+            if metric_name == "hallucination_rate":
+                value = 1.0 - value
+            weighted_sum += value * weight
+            total_weight += weight
 
         if total_weight == 0:
             return 0.0
 
         return weighted_sum / total_weight
+
+    @property
+    def weight_coverage(self) -> float:
+        """Fraction of the intended scoring weight that was actually measured.
+
+        `overall_score` renormalises over whichever metrics exist, so a run that
+        measured only accuracy and completeness reports a confident-looking number
+        built from 40% of the intended weighting — with nothing in the output to
+        say so. Publish this alongside any score. Three of the calculators
+        (`citation_validity`, `hallucination_rate`, `confidence_calibration`) are
+        constructed by the harness but never invoked, so coverage is currently
+        well below 1.0 on every run.
+        """
+        weights = {
+            "accuracy": 0.25,
+            "completeness": 0.15,
+            "citation_validity": 0.15,
+            "hallucination_rate": 0.20,
+            "claim_precision": 0.10,
+            "claim_recall": 0.10,
+            "confidence_calibration": 0.05,
+        }
+        measured = sum(
+            weight
+            for name, weight in weights.items()
+            if (m := getattr(self, name)) is not None and m.measured
+        )
+        return measured / sum(weights.values())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -138,16 +188,25 @@ class AccuracyCalculator:
                 details={"note": "No ground truth claims"},
             )
 
-        correct = 0
+        # Each ground-truth claim may be satisfied at most once. Counting one
+        # increment per *prediction* made the metric unbounded and, worse, made
+        # padding profitable: restating a single true claim five different ways
+        # scored 2.5, and `normalized` clamped that to a perfect 1.0 in the
+        # aggregate while `value` published 2.5. For an LLM benchmark, rewarding
+        # verbosity is the single worst property a scorer can have.
+        matched_truths: set[int] = set()
         matches = []
 
         for pred in predicted_claims:
-            for truth in ground_truth_claims:
+            for index, truth in enumerate(ground_truth_claims):
+                if index in matched_truths:
+                    continue
                 if self._match_claim(pred, truth, fuzzy_match):
-                    correct += 1
+                    matched_truths.add(index)
                     matches.append({"predicted": pred, "ground_truth": truth})
                     break
 
+        correct = len(matched_truths)
         accuracy = correct / len(ground_truth_claims)
 
         return MetricResult(
@@ -179,8 +238,37 @@ class AccuracyCalculator:
         if not truth_terms:
             return False
 
-        overlap = len(pred_terms & truth_terms) / len(truth_terms)
-        return overlap >= 0.6
+        shared = pred_terms & truth_terms
+        overlap = len(shared) / len(truth_terms)
+        if overlap < 0.6:
+            return False
+
+        # Bag-of-words overlap alone is direction-blind, which is disqualifying for
+        # a benchmark over causal claims: "KRAS upregulates EGFR" shares every term
+        # with "EGFR upregulates KRAS" and used to score a perfect match. A claim
+        # asserting the reverse mechanism is wrong, not approximately right.
+        return self._same_orientation(pred_lower, truth_lower, shared)
+
+    def _same_orientation(self, pred: str, truth: str, shared: set[str]) -> bool:
+        """Do the shared terms appear in the same relative order in both claims?
+
+        A cheap proxy for "asserts the same direction". It reads first occurrences
+        and compares the two orderings; with fewer than two shared terms there is
+        no order to disagree about, so it defers to the overlap decision.
+
+        This is a heuristic, not a parser. It catches the reversal that matters —
+        subject and object swapped around a relation — and will not catch a
+        negation ("does not upregulate"). Distinguishing those needs a real
+        relation extractor over (subject, relation, object, sign) tuples; until
+        then, do not read a passing score as evidence of semantic equivalence.
+        """
+        if len(shared) < 2:
+            return True
+
+        def order(text: str) -> list[str]:
+            return sorted(shared, key=lambda term: text.find(term))
+
+        return order(pred) == order(truth)
 
 
 class CompletenessCalculator:
@@ -354,36 +442,85 @@ class HallucinationDetector:
         Returns:
             MetricResult with hallucination rate (lower is better)
         """
+        # Without a reference vocabulary there is nothing to check against, and the
+        # only remaining test is `_is_valid_gene_pattern` — a regex over shape.
+        # "ZORPX1" satisfies it, so three invented genes and two invented pathways
+        # scored a hallucination rate of 0.0: a false negative presented as a clean
+        # result. The harness constructs this detector with no reference sets at
+        # all, so that was the only rate it could ever have produced.
+        #
+        # Report "not measured" instead. Supply `known_genes` (e.g. HGNC symbols)
+        # and `known_pathways` (e.g. Reactome) to get a real rate.
+        if not self.known_genes and not self.known_pathways:
+            return MetricResult(
+                name="hallucination_rate",
+                value=None,
+                details={
+                    "note": (
+                        "not measured: no reference vocabulary configured. A shape "
+                        "regex cannot distinguish an invented gene symbol from a "
+                        "real one. Pass known_genes/known_pathways to measure."
+                    ),
+                    "mentioned_genes": len(mentioned_genes),
+                    "mentioned_pathways": len(mentioned_pathways),
+                },
+            )
+
         hallucinations = []
         total_entities = 0
 
         # Check genes
         input_gene_set = set(g.upper() for g in (input_genes or []))
 
+        # A reference vocabulary is used as an allow-list: a symbol that appears in
+        # neither the input nor the vocabulary IS the hallucination. Previously the
+        # vocabulary only ever caused a `continue`, and the sole positive test was
+        # `_is_valid_gene_pattern` — so "ZORPX1" was reported as fine even with a
+        # vocabulary supplied, because it is *shaped* like a gene symbol. Shape and
+        # existence are different questions.
         for gene in mentioned_genes:
             total_entities += 1
             gene_upper = gene.upper()
 
-            # Not a hallucination if in input or known genes
             if gene_upper in input_gene_set:
                 continue
-            if self.known_genes and gene_upper in self.known_genes:
+
+            if self.known_genes:
+                if gene_upper not in self.known_genes:
+                    hallucinations.append(
+                        {
+                            "type": "gene",
+                            "value": gene,
+                            "reason": "not in reference vocabulary",
+                        }
+                    )
                 continue
 
-            # Check if it looks like a valid gene symbol
+            # No gene vocabulary: all that can be said is whether it is malformed.
             if not self._is_valid_gene_pattern(gene):
-                hallucinations.append({"type": "gene", "value": gene})
+                hallucinations.append(
+                    {"type": "gene", "value": gene, "reason": "malformed symbol"}
+                )
 
         # Check pathways
         for pathway in mentioned_pathways:
             total_entities += 1
 
-            if self.known_pathways and pathway in self.known_pathways:
+            if self.known_pathways:
+                if pathway not in self.known_pathways:
+                    hallucinations.append(
+                        {
+                            "type": "pathway",
+                            "value": pathway,
+                            "reason": "not in reference vocabulary",
+                        }
+                    )
                 continue
 
-            # Basic pathway validation
             if not self._is_valid_pathway_pattern(pathway):
-                hallucinations.append({"type": "pathway", "value": pathway})
+                hallucinations.append(
+                    {"type": "pathway", "value": pathway, "reason": "malformed name"}
+                )
 
         # Calculate rate
         if total_entities == 0:

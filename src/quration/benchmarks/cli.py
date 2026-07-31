@@ -238,20 +238,56 @@ def print_summary(report, json_output: bool = False) -> None:
         print("AGGREGATE METRICS")
         print("-" * 40)
 
-        if metrics.accuracy:
-            print(f"{'Accuracy:':<25} {metrics.accuracy.normalized:.3f}")
-        if metrics.completeness:
-            print(f"{'Completeness:':<25} {metrics.completeness.normalized:.3f}")
-        if metrics.claim_precision:
-            print(f"{'Claim Precision:':<25} {metrics.claim_precision.normalized:.3f}")
-        if metrics.claim_recall:
-            print(f"{'Claim Recall:':<25} {metrics.claim_recall.normalized:.3f}")
-        if metrics.hallucination_rate:
-            print(f"{'Hallucination Rate:':<25} {metrics.hallucination_rate.value:.3f}")
-        if metrics.tool_utilization:
-            print(f"{'Tool Utilization:':<25} {metrics.tool_utilization.normalized:.3f}")
+        def show(label: str, metric, raw: bool = False) -> None:
+            """Print a metric, or say plainly that it was not measured.
 
+            "not measured" has to be visible in the output. Printing nothing at
+            all reads as "nothing to report", which is how a metric that never ran
+            passed for a metric that came back clean.
+            """
+            if metric is None:
+                print(f"{label:<25} not computed")
+                return
+            if not metric.measured:
+                note = metric.details.get("note", "")
+                print(f"{label:<25} not measured{f' — {note}' if note else ''}")
+                return
+            print(f"{label:<25} {(metric.value if raw else metric.normalized):.3f}")
+
+        show("Accuracy:", metrics.accuracy)
+        show("Completeness:", metrics.completeness)
+        show("Claim Precision:", metrics.claim_precision)
+        show("Claim Recall:", metrics.claim_recall)
+        show("Hallucination Rate:", metrics.hallucination_rate, raw=True)
+        show("Tool Utilization:", metrics.tool_utilization)
+
+        # The score renormalises over whatever was measured, so it is not
+        # comparable across runs with different coverage. State the coverage next
+        # to it rather than letting the number stand alone.
+        coverage = metrics.weight_coverage
         print(f"\n{'OVERALL SCORE:':<25} {metrics.overall_score:.3f}")
+        print(
+            f"{'  from weight coverage:':<25} {coverage:.0%}"
+            + ("" if coverage >= 0.999 else "  (partial — not comparable across runs)")
+        )
+
+        # State the provenance of the number next to the number. The bundled suite is
+        # 25 synthetic tasks and 6 grounded in real papers, and the default run mixes
+        # them — so an unqualified score is mostly self-consistency against invented
+        # ground truth, in exactly the form most likely to be pasted into a README.
+        synthetic = report.synthetic_task_count
+        if synthetic:
+            print(
+                f"{'  task ground truth:':<25} {synthetic} of {len(report.results)} "
+                "tasks are SYNTHETIC"
+            )
+            print(
+                "\n  NOT A PUBLISHABLE BENCHMARK NUMBER — this score is computed partly\n"
+                "  over invented ground truth. Re-run with --published to score only the\n"
+                "  tasks taken from real studies, and report that n alongside the number."
+            )
+        else:
+            print(f"{'  task ground truth:':<25} all from published studies")
 
     if report.errors:
         print("\n" + "-" * 40)
@@ -287,12 +323,27 @@ def check_ci_thresholds(
                 f"< minimum {min_score}"
             )
 
-        if report.aggregate_metrics.hallucination_rate:
-            rate = report.aggregate_metrics.hallucination_rate.value
-            if rate > max_hallucination:
-                failures.append(
-                    f"Hallucination rate {rate:.3f} > maximum {max_hallucination}"
-                )
+        # A threshold you cannot evaluate must not silently pass. This used to read
+        # `if report.aggregate_metrics.hallucination_rate:` — and the harness never
+        # populates that field, so the value was always None, the branch was always
+        # falsy, and --max-hallucination could never fail a run no matter what it
+        # was set to. A gate that cannot fire is worse than no gate: it reports
+        # assurance it never checked.
+        hallucination = report.aggregate_metrics.hallucination_rate
+        if hallucination is None:
+            failures.append(
+                "--max-hallucination was requested but hallucination_rate was not "
+                "computed for this run, so the threshold could not be enforced"
+            )
+        elif not hallucination.measured:
+            failures.append(
+                "--max-hallucination was requested but hallucination_rate was not "
+                f"measured: {hallucination.details.get('note', 'no detail given')}"
+            )
+        elif hallucination.value > max_hallucination:
+            failures.append(
+                f"Hallucination rate {hallucination.value:.3f} > maximum {max_hallucination}"
+            )
 
     if report.success_rate < 0.8:
         failures.append(f"Success rate {report.success_rate:.1%} < 80%")
