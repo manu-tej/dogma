@@ -166,3 +166,31 @@ class CausalGraph(BaseModel):
 
     def edges_incident(self, node_id: str) -> list[Edge]:
         return [e for e in self.edges if node_id in (e.source_id, e.target_id)]
+
+
+def mark_llm_authored(edges: list[Edge]) -> list[Edge]:
+    """Stamp edges a model actually authored, in place, and return them.
+
+    `Edge.proposal_source` defaults to SYSTEM — "a derivation" — because the
+    previous default of LLM claimed a model had proposed a relation on every
+    edge, including ones no model had touched. That default is right, but it
+    means a real LLM proposal has to say so explicitly, and only the code that
+    called the model knows.
+
+    `HypothesisLoop.build_from_skeleton` did this inline while `start`'s
+    suggesters did not, so the graph you get from `/hypothesis/start` reported
+    `proposal_source: "system"` on edges a model had just written. That errs
+    safe — it understates rather than overstates — but it erases the one
+    distinction the enum exists to make: a consumer could not tell a model's
+    hypothesis from a deterministic derivation. One helper, so the three call
+    sites cannot drift apart again.
+
+    Validation status is reset with it deliberately: a freshly authored seed is
+    an unvalidated draft no matter how it arrived, and validation happens later
+    against a KG, a dataset or the literature — never at seed time.
+    """
+    for edge in edges:
+        edge.proposal_source = ProposalSource.LLM
+        edge.validation_status = EdgeValidationStatus.UNVALIDATED
+        edge.validations = []
+    return edges

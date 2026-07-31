@@ -9,7 +9,7 @@ via the separate KGService, so check_pair has no KG to consult and returns None.
 from __future__ import annotations
 
 from quration.hypothesis.connectors.base import SuggestionResult
-from quration.hypothesis.graph import Edge
+from quration.hypothesis.graph import Edge, mark_llm_authored
 
 
 class LlmAuthoringSuggester:
@@ -23,7 +23,13 @@ class LlmAuthoringSuggester:
 
     def expand(self, seeds: list[str], query: str | None = None) -> SuggestionResult:
         skeleton = self._seeding.author_skeleton(query or "")
-        return SuggestionResult(nodes=list(skeleton.nodes), edges=list(skeleton.edges))
+        # The model wrote these, so they say so. Without the stamp they inherit
+        # the SYSTEM default and `/hypothesis/start` reports a model's hypothesis
+        # as a deterministic derivation.
+        return SuggestionResult(
+            nodes=list(skeleton.nodes),
+            edges=mark_llm_authored(list(skeleton.edges)),
+        )
 
     def check_pair(self, source: str, target: str) -> Edge | None:
         # No KG to consult; grounding is on-demand via the separate KGService.
