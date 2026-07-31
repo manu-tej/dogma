@@ -6,6 +6,7 @@ bioinformatics interpretation scenarios.
 """
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from string import Template
@@ -533,6 +534,44 @@ def create_custom_template(
     )
 
 
+#: One differentially expressed gene: (symbol, log2FC) or
+#: (symbol, log2FC, adjusted_p_value). The two-element form is accepted so existing
+#: callers keep working, but it means "significance unknown", not "significant" —
+#: `set_deg_results` says so in the prompt rather than letting the omission pass as
+#: a filtered list.
+DEGene = tuple[str, float] | tuple[str, float, float | None]
+
+
+def _symbol(entry: DEGene) -> str:
+    return entry[0]
+
+
+def _fc(entry: DEGene) -> float:
+    return entry[1]
+
+
+def _padj(entry: DEGene) -> float | None:
+    """Adjusted p-value, or None when the caller did not supply one."""
+    return entry[2] if len(entry) > 2 else None
+
+
+def _has_significance(entries: Sequence[DEGene]) -> bool:
+    return any(_padj(e) is not None for e in entries)
+
+
+def _format_gene(entry: DEGene) -> str:
+    """Render one gene for the prompt.
+
+    Significance is stated when known and marked absent when not. Printing a bare
+    fold change for a gene whose adjusted p-value was never provided invites the
+    model to call it differentially expressed on effect size alone.
+    """
+    padj = _padj(entry)
+    if padj is None:
+        return f"- {_symbol(entry)} (log2FC: {_fc(entry):.2f}, adj. p: not provided)"
+    return f"- {_symbol(entry)} (log2FC: {_fc(entry):.2f}, adj. p: {padj:.2e})"
+
+
 class PromptBuilder:
     """Builder for constructing prompts from templates and data.
 
@@ -588,36 +627,48 @@ class PromptBuilder:
 
     def set_deg_results(
         self,
-        upregulated: list[tuple[str, float]],
-        downregulated: list[tuple[str, float]],
+        upregulated: Sequence[DEGene],
+        downregulated: Sequence[DEGene],
         top_n: int = 10,
     ) -> "PromptBuilder":
-        """Set DEG results from gene lists with fold changes.
+        """Set DEG results from gene lists with fold changes and, ideally, significance.
 
         Args:
-            upregulated: List of (gene, log2fc) tuples
-            downregulated: List of (gene, log2fc) tuples
+            upregulated: (gene, log2fc) or (gene, log2fc, adjusted_p_value) entries
+            downregulated: same shape
             top_n: Number of top genes to include
+
+        The adjusted p-value is optional in the type but not in the science. The
+        request schema has always accepted `adjustedPValue`, and the route has always
+        thrown it away before it reached here — so the prompt listed bare fold
+        changes, and a model shown a 2-fold change with no significance attached will
+        read it as a finding. Where significance is absent this now says so in the
+        prompt rather than letting silence imply it was checked.
 
         Returns:
             Self for chaining
         """
-        up_str = "\n".join(
-            [f"- {gene} (log2FC: {fc:.2f})" for gene, fc in upregulated[:top_n]]
-        )
-        down_str = "\n".join(
-            [f"- {gene} (log2FC: {fc:.2f})" for gene, fc in downregulated[:top_n]]
-        )
+        up_str = "\n".join(_format_gene(entry) for entry in upregulated[:top_n])
+        down_str = "\n".join(_format_gene(entry) for entry in downregulated[:top_n])
 
         self._variables["upregulated_genes"] = up_str
         self._variables["downregulated_genes"] = down_str
         self._variables["deg_count"] = len(upregulated) + len(downregulated)
 
+        if not _has_significance(upregulated) and not _has_significance(downregulated):
+            existing = self._variables.get("additional_context", "")
+            self._variables["additional_context"] = existing + (
+                "\nNOTE: No adjusted p-values were supplied with these genes. Fold "
+                "change alone does not establish that a gene is differentially "
+                "expressed. Treat the ranking as unfiltered and do not describe any "
+                "gene as significantly changed."
+            )
+
         # Inject signal strength note for weak/moderate signals
-        all_fcs = [abs(fc) for _, fc in upregulated] + [abs(fc) for _, fc in downregulated]
+        all_fcs = [abs(_fc(e)) for e in upregulated] + [abs(_fc(e)) for e in downregulated]
         max_fc = max(all_fcs) if all_fcs else 0.0
         housekeeping = {"ACTB", "GAPDH", "TUBB", "B2M", "RPLP0"}
-        all_genes = {g for g, _ in upregulated} | {g for g, _ in downregulated}
+        all_genes = {_symbol(e) for e in upregulated} | {_symbol(e) for e in downregulated}
         has_housekeeping = bool(all_genes & housekeeping)
 
         if max_fc < 1.5 and has_housekeeping:
@@ -643,9 +694,22 @@ class PromptBuilder:
         Returns:
             Self for chaining
         """
+        # Prefer the adjusted p-value. Enrichment tests thousands of gene sets, so a
+        # nominal p-value is the one number that must not stand alone here — and it
+        # was the only one being shown, while `adjusted_p_value` was available on the
+        # same dict and dropped.
+        def _pathway_significance(p: dict[str, Any]) -> str:
+            adjusted = p.get("adjusted_p_value")
+            if adjusted is not None:
+                return f"adj. p: {adjusted:.2e}"
+            nominal = p.get("p_value")
+            if nominal is not None:
+                return f"nominal p: {nominal:.2e} (UNADJUSTED — not corrected for multiple testing)"
+            return "significance: not provided"
+
         pathway_str = "\n".join(
             [
-                f"- {p['name']} (p-value: {p.get('p_value', 'N/A'):.2e}, "
+                f"- {p['name']} ({_pathway_significance(p)}, "
                 f"genes: {p.get('gene_count', 'N/A')})"
                 for p in pathways[:top_n]
             ]

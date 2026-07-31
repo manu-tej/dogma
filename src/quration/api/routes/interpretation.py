@@ -121,14 +121,23 @@ async def interpret_deg(
     """
     try:
         # Convert request to service format
-        upregulated = [
-            (item.gene_symbol, item.log2_fold_change)
-            for item in request.upregulated_genes
-        ]
-        downregulated = [
-            (item.gene_symbol, item.log2_fold_change)
-            for item in request.downregulated_genes
-        ]
+        # Carry the adjusted p-value through. The request schema has accepted
+        # `adjustedPValue` all along and this conversion dropped it, so the UI
+        # collected a number the backend could not use and the prompt listed bare
+        # fold changes. Falls back to the nominal p-value only if that is all the
+        # caller sent; None means "not provided", which the prompt states explicitly.
+        def _entries(items):
+            return [
+                (
+                    item.gene_symbol,
+                    item.log2_fold_change,
+                    item.adjusted_p_value if item.adjusted_p_value is not None else item.p_value,
+                )
+                for item in items
+            ]
+
+        upregulated = _entries(request.upregulated_genes)
+        downregulated = _entries(request.downregulated_genes)
 
         # Run interpretation
         result = await service.interpret_deg_results(

@@ -7,6 +7,7 @@ all interpretation components for analyzing transcriptomic data.
 
 import logging
 from datetime import datetime, timezone
+from collections.abc import Sequence
 from typing import Any
 from uuid import uuid4
 
@@ -25,7 +26,7 @@ from quration.interpretation.models import (
     TokenUsage,
 )
 from quration.interpretation.parsers import ClaimExtractor, ResponseParser
-from quration.interpretation.prompts import PromptBuilder, get_template
+from quration.interpretation.prompts import DEGene, PromptBuilder, get_template
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +90,10 @@ class InterpretationService:
 
     async def interpret_deg_results(
         self,
-        upregulated: list[tuple[str, float]],
-        downregulated: list[tuple[str, float]],
+        # Sequence, not list: list is invariant, so a caller holding
+        # list[tuple[str, float, float | None]] could not pass it as list[DEGene].
+        upregulated: Sequence[DEGene],
+        downregulated: Sequence[DEGene],
         condition_a: str,
         condition_b: str,
         experiment_type: str = "RNA-seq",
@@ -101,8 +104,10 @@ class InterpretationService:
         """Interpret differential expression analysis results.
 
         Args:
-            upregulated: List of (gene, log2fc) tuples for upregulated genes
-            downregulated: List of (gene, log2fc) tuples for downregulated genes
+            upregulated: (gene, log2fc) or (gene, log2fc, adjusted_p_value) entries.
+                The two-element form means significance was not supplied, and the
+                prompt says so — it does not mean the genes passed a threshold.
+            downregulated: same shape
             condition_a: First condition name
             condition_b: Second condition name
             experiment_type: Type of experiment
@@ -135,8 +140,10 @@ class InterpretationService:
             interpretation_type=InterpretationType.DEG_ANALYSIS,
             max_iterations=max_iterations,
             context={
-                "upregulated_genes": [g for g, _ in upregulated],
-                "downregulated_genes": [g for g, _ in downregulated],
+                # Index rather than unpack: entries may carry a third element
+                # (adjusted p-value), and `for g, _ in ...` silently breaks on those.
+                "upregulated_genes": [entry[0] for entry in upregulated],
+                "downregulated_genes": [entry[0] for entry in downregulated],
                 "organism": organism,
             },
         )
