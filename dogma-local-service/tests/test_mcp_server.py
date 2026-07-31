@@ -4,7 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
-from biocursor_service.mcp_server import (
+from dogma_service.mcp_server import (
     KNOWN_EDGE_STATES,
     call_tool,
     edge_is_unmeasured,

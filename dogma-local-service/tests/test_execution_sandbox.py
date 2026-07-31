@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.execution_sandbox import build_run_plan_for_workspace, execute_command
+from dogma_service.execution_sandbox import build_run_plan_for_workspace, execute_command
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

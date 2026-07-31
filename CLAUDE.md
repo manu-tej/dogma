@@ -16,10 +16,11 @@ Keep changes scoped and factual.
   explicitly set `DOGMA_PYTHON` is honoured or refused, never silently replaced,
   because the fallback chain would otherwise reach the repo `.venv` and look
   healthy on a developer machine while staying broken for every external agent.
-  `.mcp.json` previously ran bare `python -m biocursor_service`, which works only
-  in a venv-activated shell — `python` is not a command on stock macOS, and MCP
-  hosts launch servers from their own environment. The server never started, which
-  reads to a user as "no biology tools" rather than as a misconfiguration.
+  `.mcp.json` previously invoked the service module directly with a bare
+  `python -m`, which works only in a venv-activated shell — `python` is not a
+  command on stock macOS, and MCP hosts launch servers from their own
+  environment. The server never started, which reads to a user as "no biology
+  tools" rather than as a misconfiguration.
 - `AGENTS.md` is the cross-agent instruction file. Codex, Cursor, Zed, Gemini CLI
   and Aider read it; none of them read this file. When a rule here matters to an
   agent *using* the repo rather than editing it, it belongs in both.
@@ -231,12 +232,13 @@ this section exists — both initially passed, i.e. the checks were vacuous:
 - It then still failed nothing under the documented workflow, because
   `export PATH="$PWD/.venv/bin:$PATH"` made the test's own interpreter search
   return the venv copy and skip. `system_python()` now probes for an interpreter
-  that genuinely cannot import `biocursor_service`, from a neutral cwd — the
+  that genuinely cannot import `dogma_service`, from a neutral cwd — the
   suite runs from `dogma-local-service/`, which otherwise puts the package on
   `sys.path` implicitly and makes every candidate look capable.
 - Adding a stray `echo` to `bin/dogma` fails `test_every_stdout_line_is_json_rpc`.
-- Reverting `.mcp.json` to `python -m biocursor_service` fails both manifest
-  tests. The old assertion compared the string to itself and could not fail.
+- Reverting `.mcp.json` to a bare `python -m` module invocation fails both
+  manifest tests. The old assertion compared the string to itself, so it could
+  not fail.
 
 If you touch the launcher, re-run those mutations. On this machine three of the
 four regressions are masked by local setup that an external agent does not have.

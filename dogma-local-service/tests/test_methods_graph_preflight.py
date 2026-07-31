@@ -6,7 +6,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from biocursor_service.methods_graph_preflight import build_methods_graph_preflight
+from dogma_service.methods_graph_preflight import build_methods_graph_preflight
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

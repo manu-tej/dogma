@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.cli import main
-from biocursor_service.methods_graph_substrate import build_methods_graph_substrate
+from dogma_service.cli import main
+from dogma_service.methods_graph_substrate import build_methods_graph_substrate
 
 
 class MethodsGraphSubstrateTests(unittest.TestCase):

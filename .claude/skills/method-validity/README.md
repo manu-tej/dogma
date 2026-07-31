@@ -8,7 +8,7 @@ gaps before execution; it does not produce a biological verdict or grade.
 
 | skill | what it injects | wraps |
 |---|---|---|
-| [`method-validity/`](method-validity/) | `dogma_method_check(root)`, `dogma_method_assumptions(root)` | `biocursor_service.build_method_guardrails` / `build_edge_evaluation_plan` |
+| [`method-validity/`](method-validity/) | `dogma_method_check(root)`, `dogma_method_assumptions(root)` | `dogma_service.build_method_guardrails` / `build_edge_evaluation_plan` |
 
 The kernel helpers are **factual**: they report coverage gaps, missing
 containers, unmet method assumptions, and unsatisfied execution gates. They never
@@ -18,7 +18,7 @@ Dogma "facts not verdicts" ledger model.
 ## How this relates to the repo
 
 The source of truth for each skill is this Dogma monorepo. Each `kernel.py`
-delegates to `dogma-local-service/biocursor_service`, the same tested builders
+delegates to `dogma-local-service/dogma_service`, the same tested builders
 used by the Dogma MCP evidence control plane. One guardrail core serves both the
 MCP and Claude Science surfaces.
 
@@ -41,7 +41,7 @@ it never returns an empty-but-successful result.
 
 The skill deliberately does not search upward from the current analysis
 workspace or trust distribution metadata found there. That workspace may be
-untrusted user data and must not shadow Dogma's `biocursor_service` package.
+untrusted user data and must not shadow Dogma's `dogma_service` package.
 
 ## Test
 

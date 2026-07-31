@@ -140,7 +140,7 @@ class TestMcpServerIsRegistered:
     def test_the_command_matches_a_real_entry_point(self):
         """Declaring the server is not the same as being able to start it.
 
-        This asserted `"command": "python", "args": ["-m", "biocursor_service",
+        This asserted `"command": "python", "args": ["-m", "dogma_service",
         "mcp"]` — a shape that is only launchable from a venv-activated shell
         with one specific working directory. `python` is not a command on stock
         macOS, and MCP hosts launch servers from their own environment, so the
@@ -156,7 +156,7 @@ class TestMcpServerIsRegistered:
         command = (REPO / server["command"]).resolve()
         assert command.is_file(), f"{server['command']} is not a file"
         assert os.access(command, os.X_OK), f"{server['command']} is not executable"
-        cli = REPO / "dogma-local-service" / "biocursor_service" / "cli.py"
+        cli = REPO / "dogma-local-service" / "dogma_service" / "cli.py"
         assert 'add_parser("mcp"' in cli.read_text(), "the `mcp` subcommand is gone"
 
     def test_the_declared_command_actually_serves_tools(self):
