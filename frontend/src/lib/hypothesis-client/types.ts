@@ -1,5 +1,14 @@
 export type QueryKind = "simple" | "investigative";
-export type EdgeState = "untested" | "examined" | "contested" | "supported" | "refuted";
+/** "assessed" = we established whether the claim *could* be measured, but did not
+ *  measure it. Distinct from "examined", which requires a measurement. The last
+ *  three are deprecated truth-stamps the backend no longer emits. */
+export type EdgeState =
+  | "untested"
+  | "assessed"
+  | "examined"
+  | "contested"
+  | "supported"
+  | "refuted";
 export type NodeType =
   | "target" | "pathway" | "phenotype" | "cell_type"
   | "tissue" | "disease" | "compound" | "other";
@@ -28,7 +37,16 @@ export type EdgeValidationStatus =
   | "kg_supported_direct" | "kg_supported_indirect"
   | "literature_supported" | "dataset_supported"
   | "contradicted" | "unsupported" | "ambiguous" | "rejected";
-export type ProposalSource = "user" | "llm" | "kg" | "literature" | "dataset" | "system";
+/** Who proposed an edge. "demo" is built-in offline fixture content — kept
+ *  distinct from "llm" so a fixture edge cannot claim a model proposed it. */
+export type ProposalSource =
+  | "user"
+  | "llm"
+  | "kg"
+  | "literature"
+  | "dataset"
+  | "system"
+  | "demo";
 export interface EdgeValidation {
   status: EdgeValidationStatus; source: ProposalSource;
   evidence?: Provenance | null; rationale?: string | null;

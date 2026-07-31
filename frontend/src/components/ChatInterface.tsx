@@ -480,7 +480,8 @@ export function ChatInterface({ selectedDataset, conversationId, initialMessages
       dataset.tissue,
       dataset.sampleCount,
       dataset.platform,
-      dataset.survivalData ? 'Available' : 'Not Available'
+      // Hedged in the export too: a CSV outlives the UI that explained it.
+      dataset.maybeHasSurvivalData ? 'likely (inferred)' : 'not indicated'
     ]);
 
     const csvContent = [
