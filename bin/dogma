@@ -1,0 +1,113 @@
+#!/bin/sh
+# Zero-install launcher for the Dogma local service — the entry point every
+# coding agent uses, whether it speaks MCP or only speaks shell.
+#
+#   bin/dogma mcp                          # MCP stdio server (Cursor, Codex, Zed, ...)
+#   bin/dogma guardrails <workspace>       # same facts over argv, for shell-only agents
+#   bin/dogma --help                       # every subcommand
+#
+# Four constraints are load-bearing here. Each one is a real failure that was
+# observed, not a precaution:
+#
+# 1. STDOUT IS THE JSON-RPC CHANNEL. In `mcp` mode the host parses stdout as a
+#    stream of JSON-RPC messages, so a single stray `echo` from this script
+#    corrupts the session — the host reports a protocol error and never
+#    mentions the shell. Every diagnostic below writes to stderr. Keep it that
+#    way, including anything you add temporarily while debugging.
+#
+# 2. `python` IS NOT A COMMAND ON STOCK macOS. `.mcp.json` used to say
+#    `"command": "python"`, which resolves to nothing outside a venv-activated
+#    shell. MCP hosts launch servers from their own environment, not the user's
+#    login shell, so the server simply never started and the tools silently did
+#    not appear. That is why the interpreter is searched for rather than named.
+#
+# 3. THE SERVER IS STDLIB-ONLY, SO IT NEEDS NO VENV — only PYTHONPATH.
+#    `dogma-local-service/` is its own installable distribution, and
+#    `npm run install:python` editable-installs it into the repo `.venv`. So on
+#    a set-up developer machine `python -m biocursor_service` already works, and
+#    that is exactly what made the old config look fine: the failure only shows
+#    up where there is no venv on the path — a fresh clone, or an MCP host that
+#    launches servers from its own environment rather than the user's shell.
+#    Exporting PYTHONPATH removes the install step entirely. Beware when
+#    testing: the venv's editable install will happily mask a broken PYTHONPATH,
+#    so `TestNeedsNoVirtualenv` forces an interpreter that never installed it.
+#
+# 4. `exec`, NOT A CHILD PROCESS. MCP hosts stop a server by signalling the pid
+#    they spawned. Without exec that pid is this shell, the signal never reaches
+#    Python, and the server is orphaned holding the workspace open.
+
+set -eu
+
+# Resolve this script's real directory, following symlinks, so the launcher
+# still finds the repo when it has been symlinked onto PATH. `readlink -f` is
+# not portable to every macOS in use, hence the loop.
+script=$0
+while [ -L "$script" ]; do
+    link=$(readlink "$script")
+    case $link in
+        /*) script=$link ;;
+        *) script=$(dirname "$script")/$link ;;
+    esac
+done
+REPO_ROOT=$(cd "$(dirname "$script")/.." && pwd -P)
+SERVICE_DIR="$REPO_ROOT/dogma-local-service"
+
+if [ ! -d "$SERVICE_DIR" ]; then
+    echo "dogma: cannot find $SERVICE_DIR" >&2
+    echo "dogma: bin/dogma must stay inside the repo (a symlink to it is fine)." >&2
+    exit 1
+fi
+
+PYTHONPATH="$SERVICE_DIR${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH
+
+# -u keeps stdin/stdout unbuffered, so JSON-RPC replies reach the host as they
+# are written instead of sitting in a pipe buffer.
+launch() {
+    interpreter=$1
+    shift
+    exec "$interpreter" -u -m biocursor_service "$@"
+}
+
+# Candidates are probed by attempting the import that actually matters, rather
+# than gating on a version number. The declared floor is 3.10, but the MCP
+# server imports and serves correctly on macOS's stock 3.9.6 — so a version gate
+# would reject a working interpreter and leave a fresh clone with none.
+usable() {
+    command -v "$1" >/dev/null 2>&1 &&
+        "$1" -c 'import biocursor_service.cli' >/dev/null 2>&1
+}
+
+# An explicitly chosen interpreter is honoured or refused — never quietly
+# replaced. Falling back from it would hide the two failures a user setting this
+# variable is most likely trying to diagnose: the interpreter is too old, or
+# PYTHONPATH is not reaching it. Worse, the fallback tends to succeed via the
+# repo's own `.venv` (which `npm run install:python` editable-installs into), so
+# the launcher would look healthy on a developer machine while remaining broken
+# for every external agent that has no venv at all.
+if [ -n "${DOGMA_PYTHON:-}" ]; then
+    if usable "$DOGMA_PYTHON"; then
+        launch "$DOGMA_PYTHON" "$@"
+    fi
+    echo "dogma: DOGMA_PYTHON=$DOGMA_PYTHON cannot import biocursor_service." >&2
+    echo "dogma: refusing to silently substitute another interpreter." >&2
+    echo "dogma: unset DOGMA_PYTHON to use the default search instead." >&2
+    echo "dogma: the underlying import error was:" >&2
+    # Both descriptors point at stderr, so the traceback cannot leak into the
+    # JSON-RPC stream even though the interpreter writes it to stdout on some
+    # failure modes.
+    "$DOGMA_PYTHON" -c 'import biocursor_service.cli' 1>&2 2>&2 || true
+    exit 1
+fi
+
+for candidate in "$REPO_ROOT/.venv/bin/python" python3 python; do
+    if usable "$candidate"; then
+        launch "$candidate" "$@"
+    fi
+done
+
+echo "dogma: no Python interpreter could import biocursor_service." >&2
+echo "dogma: tried $REPO_ROOT/.venv/bin/python, python3, python." >&2
+echo "dogma: the service needs only the standard library, so any Python 3 on" >&2
+echo "dogma: PATH should work. Set DOGMA_PYTHON=/path/to/python3 to choose one." >&2
+exit 1

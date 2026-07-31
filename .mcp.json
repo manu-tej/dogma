@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "dogma-evidence-control-plane": {
+      "type": "stdio",
+      "command": "./bin/dogma",
+      "args": [
+        "mcp"
+      ],
+      "env": {}
+    }
+  }
+}
