@@ -5,7 +5,12 @@ Nextflow. Sub-projects 4b/4c replace these with the real Supervisor / PipelineRu
 """
 
 from quration.hypothesis.connectors.base import SuggestionResult
-from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry
+from quration.hypothesis.evidence import (
+    EvidenceDirection,
+    EvidenceEntry,
+    EvidenceKind,
+)
+from quration.hypothesis.epistemics import ProposalSource
 from quration.hypothesis.graph import Edge, Node, NodeType
 from quration.hypothesis.orchestrator.checkpoint import (
     PipelineResult,
@@ -23,10 +28,17 @@ from quration.hypothesis.repository import (
     InMemoryHypothesisRepository,
 )
 
+# (node id, label, type, UniProt accession or None)
+#
+# Only the two proteins carry an accession. "drug resistance" is a phenotype and
+# has no UniProt entry — it cannot have one. It was nonetheless grounded to
+# OntologyTermProvenance(ontology="UniProt", term_id="RESIST"), which is not a
+# valid accession in any namespace, so the graph reported an entity as
+# ontology-grounded on the strength of an identifier that does not exist.
 _DEMO_NODES = [
-    ("P00533", "EGFR", NodeType.TARGET),
-    ("P01116", "KRAS", NodeType.TARGET),
-    ("RESIST", "drug resistance", NodeType.PHENOTYPE),
+    ("P00533", "EGFR", NodeType.TARGET, "P00533"),
+    ("P01116", "KRAS", NodeType.TARGET, "P01116"),
+    ("RESIST", "drug resistance", NodeType.PHENOTYPE, None),
 ]
 _DEMO_EDGES = [
     ("e-egfr-kras", "P00533", "P01116", "up-regulates activity"),
@@ -43,9 +55,13 @@ class DemoSuggester:
                 id=node_id,
                 type=node_type,
                 label=label,
-                grounding=OntologyTermProvenance(ontology="UniProt", term_id=node_id),
+                grounding=(
+                    OntologyTermProvenance(ontology="UniProt", term_id=accession)
+                    if accession
+                    else None
+                ),
             )
-            for node_id, label, node_type in _DEMO_NODES
+            for node_id, label, node_type, accession in _DEMO_NODES
         ]
         edges = [
             Edge(
@@ -54,6 +70,9 @@ class DemoSuggester:
                 target_id=target,
                 relation=relation,
                 pending=True,
+                # Stated, not inherited. The field default used to be LLM, so these
+                # fixture edges claimed a model had proposed them.
+                proposal_source=ProposalSource.DEMO,
                 suggested_by=[KGEdgeProvenance(source="demo", reference=edge_id)],
             )
             for edge_id, source, target, relation in _DEMO_EDGES
@@ -88,6 +107,14 @@ class DemoSupervisor:
     def interpret(self, proposed: ProposedTest, result: PipelineResult) -> EvidenceEntry:
         return EvidenceEntry(
             edge_id=proposed.edge_id,
+            # A MEASUREMENT, because the demo path exists precisely to simulate a
+            # completed measured loop end to end. Contrast the live path, whose only
+            # wired runner emits FEASIBILITY verdicts — so the demo loop reaches
+            # EXAMINED and the real loop reaches ASSESSED. That asymmetry is not a
+            # bug in this file; it is the honest shape of the gap PUBLICATION.md
+            # describes, now visible in the edge state instead of hidden behind a
+            # word that meant both things.
+            kind=EvidenceKind.MEASUREMENT,
             direction=EvidenceDirection.SUPPORTS,
             magnitude="log2FC=1.8, padj=1e-4",
             rationale="demo: pipeline reported a significant effect",

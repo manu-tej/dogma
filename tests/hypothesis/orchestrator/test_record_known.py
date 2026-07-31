@@ -13,8 +13,14 @@ def _loop_with_two_edges():
     g = CausalGraph(id="g", query="q")
     for nid in ("a", "b", "c"):
         g.add_node(Node(id=nid, type=NodeType.TARGET, label=nid.upper()))
-    g.add_edge(Edge(id="e1", source_id="a", target_id="b", relation="activates"))
-    g.add_edge(Edge(id="e2", source_id="b", target_id="c", relation="inhibits"))
+    # proposal_source stated explicitly: the assertion below is that recording KG
+    # knowledge leaves the proposal origin unchanged, so the origin has to be set
+    # on purpose rather than inherited from the field default (which is SYSTEM —
+    # an unstated origin must not claim an LLM proposed the edge).
+    g.add_edge(Edge(id="e1", source_id="a", target_id="b", relation="activates",
+                    proposal_source=ProposalSource.LLM))
+    g.add_edge(Edge(id="e2", source_id="b", target_id="c", relation="inhibits",
+                    proposal_source=ProposalSource.LLM))
     repo.save_graph(g)
     return loop, repo
 

@@ -5,7 +5,7 @@ in-memory and SQLite implementations are proven identical."""
 import pytest
 
 from quration.hypothesis.epistemics import EdgeValidationStatus as S
-from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry
+from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry, EvidenceKind
 from quration.hypothesis.graph import CausalGraph, Edge, EdgeState, Node, NodeType
 from quration.hypothesis.orchestrator.demo import build_demo_loop
 from quration.hypothesis.orchestrator.edge_chat import (
@@ -30,6 +30,7 @@ def repo(request, tmp_path):
 
 def _ev(edge_id="e1", direction=EvidenceDirection.SUPPORTS):
     return EvidenceEntry(
+        kind=EvidenceKind.MEASUREMENT,
         edge_id=edge_id, direction=direction,
         provenance=PipelineRunProvenance(run_id="r", data_accession="GSE1"))
 

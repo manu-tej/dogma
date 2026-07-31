@@ -27,7 +27,18 @@ def _kg(reference="x"):
 
 
 def _kg_validated_edge(eid, source_id, target_id, relation="activates"):
-    e = Edge(id=eid, source_id=source_id, target_id=target_id, relation=relation)
+    # proposal_source stated rather than inherited: the assertion downstream is
+    # that a claim-changing edit leaves the proposal origin *untouched*, which is
+    # only meaningful if the origin was set deliberately. It used to rely on the
+    # field defaulting to LLM — a default since changed to SYSTEM, precisely
+    # because an unstated origin should not claim a model proposed the edge.
+    e = Edge(
+        id=eid,
+        source_id=source_id,
+        target_id=target_id,
+        relation=relation,
+        proposal_source=ProposalSource.LLM,
+    )
     record_validation(e, EdgeValidation(
         status=S.KG_SUPPORTED_DIRECT, source=ProposalSource.KG,
         evidence=_kg(), created_at="t0"))

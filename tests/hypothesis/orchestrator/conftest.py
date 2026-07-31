@@ -3,7 +3,11 @@
 import pytest
 
 from quration.hypothesis.connectors.base import SuggestionResult
-from quration.hypothesis.evidence import EvidenceDirection, EvidenceEntry
+from quration.hypothesis.evidence import (
+    EvidenceDirection,
+    EvidenceEntry,
+    EvidenceKind,
+)
 from quration.hypothesis.graph import Edge, Node, NodeType
 from quration.hypothesis.orchestrator.checkpoint import (
     PipelineResult,
@@ -53,6 +57,11 @@ class FakeSupervisor:
     def interpret(self, proposed, result):
         return EvidenceEntry(
             edge_id=proposed.edge_id,
+            # This fake stands in for a supervisor that interpreted a real pipeline
+            # run, so its entry is a MEASUREMENT. The field defaults to FEASIBILITY
+            # because the only live producer emits method-coverage verdicts, which
+            # are judgements about whether a claim can be measured, not results.
+            kind=EvidenceKind.MEASUREMENT,
             direction=EvidenceDirection.SUPPORTS,
             provenance=PipelineRunProvenance(
                 run_id=result.run_id, data_accession=result.data_accession

@@ -29,7 +29,16 @@ class EdgeState(str, Enum):
     """The test-status of a mechanistic claim (an edge)."""
 
     UNTESTED = "untested"
-    EXAMINED = "examined"  # has an evidence ledger; the records carry the facts
+    # A feasibility assessment exists — we established whether this claim *could* be
+    # measured — but nothing has measured it. Every entry the wired runner produces
+    # is one of these, so this is the state most real edges reach. Distinguished from
+    # EXAMINED because "no method exists for this readout" and "we ran the method and
+    # it was inconclusive" are different scientific situations, and they were
+    # collapsing to the same word.
+    # See docs/decisions/2026-07-30-what-a-measurement-may-change-on-an-edge.md
+    ASSESSED = "assessed"
+    EXAMINED = "examined"  # a measurement landed; the ledger records carry the facts
+    # Deprecated truth-stamps — no longer emitted by rollup_edge (north-star §2.2).
     # Deprecated truth-stamps — no longer emitted by rollup_edge (north-star §2.2).
     # Retained only until all call sites are migrated; do not produce these.
     CONTESTED = "contested"
@@ -84,7 +93,13 @@ class Edge(BaseModel):
     pending: bool = False
     proposed_test: EdgeTest | None = None
     # --- epistemic state (additive; see epistemics.py) ---
-    proposal_source: ProposalSource = ProposalSource.LLM
+    # SYSTEM, not LLM. This defaulted to LLM, so 10 of the 15 Edge construction
+    # sites that omit it were asserting that a language model proposed the
+    # relation — including the offline demo seams, where no model runs. An
+    # unstated provenance is unknown provenance; claiming a source is worse than
+    # admitting none, because the epistemics layer exists to be trusted on
+    # exactly this question. State it explicitly wherever it is known.
+    proposal_source: ProposalSource = ProposalSource.SYSTEM
     validation_status: EdgeValidationStatus = EdgeValidationStatus.UNVALIDATED
     validations: list[EdgeValidation] = Field(default_factory=list)
     # transient: set by the API read path from endpoint grounding; never authoritative.
@@ -129,7 +144,25 @@ class CausalGraph(BaseModel):
         self.nodes = [n for n in self.nodes if n.id != node_id]
 
     def untested_edges(self) -> list[Edge]:
+        """Edges nothing has looked at yet. Excludes ASSESSED, so an edge whose only
+        record is a coverage gap is not re-proposed forever."""
         return [e for e in self.edges if e.state == EdgeState.UNTESTED]
+
+    def unmeasured_edges(self) -> list[Edge]:
+        """Edges with no measurement — whether or not they were assessed.
+
+        The primitive a loop-selection policy needs, and the honest denominator for
+        "how much of this graph is actually tested". `untested_edges` deliberately
+        answers a narrower question, and using it to mean "still to do" is what let
+        the loop stop while every edge was unmeasured. Which of these the loop should
+        re-propose is left open in the decision note; a GROUNDED assessment means a
+        method exists and the edge is ready, a COVERAGE_GAP means it is not.
+        """
+        return [
+            e
+            for e in self.edges
+            if e.state in (EdgeState.UNTESTED, EdgeState.ASSESSED)
+        ]
 
     def edges_incident(self, node_id: str) -> list[Edge]:
         return [e for e in self.edges if node_id in (e.source_id, e.target_id)]
