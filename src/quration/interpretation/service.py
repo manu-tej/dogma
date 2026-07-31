@@ -392,6 +392,13 @@ class InterpretationService:
                 id=uuid4(),
                 interpretation_type=interpretation_type,
                 summary=self._generate_summary(raw_result.summary, parsed),
+                # Carried forward, not dropped. This method rebuilds a fresh
+                # result from `raw_result`'s parts, so a failure reported by
+                # `claude_integration` arrived here and then vanished: the
+                # summary still read "Error during interpretation: ..." while
+                # `failed` was False. Scoring and validation happily ran over the
+                # empty claim list and produced a number.
+                error=raw_result.error,
                 claims=enriched_claims,
                 tool_calls=raw_result.tool_calls,
                 open_questions=self._extract_open_questions(parsed),
@@ -434,7 +441,11 @@ class InterpretationService:
                 token_usage=TokenUsage(),
                 processing_time_ms=processing_time_ms,
                 model_used=self._model,
-                metadata={"error": str(e)},
+                # The second of two identical swallow sites; `claude_integration`
+                # has the other. Both passed the cause as `metadata`, which this
+                # model does not declare, so pydantic dropped it — a failure
+                # returned as a well-formed result with no machine-readable trace.
+                error=str(e),
             )
 
     def _generate_summary(self, interpretation: str, parsed: Any) -> str:

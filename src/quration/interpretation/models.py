@@ -164,6 +164,32 @@ class InterpretationResult(BaseModel):
     created_at: datetime = Field(
         default_factory=datetime.utcnow, description="When interpretation was created"
     )
+    error: str | None = Field(
+        default=None,
+        description=(
+            "Set when the interpretation did not complete. A result carrying this "
+            "is a failure report, not an interpretation, and no consumer may "
+            "count it as one."
+        ),
+    )
+
+    @property
+    def failed(self) -> bool:
+        """Whether this result is a failure report rather than an interpretation.
+
+        `claude_integration` catches every exception and returns a result whose
+        summary begins "Error during interpretation:", with `claims=[]`. It also
+        passed the cause as `metadata={"error": ...}` — a field this model does
+        not declare, so pydantic silently dropped it and the only trace of *why*
+        was prose inside `summary`.
+
+        Every benchmark task then set `success=True`, because nothing had raised.
+        The published-task run therefore reported 6/6 successful, a 100% success
+        rate, and an accuracy of 0.000, in 0.1 seconds, with no API key present —
+        six authentication failures presented as a completed benchmark. That is
+        the shape of number most likely to end up quoted.
+        """
+        return self.error is not None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat(), UUID: str}
