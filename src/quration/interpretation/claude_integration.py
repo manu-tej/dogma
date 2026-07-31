@@ -385,6 +385,11 @@ class ClaudeToolCaller:
             return InterpretationResult(
                 interpretation_type=interpretation_type,
                 summary=f"Error during interpretation: {e}",
+                # Declared field, not `metadata`. The cause used to be passed as
+                # `metadata={"error": ...}`, which this model does not declare,
+                # so pydantic dropped it and left the reason readable only by
+                # parsing the summary prose. Consumers check `.failed`.
+                error=str(e),
                 claims=[],
                 tool_calls=state.tool_calls,
                 token_usage=TokenUsage(
