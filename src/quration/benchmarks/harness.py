@@ -73,6 +73,34 @@ class HarnessReport:
             return 0.0
         return self.successful_tasks / self.total_tasks
 
+    @property
+    def synthetic_task_count(self) -> int:
+        """Tasks whose ground truth was invented rather than taken from a study.
+
+        The bundled suite is 25 synthetic tasks (`*-synthetic-*`) and 6 grounded in
+        real papers with DOIs. The CLI's default registers all of them, so a score
+        from a default run is roughly 80% self-consistency against made-up data.
+        That number must never be quoted as a benchmark result — see
+        `is_publishable_number`. `--published` restricts the run to the real ones.
+        """
+        return sum(1 for r in self.results if "synthetic" in r.task_id.lower())
+
+    @property
+    def is_publishable_number(self) -> bool:
+        """Whether the aggregate score is fit to be quoted anywhere external.
+
+        False whenever any synthetic task contributed, or when no metric coverage
+        exists. This is deliberately conservative: the repo's standing rule is that
+        synthetic output is never presented as a real scientific result, and an
+        aggregate score silently averaged over invented ground truth is exactly
+        that, in the form most likely to end up in a README.
+        """
+        if self.synthetic_task_count > 0:
+            return False
+        if not self.results:
+            return False
+        return bool(self.aggregate_metrics and self.aggregate_metrics.weight_coverage > 0)
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -83,6 +111,8 @@ class HarnessReport:
             "successful_tasks": self.successful_tasks,
             "failed_tasks": self.failed_tasks,
             "success_rate": self.success_rate,
+            "synthetic_task_count": self.synthetic_task_count,
+            "is_publishable_number": self.is_publishable_number,
             "aggregate_metrics": self.aggregate_metrics.to_dict() if self.aggregate_metrics else None,
             "model_used": self.model_used,
             "config": self.config,
