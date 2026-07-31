@@ -21,7 +21,7 @@ Loading this skill auto-injects two helpers into the Python kernel (from
 | **`dogma_method_check(root=".")`** | before running anything — "is this workspace's method use grounded?" | guardrail report: `summary{pass,warning,gap,blocked}`, `workflow_steps[]` (each with `method_contract` + `container`), `checks[]` (factual `status`/`code`/`principle`/`detail`) |
 | **`dogma_method_assumptions(root=".")`** | choosing/justifying a method — "what does this method assume, and what's unproven?" | edge plan: `task_class`, `contracts[]` (per-method assumptions + grounding), `coverage_gaps[]`, `next_actions[]`, `invariants{}` |
 
-Both wrap the tested, dependency-free Dogma builders in `biocursor_service`,
+Both wrap the tested, dependency-free Dogma builders in `dogma_service`,
 the same source of truth the Dogma MCP evidence control plane uses.
 
 ## Setup

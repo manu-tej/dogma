@@ -427,7 +427,7 @@
         "dogma.serviceModule": {
           "type": "string",
           "default": "dogma_service",
-          "description": "Python module used to start the Dogma local companion service. The old biocursor_service module remains available as a compatibility alias."
+          "description": "Python module used to start the Dogma local companion service. The old dogma_service module remains available as a compatibility alias."
         },
         "dogma.serviceCwd": {
           "type": "string",

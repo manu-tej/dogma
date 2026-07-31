@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.cli import main
-from biocursor_service.llm_provider import build_llm_status, resolve_executable
+from dogma_service.cli import main
+from dogma_service.llm_provider import build_llm_status, resolve_executable
 
 
 class LlmProviderTests(unittest.TestCase):

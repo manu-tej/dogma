@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.cli import main
-from biocursor_service.quration_handoff import build_quration_handoff
+from dogma_service.cli import main
+from dogma_service.quration_handoff import build_quration_handoff
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

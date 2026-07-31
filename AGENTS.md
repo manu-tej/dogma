@@ -115,7 +115,7 @@ corresponding failure actually occurred in this repo.
 | Path | What it is |
 | --- | --- |
 | `bin/dogma` | Zero-install launcher — MCP server and CLI. Read its header before changing the boot path. |
-| `dogma-local-service/` | The local sidecar (`biocursor_service`). Stdlib-only, by design. |
+| `dogma-local-service/` | The local sidecar (`dogma_service`). Stdlib-only, by design. |
 | `src/quration/` | Backend API, graph, epistemics. `quration` is a compatibility namespace, not a second product. |
 | `frontend/` | Web workspace. `frontend/electron/` is the desktop shell. |
 | `.claude/skills/method-validity/` | Method-validity skill; same kernel the CLI and MCP tools call. |

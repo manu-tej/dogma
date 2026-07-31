@@ -42,7 +42,7 @@ jobs:
         run: |
           python -m pip install ./dogma-local-service
           cd /tmp
-          python -c "import biocursor_service, dogma_service"
+          python -c "import dogma_service, dogma_service"
           dogma-service --help
       - name: Test Claude Science skill
         run: python -m pytest .claude/skills/method-validity/tests

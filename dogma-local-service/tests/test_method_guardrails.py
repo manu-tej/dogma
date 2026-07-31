@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.cli import main
-from biocursor_service.method_guardrails import build_method_guardrails
+from dogma_service.cli import main
+from dogma_service.method_guardrails import build_method_guardrails
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.indexer import scan_workspace
-from biocursor_service.methods_graph_grounding import (
+from dogma_service.indexer import scan_workspace
+from dogma_service.methods_graph_grounding import (
     dataset_format_for_scan,
     ground_edge_with_methods_graph,
 )

@@ -12,8 +12,8 @@ Primary surface:
     dogma_method_assumptions(root=".")  — per-method preconditions + coverage gaps
 
 Both wrap the tested, dependency-free Dogma builders
-(``biocursor_service.method_guardrails.build_method_guardrails`` and
-``biocursor_service.edge_evaluation_plan.build_edge_evaluation_plan``) — the same
+(``dogma_service.method_guardrails.build_method_guardrails`` and
+``dogma_service.edge_evaluation_plan.build_edge_evaluation_plan``) — the same
 source of truth the Dogma MCP evidence control plane uses. Nothing here computes
 a support/refute verdict, a confidence score, or a valid/invalid boolean:
 outputs are FACTS (coverage gaps, containers, unmet assumptions, execution
@@ -29,16 +29,16 @@ DOGMA_DEFAULT_MAX_FILES = 500
 
 DOGMA_SERVICE_DIRNAME = "dogma-local-service"
 """Directory (inside the Dogma monorepo) that contains the importable
-``biocursor_service`` package. Its parent goes on sys.path."""
+``dogma_service`` package. Its parent goes on sys.path."""
 
-DOGMA_SERVICE_PACKAGE = "biocursor_service"
+DOGMA_SERVICE_PACKAGE = "dogma_service"
 """Package name imported from under DOGMA_SERVICE_DIRNAME."""
 
 DOGMA_SERVICE_DISTRIBUTION = "dogma-local-service"
-"""Installed distribution that owns ``biocursor_service``."""
+"""Installed distribution that owns ``dogma_service``."""
 
 DOGMA_REQUIRED_MODULES = ("method_guardrails.py", "edge_evaluation_plan.py")
-"""Module files that must exist inside a candidate ``biocursor_service`` dir for
+"""Module files that must exist inside a candidate ``dogma_service`` dir for
 it to count as the real, importable Dogma service. Requiring them stops a
 partial or shadow package (an empty dir of the right name) from being accepted
 as the resolved root and then failing later with an opaque
@@ -62,7 +62,7 @@ def dogma_sdk():
 
 def dogma_service_root(explicit=None):
     """Resolve the filesystem dir that contains the importable
-    ``biocursor_service`` package, so the sidecar can import the tested Dogma
+    ``dogma_service`` package, so the sidecar can import the tested Dogma
     guardrail builders from an installed distribution or an in-repo checkout.
 
     Resolution order:
@@ -73,7 +73,7 @@ def dogma_service_root(explicit=None):
            run from an in-repo checkout instead of a published copy).
 
     Returns an absolute path to the directory that should go on ``sys.path``
-    (i.e. the parent of ``biocursor_service``). Raises ``ImportError`` with an
+    (i.e. the parent of ``dogma_service``). Raises ``ImportError`` with an
     actionable recipe if none is found — never returns a bogus path that would
     fail with an opaque ``ModuleNotFoundError`` later.
 
@@ -89,7 +89,7 @@ def dogma_service_root(explicit=None):
     if env:
         candidates.append(env)
 
-    # A biocursor_service dir counts only if it actually contains the module
+    # A dogma_service dir counts only if it actually contains the module
     # files we import — not merely a dir of the right name. This keeps a
     # partial/empty/shadow package from short-circuiting resolution and then
     # dying on an opaque ModuleNotFoundError at import time.
@@ -101,8 +101,8 @@ def dogma_service_root(explicit=None):
             for module in DOGMA_REQUIRED_MODULES
         )
 
-    # A candidate is valid if it directly contains biocursor_service, OR it
-    # contains dogma-local-service/biocursor_service (point either at the
+    # A candidate is valid if it directly contains dogma_service, OR it
+    # contains dogma-local-service/dogma_service (point either at the
     # service dir or at the repo root).
     def _resolve_candidate(path):
         path = os.path.abspath(os.path.expanduser(path))
@@ -242,8 +242,8 @@ def dogma_load_builders(service_root=None):
     sys.path[:] = [entry for entry in sys.path if entry != root]
     sys.path.insert(0, root)
     try:
-        from biocursor_service.method_guardrails import build_method_guardrails
-        from biocursor_service.edge_evaluation_plan import build_edge_evaluation_plan
+        from dogma_service.method_guardrails import build_method_guardrails
+        from dogma_service.edge_evaluation_plan import build_edge_evaluation_plan
     except ImportError as exc:
         # Belt-and-suspenders: dogma_service_root already requires the module
         # files, but if a package still fails to import (a shadow that has the
@@ -263,7 +263,7 @@ def dogma_load_builders(service_root=None):
             raise ImportError(
                 f"method-validity: imported {module_name!r} from an unexpected "
                 "location. Restart the kernel after removing any workspace "
-                "package named 'biocursor_service'."
+                "package named 'dogma_service'."
             )
     return build_method_guardrails, build_edge_evaluation_plan
 

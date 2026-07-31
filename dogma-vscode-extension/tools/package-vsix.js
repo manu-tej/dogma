@@ -8,7 +8,7 @@ const ROOT_FILES = new Set(["package.json", "README.md"]);
 const PACKAGED_DIRS = ["media/", "src/"];
 const VENDORED_SERVICE_DIR = "python-service";
 const VENDORED_SERVICE_ROOT_FILES = new Set(["README.md", "pyproject.toml"]);
-const VENDORED_SERVICE_DIRS = ["biocursor_service/", "dogma_service/"];
+const VENDORED_SERVICE_DIRS = ["dogma_service/", "dogma_service/"];
 
 function escapeXml(value) {
   return String(value)

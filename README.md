@@ -261,11 +261,16 @@ The following historical identifiers are retained deliberately:
 
 - the Python distribution, imports, and CLI named `quration`;
 - existing quration API fields, extension command IDs, environment variables, local
-  storage keys, and `.dogma/quration-*` artifacts;
-- `biocursor_service`, the sidecar implementation package, with `dogma_service` as its
-  public compatibility alias.
+  storage keys, and `.dogma/quration-*` artifacts.
 
 These names should be migrated with explicit compatibility tests, not by a bulk rename.
+
+The sidecar's implementation package is no longer one of them. It was
+`biocursor_service`, with `dogma_service` as a public alias that re-exported only
+`__version__` — so the documented name and the real one had drifted apart, and every
+import, test, and error message named the private one. `dogma_service` is now the
+package itself and the old name is gone. Nothing external depended on it: agents reach
+the sidecar through `bin/dogma`, and the `dogma-service` console script is unchanged.
 
 ## Status and responsibility
 

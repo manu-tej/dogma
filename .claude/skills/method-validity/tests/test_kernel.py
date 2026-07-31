@@ -207,7 +207,7 @@ def test_cwd_shadow_service_is_not_auto_imported(
     from cwd. Claude Science workspaces can be arbitrary user data, so cwd-based
     package discovery is a code-execution footgun."""
     workspace = tmp_path / "workspace"
-    fake_package = workspace / "dogma-local-service" / "biocursor_service"
+    fake_package = workspace / "dogma-local-service" / "dogma_service"
     fake_package.mkdir(parents=True)
     (fake_package / "__init__.py").write_text("")
     outside_skill = tmp_path / "installed-skill" / "method-validity" / "kernel.py"
@@ -230,7 +230,7 @@ def test_relative_file_does_not_reintroduce_cwd(
     (real module filenames) and set __file__ to a bare relative name; resolution
     must still raise the recipe rather than pick up the cwd package."""
     workspace = tmp_path / "workspace"
-    fake_pkg = workspace / "dogma-local-service" / "biocursor_service"
+    fake_pkg = workspace / "dogma-local-service" / "dogma_service"
     fake_pkg.mkdir(parents=True)
     (fake_pkg / "__init__.py").write_text("")
     (fake_pkg / "method_guardrails.py").write_text("")
@@ -246,11 +246,11 @@ def test_relative_file_does_not_reintroduce_cwd(
 def test_partial_package_via_env_raises_recipe(
     kernel, tmp_path, monkeypatch, no_installed_service
 ):
-    """A dir named biocursor_service that lacks the imported module files must be
+    """A dir named dogma_service that lacks the imported module files must be
     rejected — resolution raises the actionable recipe, not an opaque
     ModuleNotFoundError at import time."""
     root = tmp_path / "checkout"
-    empty_pkg = root / "biocursor_service"
+    empty_pkg = root / "dogma_service"
     empty_pkg.mkdir(parents=True)
     (empty_pkg / "__init__.py").write_text("")  # no method_guardrails.py etc.
 
@@ -264,7 +264,7 @@ def test_installed_distribution_resolves_service(kernel, tmp_path, monkeypatch):
     """A non-editable dogma-local-service install is discovered from trusted
     distribution metadata without requiring a checkout-specific env var."""
     site_packages = tmp_path / "venv" / "site-packages"
-    package = site_packages / "biocursor_service"
+    package = site_packages / "dogma_service"
     package.mkdir(parents=True)
     (package / "method_guardrails.py").write_text("")
     (package / "edge_evaluation_plan.py").write_text("")
@@ -316,9 +316,9 @@ def test_cwd_distribution_metadata_is_not_trusted(kernel, tmp_path, monkeypatch)
 def test_already_loaded_shadow_package_is_rejected(kernel, tmp_path, monkeypatch):
     """A workspace package imported before the skill cannot win through
     sys.modules after the resolver has selected the trusted Dogma service."""
-    shadow = types.ModuleType("biocursor_service")
-    shadow.__file__ = str(tmp_path / "workspace" / "biocursor_service" / "__init__.py")
-    monkeypatch.setitem(sys.modules, "biocursor_service", shadow)
+    shadow = types.ModuleType("dogma_service")
+    shadow.__file__ = str(tmp_path / "workspace" / "dogma_service" / "__init__.py")
+    monkeypatch.setitem(sys.modules, "dogma_service", shadow)
 
     with pytest.raises(ImportError, match=r"already-loaded shadow module"):
         kernel.dogma_load_builders(service_root=str(REPO_ROOT))

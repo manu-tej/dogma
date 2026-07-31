@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.patch_proposals import apply_patch_proposal, build_patch_proposals
-from biocursor_service.trust_policy import write_trust_policy
+from dogma_service.patch_proposals import apply_patch_proposal, build_patch_proposals
+from dogma_service.trust_policy import write_trust_policy
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

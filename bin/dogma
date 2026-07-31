@@ -24,7 +24,7 @@
 # 3. THE SERVER IS STDLIB-ONLY, SO IT NEEDS NO VENV — only PYTHONPATH.
 #    `dogma-local-service/` is its own installable distribution, and
 #    `npm run install:python` editable-installs it into the repo `.venv`. So on
-#    a set-up developer machine `python -m biocursor_service` already works, and
+#    a set-up developer machine `python -m dogma_service` already works, and
 #    that is exactly what made the old config look fine: the failure only shows
 #    up where there is no venv on the path — a fresh clone, or an MCP host that
 #    launches servers from its own environment rather than the user's shell.
@@ -66,7 +66,7 @@ export PYTHONPATH
 launch() {
     interpreter=$1
     shift
-    exec "$interpreter" -u -m biocursor_service "$@"
+    exec "$interpreter" -u -m dogma_service "$@"
 }
 
 # Candidates are probed by attempting the import that actually matters, rather
@@ -75,7 +75,7 @@ launch() {
 # would reject a working interpreter and leave a fresh clone with none.
 usable() {
     command -v "$1" >/dev/null 2>&1 &&
-        "$1" -c 'import biocursor_service.cli' >/dev/null 2>&1
+        "$1" -c 'import dogma_service.cli' >/dev/null 2>&1
 }
 
 # An explicitly chosen interpreter is honoured or refused — never quietly
@@ -89,14 +89,14 @@ if [ -n "${DOGMA_PYTHON:-}" ]; then
     if usable "$DOGMA_PYTHON"; then
         launch "$DOGMA_PYTHON" "$@"
     fi
-    echo "dogma: DOGMA_PYTHON=$DOGMA_PYTHON cannot import biocursor_service." >&2
+    echo "dogma: DOGMA_PYTHON=$DOGMA_PYTHON cannot import dogma_service." >&2
     echo "dogma: refusing to silently substitute another interpreter." >&2
     echo "dogma: unset DOGMA_PYTHON to use the default search instead." >&2
     echo "dogma: the underlying import error was:" >&2
     # Both descriptors point at stderr, so the traceback cannot leak into the
     # JSON-RPC stream even though the interpreter writes it to stdout on some
     # failure modes.
-    "$DOGMA_PYTHON" -c 'import biocursor_service.cli' 1>&2 2>&2 || true
+    "$DOGMA_PYTHON" -c 'import dogma_service.cli' 1>&2 2>&2 || true
     exit 1
 fi
 
@@ -106,7 +106,7 @@ for candidate in "$REPO_ROOT/.venv/bin/python" python3 python; do
     fi
 done
 
-echo "dogma: no Python interpreter could import biocursor_service." >&2
+echo "dogma: no Python interpreter could import dogma_service." >&2
 echo "dogma: tried $REPO_ROOT/.venv/bin/python, python3, python." >&2
 echo "dogma: the service needs only the standard library, so any Python 3 on" >&2
 echo "dogma: PATH should work. Set DOGMA_PYTHON=/path/to/python3 to choose one." >&2

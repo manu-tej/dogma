@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.indexer import classify_file, scan_workspace
+from dogma_service.indexer import classify_file, scan_workspace
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

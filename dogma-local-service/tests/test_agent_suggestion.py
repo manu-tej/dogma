@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from biocursor_service.agent_suggestion import build_agent_suggestion, extract_json_object
-from biocursor_service.cli import main
+from dogma_service.agent_suggestion import build_agent_suggestion, extract_json_object
+from dogma_service.cli import main
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +49,7 @@ class AgentSuggestionTests(unittest.TestCase):
             "coverage_gaps": ["methods_graph.audited_substrate_missing"],
             "next_actions": ["Configure DOGMA_METHODS_GRAPH_DB before execution."],
         }
-        with patch("biocursor_service.agent_suggestion.build_methods_graph_preflight", return_value=fake_preflight):
+        with patch("dogma_service.agent_suggestion.build_methods_graph_preflight", return_value=fake_preflight):
             result = build_agent_suggestion(DEMO_ROOT, instruction="Plan with guardrails.", max_files=20)
 
         self.assertIn("methods_graph.audited_substrate_missing", result["prompt"])

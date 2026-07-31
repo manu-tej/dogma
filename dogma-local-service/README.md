@@ -151,7 +151,7 @@ Use `DOGMA_METHODS_GRAPH_DB` to point Dogma at an audited methods-graph Kuzu dat
 
 For Claude Code subscription mode, set `DOGMA_LLM_PROVIDER=claude_subscription` and optionally `DOGMA_CLAUDE_CLI_PATH`, `DOGMA_CLAUDE_MODEL`, and `DOGMA_LLM_TIMEOUT_SECONDS`. If `DOGMA_CLAUDE_CLI_PATH` is `claude`, Dogma checks the service PATH plus common macOS developer locations such as `~/.local/bin`, `/opt/homebrew/bin`, and `/usr/local/bin`, then records all attempted paths in the LLM status artifact. This is a local-only adapter pattern: the LLM proposes typed decisions, while the Python service owns redaction, guardrails, and whitelisted actions.
 
-Legacy `BIOCURSOR_*` env vars and `python3 -m biocursor_service` remain compatibility aliases, but new configuration should use `DOGMA_*` and `python3 -m dogma_service`.
+Legacy `BIOCURSOR_*` env vars and `python3 -m dogma_service` remain compatibility aliases, but new configuration should use `DOGMA_*` and `python3 -m dogma_service`.
 
 ## Generate A Safe Run Plan
 

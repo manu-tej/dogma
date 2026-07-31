@@ -4,7 +4,7 @@ That promise reduces to four mechanical properties, and every one of them was
 broken before this file existed:
 
   1. The launcher works from any working directory. `.mcp.json` used to say
-     `"command": "python", "args": ["-m", "biocursor_service", "mcp"]`. That
+     `"command": "python", "args": ["-m", "dogma_service", "mcp"]`. That
      works in a venv-activated shell and nowhere else: `python` is not a command
      on stock macOS, and MCP hosts launch servers from their own environment
      rather than the user's login shell. The server simply never started, and a
@@ -56,12 +56,12 @@ def foreign_env() -> dict[str, str]:
 
 
 def system_python() -> str | None:
-    """An interpreter that CANNOT import `biocursor_service` unaided.
+    """An interpreter that CANNOT import `dogma_service` unaided.
 
     That is the requirement stated directly, rather than via the proxy "is it
     outside the venv" — which was wrong twice over. `npm run install:python`
     editable-installs `dogma-local-service` into `.venv`, so a set-up machine
-    imports `biocursor_service` with no PYTHONPATH at all and the launcher's
+    imports `dogma_service` with no PYTHONPATH at all and the launcher's
     export becomes invisible; deleting it leaves every other test in this file
     green. And the documented workflow puts `.venv/bin` on PATH, so a PATH
     lookup for `python3` returns the venv copy and the proxy check skipped the
@@ -84,10 +84,10 @@ def system_python() -> str | None:
             continue
         seen.add(candidate)
         probe = subprocess.run(
-            [candidate, "-c", "import biocursor_service"],
+            [candidate, "-c", "import dogma_service"],
             env=unimportable,
             # Neutral cwd: the suite runs from `dogma-local-service/`, which puts
-            # `biocursor_service` on sys.path implicitly, so probing in place
+            # `dogma_service` on sys.path implicitly, so probing in place
             # makes every candidate look capable and skips these tests.
             cwd=tempfile.gettempdir(),
             capture_output=True,
@@ -225,11 +225,11 @@ class TestNeedsNoVirtualenv(unittest.TestCase):
         probe = (
             "import sys, importlib\n"
             "before = set(sys.modules)\n"
-            "importlib.import_module('biocursor_service.mcp_server')\n"
+            "importlib.import_module('dogma_service.mcp_server')\n"
             "roots = {m.split('.')[0] for m in set(sys.modules) - before}\n"
             "std = set(sys.stdlib_module_names)\n"
             "print(sorted(m for m in roots if m not in std "
-            "and not m.startswith('_') and m != 'biocursor_service'))\n"
+            "and not m.startswith('_') and m != 'dogma_service'))\n"
         )
         env = foreign_env()
         env["PYTHONPATH"] = str(REPO_ROOT / "dogma-local-service")
@@ -312,14 +312,14 @@ class TestConfiguredEntryPointsAreReal(unittest.TestCase):
 
     def test_agents_md_documents_the_real_tool_names(self):
         """Other agents act on this file without reading the source."""
-        from biocursor_service.mcp_server import tool_names
+        from dogma_service.mcp_server import tool_names
 
         agents_md = (REPO_ROOT / "AGENTS.md").read_text()
         for name in tool_names():
             self.assertIn(name, agents_md, f"AGENTS.md omits the {name} tool")
 
     def test_agents_md_cli_examples_name_real_subcommands(self):
-        from biocursor_service.cli import build_parser
+        from dogma_service.cli import build_parser
 
         agents_md = (REPO_ROOT / "AGENTS.md").read_text()
         known: set[str] = set()

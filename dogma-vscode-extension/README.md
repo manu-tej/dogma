@@ -235,7 +235,7 @@ Optional settings:
 - `dogma.serviceTimeoutMs`: defaults to `2000`.
 - `dogma.executionTimeoutSeconds`: defaults to `30`.
 - `dogma.servicePython`: defaults to `python3`.
-- `dogma.serviceModule`: defaults to `dogma_service`; `biocursor_service` remains a compatibility alias.
+- `dogma.serviceModule`: defaults to `dogma_service`; `dogma_service` remains a compatibility alias.
 - `dogma.serviceCwd`: defaults to `auto`, preferring the bundled VSIX `python-service`, sibling/dev service folders, then the workspace Python environment.
 - `dogma.serviceStartupWaitMs`: defaults to `5000`.
 - `dogma.qurationUrl`: defaults to `http://localhost:3000/canvas`.

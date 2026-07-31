@@ -11,11 +11,11 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
-dogma-service = "biocursor_service.cli:main"
+dogma-service = "dogma_service.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["biocursor_service*", "dogma_service*"]
+include = ["dogma_service*"]
 exclude = ["tests*"]
 
 [tool.dogma]

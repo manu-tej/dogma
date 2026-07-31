@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.cli import main
-from biocursor_service.edge_evaluation_plan import build_edge_evaluation_plan
+from dogma_service.cli import main
+from dogma_service.edge_evaluation_plan import build_edge_evaluation_plan
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

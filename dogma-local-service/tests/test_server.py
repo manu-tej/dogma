@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from biocursor_service.server import make_server
+from dogma_service.server import make_server
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]

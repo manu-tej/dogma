@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from biocursor_service.assistant_context import build_assistant_context
-from biocursor_service.cli import main
-from biocursor_service.trust_policy import write_trust_policy
+from dogma_service.assistant_context import build_assistant_context
+from dogma_service.cli import main
+from dogma_service.trust_policy import write_trust_policy
 
 
 OUTPUTS_ROOT = Path(__file__).resolve().parents[2]
