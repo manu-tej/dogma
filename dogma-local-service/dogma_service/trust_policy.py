@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 TRUST_RELATIVE_PATH = Path(".dogma") / "trust.json"
 
@@ -89,8 +92,24 @@ def write_trust_policy(root: str | Path, reason: str | None = None) -> dict[str,
     path.parent.mkdir(parents=True, exist_ok=True)
     policy = default_trust_policy(reason or "User explicitly trusted this workspace for local Dogma operations.")
     path.write_text(json.dumps(policy, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    # Trusting a workspace is what unblocks execution and patch application, so
+    # it belongs in the record as much as the actions it permits. Without it the
+    # journal would show runs beginning with no account of why they were allowed.
+    _record_trust_grant(root, reason=reason, policy_path=str(path))
     return {
         "status": "written",
         "policy_path": str(path),
         "policy": policy,
     }
+
+
+def _record_trust_grant(root: str | Path, *, reason: str | None, policy_path: str) -> None:
+    from dogma_service import journal
+
+    try:
+        journal.append(root, "trust_granted", {
+            "policy_path": policy_path,
+            "reason": reason or "",
+        })
+    except journal.JournalError:
+        logger.warning("could not record the trust grant in the journal", exc_info=True)

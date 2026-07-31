@@ -27,9 +27,25 @@ class McpServerTests(unittest.TestCase):
                 "attach_evidence",
                 "list_untested_or_stale_claims",
                 "check_method_assumptions",
+                "open_journal",
+                "record_decision",
+                "check_claim_shape",
                 "export_evidence_bundle",
             ],
         )
+
+    def test_record_decision_is_the_only_writing_tool(self) -> None:
+        """Eight of nine tools are read-only. Stating which one writes is worth a
+        test, because an MCP host grants all of a server's tools together — a
+        reader deciding whether to install this needs the answer to be exact."""
+        from dogma_service.mcp_server import TOOLS
+
+        writers = [
+            tool["name"] for tool in TOOLS
+            if "writes" in tool["description"].lower()
+            or tool["name"].startswith("record_decision")
+        ]
+        self.assertEqual(writers, ["record_decision"])
 
     def test_jsonrpc_tools_list_shape(self) -> None:
         response = handle_jsonrpc_message({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})

@@ -20,6 +20,9 @@ Loading this skill auto-injects two helpers into the Python kernel (from
 |---|---|---|
 | **`dogma_method_check(root=".")`** | before running anything — "is this workspace's method use grounded?" | guardrail report: `summary{pass,warning,gap,blocked}`, `workflow_steps[]` (each with `method_contract` + `container`), `checks[]` (factual `status`/`code`/`principle`/`detail`) |
 | **`dogma_method_assumptions(root=".")`** | choosing/justifying a method — "what does this method assume, and what's unproven?" | edge plan: `task_class`, `contracts[]` (per-method assumptions + grounding), `coverage_gaps[]`, `next_actions[]`, `invariants{}` |
+| **`dogma_journal(root=".")`** | at the **start** of a session — "what has already been done here?" | `summary{}`, `observed[]` (written by the service inside the function that acted), `reported[]` (agent claims) |
+| **`dogma_record_decision(root=".", agent=, about=, chose=, because=, over=, supersedes=)`** | when you pick a method — so the next session does not re-litigate it | the appended entry. Stored as a **self-reported claim**; `because` is required |
+| **`dogma_check_claim_shape(root=".")`** | before **reporting a conclusion** — "does any edge claim a measurement the record cannot support?" | `findings[]` (`code`/`detail`), `edges{by_state}`, `limitations[]` |
 
 Both wrap the tested, dependency-free Dogma builders in `dogma_service`,
 the same source of truth the Dogma MCP evidence control plane uses.
@@ -85,6 +88,53 @@ Use the Grounding stage's `contracts[].facts["assumptions"]` to state, in your
 own analysis notes, *what the method requires for its output to mean what you'll
 claim it means*. Use `coverage_gaps` to name what is unproven. Do not collapse
 either into a "validated"/"invalid" label — that judgment is the scientist's.
+
+## Recipe — the bench journal
+
+Dogma keeps an append-only record at `<workspace>/.dogma/journal.ndjson` so the
+work survives the session. Two halves, and confusing them is the one mistake
+that matters:
+
+```python
+j = dogma_journal(root=".")
+for e in j["observed"]:   # the service did this, inside the function that acted
+    print(e["recorded_at"], e["kind"], e["body"].get("argv") or e["body"].get("target_file"))
+for e in j["reported"]:   # an agent claimed this; nothing verified it
+    print(e["recorded_at"], e["agent"], e["body"]["chose"], "because", e["body"]["because"])
+```
+
+Record a choice so the next session inherits the reasoning rather than the
+conclusion alone:
+
+```python
+dogma_record_decision(
+    root=".", agent="claude-code",
+    about="aligner for the RNA-seq quantification step",
+    chose="STAR",
+    because="the GTF phase column is invalid, so a splice-aware aligner needs that fixed first",
+    over="salmon",
+)
+```
+
+Then, **before you state a conclusion**:
+
+```python
+s = dogma_check_claim_shape(root=".")
+for f in s["findings"]:
+    print(f["code"], f["edge_id"], f["detail"])
+for note in s["limitations"]:
+    print("limitation:", note)
+```
+
+`UNSUPPORTED_MEASUREMENT_CLAIM` means an edge's state says a measurement landed
+and the record contains none. Report it as that — a gap in the record — not as
+evidence the biology is wrong.
+
+Read `limitations` before quoting a clean result. **No journal entry can support
+an `EXAMINED` edge**: the only commands this service can run are dry-run and
+stub-run, so the strongest thing the record can hold is a compile check. A
+`consistent: true` therefore means "nothing claims more than the record shows",
+never "everything was measured".
 
 ## Facts, not verdicts
 

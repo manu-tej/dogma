@@ -81,6 +81,45 @@ TOOLS: list[dict[str, Any]] = [
         "inputSchema": object_schema({"root": ROOT_PROPERTY, "max_files": MAX_FILES_PROPERTY}, ["root"]),
     },
     {
+        "name": "open_journal",
+        "description": (
+            "Read the workspace's append-only bench journal: what this service "
+            "actually did (stub/dry runs, applied patches, trust grants) and what "
+            "agents reported. Call this at the start of a session so you do not "
+            "re-derive what is already recorded."
+        ),
+        "inputSchema": object_schema({"root": ROOT_PROPERTY}, ["root"]),
+    },
+    {
+        "name": "record_decision",
+        "description": (
+            "Record a method or analysis decision and its reason in the journal, "
+            "for the next agent or the next session. Stored as a self-reported "
+            "claim, never as an observation — it does not assert that anything ran."
+        ),
+        "inputSchema": object_schema(
+            {
+                "root": ROOT_PROPERTY,
+                "agent": {"type": "string", "description": "Who is making the claim, e.g. 'claude-code'."},
+                "about": {"type": "string", "description": "What the decision concerns."},
+                "chose": {"type": "string", "description": "What was chosen."},
+                "because": {"type": "string", "description": "Why. Required: an unexplained choice is not worth recording."},
+                "over": {"type": "string", "description": "What was rejected, if anything."},
+                "supersedes": {"type": "string", "description": "entry_id this corrects. The earlier entry is kept."},
+            },
+            ["root", "agent", "about", "chose", "because"],
+        ),
+    },
+    {
+        "name": "check_claim_shape",
+        "description": (
+            "Compare the claim graph against the journal: does any edge claim a "
+            "measurement the record cannot support? Call before reporting a "
+            "conclusion. Returns facts and explicit limitations, never a verdict."
+        ),
+        "inputSchema": object_schema({"root": ROOT_PROPERTY, "max_files": MAX_FILES_PROPERTY}, ["root"]),
+    },
+    {
         "name": "export_evidence_bundle",
         "description": "Export claim graph, evidence ledger, method assumptions, and quration handoff as one JSON bundle.",
         "inputSchema": object_schema(
@@ -306,7 +345,73 @@ def export_evidence_bundle(arguments: dict[str, Any]) -> dict[str, Any]:
     return bundle if include_markdown else strip_markdown(bundle)
 
 
+def open_journal(arguments: dict[str, Any]) -> dict[str, Any]:
+    from . import journal
+
+    root = root_arg(arguments)
+    entries = journal.read(root)
+    return {
+        "contract_version": "dogma-mcp-result.v1",
+        "tool": "open_journal",
+        "root": str(root),
+        "summary": journal.summary(root),
+        "entries": entries,
+        "reading_guide": {
+            "self_reported_true": "an agent's claim; nothing verified it",
+            "self_reported_false": "written by the service inside the function "
+                                   "that acted, so it means the thing happened",
+            "stub_run_and_dry_run": "compile checks, not measurements",
+        },
+    }
+
+
+def record_decision(arguments: dict[str, Any]) -> dict[str, Any]:
+    from . import journal
+
+    root = root_arg(arguments)
+    required = ("agent", "about", "chose", "because")
+    missing = [key for key in required if not str(arguments.get(key) or "").strip()]
+    if missing:
+        # `because` is required on purpose. A recorded choice with no reason is
+        # the least useful thing in a notebook and the easiest to fill with
+        # filler, so it is refused rather than defaulted.
+        raise ValueError(f"record_decision requires non-empty: {', '.join(missing)}")
+
+    entry = journal.append(
+        root,
+        "decision",
+        {
+            "about": arguments["about"],
+            "chose": arguments["chose"],
+            "because": arguments["because"],
+            "over": arguments.get("over") or None,
+        },
+        agent=str(arguments["agent"]),
+        supersedes=arguments.get("supersedes") or None,
+    )
+    return {
+        "contract_version": "dogma-mcp-result.v1",
+        "tool": "record_decision",
+        "root": str(root),
+        "entry": entry,
+        "note": "recorded as a self-reported claim; it does not assert that anything ran",
+    }
+
+
+def check_claim_shape(arguments: dict[str, Any]) -> dict[str, Any]:
+    from .claim_shape import check_claim_shape as _check
+
+    return {
+        "contract_version": "dogma-mcp-result.v1",
+        "tool": "check_claim_shape",
+        **_check(root_arg(arguments), max_files=max_files_arg(arguments)),
+    }
+
+
 CALLABLE_TOOLS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    "open_journal": open_journal,
+    "record_decision": record_decision,
+    "check_claim_shape": check_claim_shape,
     "create_claim_graph": create_claim_graph,
     "record_analysis_run": record_analysis_run,
     "attach_evidence": attach_evidence,
