@@ -14,6 +14,7 @@ import { nodeTypeStyle } from "../../lib/hypothesis-ui/styling";
 import type { EntityNodeData } from "../../lib/hypothesis-ui/layout";
 import { Button } from "../ui/button";
 import { ClaimEdge } from "./ClaimEdge";
+import { EdgeSelectionContext } from "./edgeSelection";
 import { EntityNode } from "./EntityNode";
 
 const nodeTypes = { entity: EntityNode };
@@ -130,6 +131,13 @@ function CausalCanvasInner({
         </Button>
         <Button size="sm" variant="ghost" onClick={handleRetidy}>Re-tidy</Button>
       </div>
+      {/*
+        Edge labels live in React Flow's `EdgeLabelRenderer` layer, outside its
+        event system, so `onEdgeClick` never fires for them. The provider hands
+        `ClaimEdge` the same selection call the path uses, so clicking a label
+        and clicking the line do the same thing.
+      */}
+      <EdgeSelectionContext.Provider value={onSelectEdge}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -165,6 +173,7 @@ function CausalCanvasInner({
           nodeStrokeColor="var(--border)"
         />
       </ReactFlow>
+      </EdgeSelectionContext.Provider>
     </div>
   );
 }
