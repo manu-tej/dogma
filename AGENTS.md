@@ -75,6 +75,22 @@ corresponding failure actually occurred in this repo.
 2. **Fail closed.** Demo mode requires an explicit `QURATION_PROVIDER=demo`.
    Do not add a catch-all that falls back to it.
 
+   Four providers exist, and two need no API key — they drive a coding-agent
+   CLI you are already logged into:
+
+   ```sh
+   QURATION_PROVIDER=claude_subscription   # headless `claude -p`
+   QURATION_PROVIDER=codex_subscription    # headless `codex exec`
+   ANTHROPIC_API_KEY=...                   # metered API
+   QURATION_PROVIDER=demo                  # synthetic, offline, clearly labelled
+   ```
+
+   Both subscription providers scrub the matching API key from the CLI's
+   environment, because a stray `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` would
+   silently reroute to metered billing — a failure with no symptom except an
+   invoice. **Local, single-operator use only**: serving other users from a
+   personal subscription violates the provider's terms.
+
 3. **A measurement is not an assessment.** `EvidenceEntry.kind` separates a
    `MEASUREMENT` from a `FEASIBILITY` verdict, and a `MEASUREMENT` must carry
    `PipelineRunProvenance` — meaning a pipeline really ran. A `FEASIBILITY`
