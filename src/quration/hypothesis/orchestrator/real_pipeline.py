@@ -70,13 +70,20 @@ def _skeleton_to_suggestion(skeleton) -> SuggestionResult:
     return SuggestionResult(nodes=list(skeleton.nodes), edges=list(skeleton.edges))
 
 
-def _build_live_seeding(provider):
+def _build_live_seeding(provider, config=None):
     """Build (suggester, supervisor, empty_seed_fallback) for B-lean real mode.
 
     The LLM authors the graph (full mechanism, variable) as the primary suggester;
     KG path-retrieval is no longer used at /start. The deriver/supervisor remain for
     the test/propose_test flow. Wiring errors here are bugs and propagate (only
     provider-credential failures are caught upstream in build_real_loop).
+
+    ``config`` is threaded rather than read from the global so a caller can build
+    a loop for a provider that is not the configured one — several can then be
+    live in the same process. Passing it matters: the model ids differ per
+    provider (``sonnet``/``haiku`` aliases for the Claude CLI, empty for Codex),
+    so reading the global here would pair one provider's client with another's
+    model names.
     """
     from quration.data_sources.uniprot import UniProtClient
     from quration.hypothesis.orchestrator.authoring_suggester import LlmAuthoringSuggester
@@ -87,8 +94,10 @@ def _build_live_seeding(provider):
     from quration.hypothesis.orchestrator.seeding import LlmSeedingService
     from quration.llm.providers import get_model_for_config
 
-    deriver = LlmSeedDeriver(provider, get_model_for_config(tier="fast"), UniProtClient())
-    seeding = LlmSeedingService(provider, get_model_for_config(tier="smart"))
+    deriver = LlmSeedDeriver(
+        provider, get_model_for_config(config, tier="fast"), UniProtClient()
+    )
+    seeding = LlmSeedingService(provider, get_model_for_config(config, tier="smart"))
 
     suggester = LlmAuthoringSuggester(seeding)
     supervisor = LiveSeedSupervisor(deriver)
@@ -99,13 +108,24 @@ def _build_live_seeding(provider):
     return suggester, supervisor, fallback
 
 
-def build_real_loop(repository: HypothesisRepository | None = None, **_ignored) -> HypothesisLoop:
+def build_real_loop(
+    repository: HypothesisRepository | None = None,
+    config=None,
+    **_ignored,
+) -> HypothesisLoop:
     """A HypothesisLoop with methods-graph grounding as the only runner.
 
     The hardcoded Spearman correlation executor was removed: an edge is grounded
     (method + assumptions, INCONCLUSIVE) or honestly 'execution pending'
     (COVERAGE_GAP). The method broker attaches an advisory recommendation to each
     proposed test. Real pipeline execution lands in slice 2.
+
+    ``config`` defaults to the process config. Passing an override is how the API
+    keeps a loop per provider live at once: the provider client and the model ids
+    both come from it, so they cannot end up mismatched. It is threaded rather
+    than set globally on purpose — mutating the global provider around a build
+    would race with any concurrent request, which is exactly the situation
+    "several providers at once" creates.
     """
     from quration.broker.method_broker import MethodBroker
     from quration.config import get_config
@@ -119,9 +139,12 @@ def build_real_loop(repository: HypothesisRepository | None = None, **_ignored) 
         MethodsGraphSupervisor,
     )
 
+    if config is None:
+        config = get_config()
+
     # MethodBroker raises if methods-graph is misconfigured; that is not recoverable
     # here, so it is intentionally OUTSIDE the degradation guard below.
-    broker = MethodBroker(get_config())
+    broker = MethodBroker(config)
     selector = BrokerMethodSelector(broker, intent_author=enrich_intent)
     methods_provider = provider_of(broker)
 
@@ -144,13 +167,13 @@ def build_real_loop(repository: HypothesisRepository | None = None, **_ignored) 
     )
 
     try:
-        provider = get_provider_from_config()
+        provider = get_provider_from_config(config)
     except Exception as exc:
         logger.error("live LLM provider unavailable; refusing to seed with demo content")
         raise LLMProviderUnavailableError(str(exc)) from exc
 
     # Live path: LLM provider is available. Build live seeding components.
-    live_suggester, live_supervisor, fallback = _build_live_seeding(provider)
+    live_suggester, live_supervisor, fallback = _build_live_seeding(provider, config)
     supervisor = _GroundingSupervisor(live_supervisor, MethodsGraphSupervisor())
     return HypothesisLoop(
         repository=repository or InMemoryHypothesisRepository(),

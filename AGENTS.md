@@ -91,6 +91,21 @@ corresponding failure actually occurred in this repo.
    invoice. **Local, single-operator use only**: serving other users from a
    personal subscription violates the provider's terms.
 
+   `QURATION_PROVIDER` sets the default, not the only option. Several providers
+   are live in one process and any request can name one:
+
+   ```sh
+   curl localhost:8000/hypothesis/providers          # what this machine can use
+   curl -X POST localhost:8000/hypothesis/start \
+        -d '{"query":"...","provider":"codex_subscription"}'
+   ```
+
+   Each provider gets its own cached loop. The override travels as a copied
+   config object and never touches the global — two in-flight requests naming
+   different providers is exactly the race this feature invites. A failed build
+   is still never cached, per provider: the CLI login can appear between
+   requests.
+
 3. **A measurement is not an assessment.** `EvidenceEntry.kind` separates a
    `MEASUREMENT` from a `FEASIBILITY` verdict, and a `MEASUREMENT` must carry
    `PipelineRunProvenance` — meaning a pipeline really ran. A `FEASIBILITY`
