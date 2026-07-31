@@ -79,6 +79,31 @@ class ClaudeSubscriptionConfig(BaseSettings):
     timeout_seconds: int = 180
 
 
+class CodexSubscriptionConfig(BaseSettings):
+    """ChatGPT Codex subscription provider configuration.
+
+    Drives the headless ``codex exec`` CLI using the locally logged-in ChatGPT
+    subscription instead of a metered ``OPENAI_API_KEY``.
+
+    Same boundary as :class:`ClaudeSubscriptionConfig`: **local, single-operator
+    use only**. Serving other users from a personal subscription violates the
+    provider's terms — use a metered API key for anything shared.
+    """
+
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
+
+    codex_executable: str = Field(default="codex", validation_alias="CODEX_CLI_PATH")
+    # Empty means "whatever the CLI is configured to use". Unlike the Claude CLI
+    # there are no stable family aliases to map onto, so guessing a model id here
+    # would break the moment the default changes upstream.
+    fast_model: str = ""
+    smart_model: str = ""
+    # Force subscription auth by removing OPENAI_API_KEY from the CLI's
+    # environment, so a stray key cannot silently switch to metered billing.
+    force_subscription: bool = True
+    timeout_seconds: int = 180
+
+
 class OpenRouterConfig(BaseSettings):
     """OpenRouter API configuration."""
 
@@ -100,7 +125,12 @@ class LLMConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     provider: Literal[
-        "anthropic", "openrouter", "aws_bedrock", "gcp_vertex", "claude_subscription"
+        "anthropic",
+        "openrouter",
+        "aws_bedrock",
+        "gcp_vertex",
+        "claude_subscription",
+        "codex_subscription",
     ] = "anthropic"
     anthropic: AnthropicConfig = Field(default_factory=AnthropicConfig)
     openrouter: OpenRouterConfig = Field(default_factory=OpenRouterConfig)
@@ -108,6 +138,9 @@ class LLMConfig(BaseSettings):
     gcp_vertex: GCPVertexConfig = Field(default_factory=GCPVertexConfig)
     claude_subscription: ClaudeSubscriptionConfig = Field(
         default_factory=ClaudeSubscriptionConfig
+    )
+    codex_subscription: CodexSubscriptionConfig = Field(
+        default_factory=CodexSubscriptionConfig
     )
 
 

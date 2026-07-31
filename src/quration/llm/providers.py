@@ -63,9 +63,20 @@ class LLMProviderUnavailableError(RuntimeError):
     """
 
     #: Message shared by every raise site, so the remedy is always stated.
+    #
+    #: The two subscription options are listed first and deliberately. They cost
+    #: nothing beyond a subscription the operator already has, and they were
+    #: previously undiscoverable: the only way to learn `claude_subscription`
+    #: existed was to read providers.py. An error message that names one remedy
+    #: while three exist sends people to buy an API key they do not need.
     REMEDY = (
-        "no usable LLM provider: set ANTHROPIC_API_KEY, or set "
-        "QURATION_PROVIDER=demo for synthetic offline mode"
+        "no usable LLM provider. Pick one: "
+        "QURATION_PROVIDER=claude_subscription (uses your logged-in Claude Code "
+        "CLI, no API key); "
+        "QURATION_PROVIDER=codex_subscription (uses your logged-in Codex CLI, "
+        "no API key); "
+        "ANTHROPIC_API_KEY=... for metered API access; "
+        "or QURATION_PROVIDER=demo for synthetic offline mode"
     )
 
     def __init__(self, detail: str | None = None):
@@ -727,6 +738,201 @@ class ClaudeSubscriptionProvider(LLMProvider):
             metrics.record_error(component="llm_provider", error_type=error_type)
 
 
+class CodexSubscriptionProvider(LLMProvider):
+    """LLM provider backed by the headless ``codex exec`` CLI.
+
+    Uses the locally logged-in ChatGPT (Codex) subscription instead of a
+    metered ``OPENAI_API_KEY``. The sibling of
+    :class:`ClaudeSubscriptionProvider`, and subject to the same boundary:
+    **local, single-operator use only.** Serving other users from a personal
+    subscription violates the provider's terms; use a metered key for anything
+    shared or deployed.
+
+    Three differences from the Claude CLI shaped this:
+
+    - There is no ``--system-prompt``. The system text is folded into the
+      prompt as a leading block instead, so it cannot be dropped silently.
+    - ``--json`` emits a JSONL *event stream*, not one result object. Parsing
+      it to find the final assistant message would couple this class to an
+      event schema that has no stability promise. ``-o/--output-last-message``
+      writes exactly the final message to a file, which is the contract we
+      actually want.
+    - ``codex`` is an agent, not a completion endpoint. It is pinned to
+      ``-s read-only`` in a neutral temp directory so a prompt cannot cause it
+      to edit files, and ``--ephemeral`` so it leaves no session behind.
+    """
+
+    def __init__(
+        self,
+        codex_executable: str = "codex",
+        force_subscription: bool = True,
+        timeout_seconds: int = 180,
+        working_dir: Optional[str] = None,
+        model: str = "",
+    ):
+        import tempfile
+
+        self.codex_executable = codex_executable
+        self.force_subscription = force_subscription
+        self.timeout_seconds = timeout_seconds
+        # Neutral dir: the CLI would otherwise load the host project's AGENTS.md
+        # and repo context into every completion.
+        self.working_dir = working_dir or tempfile.gettempdir()
+        self.model = model
+
+    def create_message(
+        self,
+        messages: List[Dict[str, Any]],
+        model: str,
+        max_tokens: int = 4096,
+        temperature: float = 1.0,
+        system: Optional[str] = None,
+        **kwargs: Any,
+    ) -> str:
+        """Run a one-shot ``codex exec`` completion and return the text.
+
+        ``max_tokens`` and ``temperature`` are accepted for interface
+        compatibility but not forwarded — the CLI owns those.
+        """
+        import shutil
+        import subprocess
+        import tempfile
+
+        metrics = get_metrics() if get_metrics else None
+        start_time = time.time()
+
+        if shutil.which(self.codex_executable) is None and not os.path.isabs(
+            self.codex_executable
+        ):
+            raise RuntimeError(
+                f"Codex CLI '{self.codex_executable}' not found on PATH. "
+                "Install Codex and run `codex login`, or set "
+                "codex_subscription.codex_executable / CODEX_CLI_PATH."
+            )
+
+        prompt_parts = []
+        system_text = _content_to_text(system) if system else ""
+        if system_text:
+            # No --system-prompt on this CLI, so it goes in the prompt. Labelled
+            # rather than silently concatenated, so the model can tell the
+            # instruction block from the conversation.
+            prompt_parts.append(f"System instructions:\n{system_text}")
+        for msg in messages:
+            role = (msg.get("role") or "user").capitalize()
+            text = _content_to_text(msg.get("content"))
+            if text:
+                prompt_parts.append(
+                    f"{role}: {text}" if len(messages) > 1 or system_text else text
+                )
+        prompt = "\n\n".join(prompt_parts)
+
+        env = dict(os.environ)
+        if self.force_subscription:
+            # A stray OPENAI_API_KEY would otherwise route to metered billing —
+            # the exact thing choosing this provider is meant to avoid.
+            env.pop("OPENAI_API_KEY", None)
+
+        chosen_model = model or self.model
+        out_handle, out_path = tempfile.mkstemp(prefix="dogma-codex-", suffix=".txt")
+        os.close(out_handle)
+        cmd = [
+            self.codex_executable,
+            "exec",
+            "--ephemeral",           # leave no session files behind
+            "--skip-git-repo-check",  # the neutral working dir is not a repo
+            "-s", "read-only",       # a prompt must not be able to edit files
+            "-C", self.working_dir,
+            "-o", out_path,          # the final message, and nothing else
+        ]
+        if chosen_model:
+            cmd += ["-m", chosen_model]
+        cmd.append("-")  # read the prompt from stdin, avoiding ARG_MAX limits
+
+        try:
+            result = subprocess.run(
+                cmd,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                env=env,
+                cwd=self.working_dir,
+                timeout=self.timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as e:
+            os.unlink(out_path)
+            self._record_error(metrics, chosen_model, start_time, "TimeoutExpired")
+            raise RuntimeError(
+                f"codex exec timed out after {self.timeout_seconds}s"
+            ) from e
+
+        try:
+            if result.returncode != 0:
+                self._record_error(metrics, chosen_model, start_time, "NonZeroExit")
+                raise RuntimeError(
+                    f"codex exec exited {result.returncode}: "
+                    f"{(result.stderr or result.stdout or '').strip()[:500]}"
+                )
+            with open(out_path, encoding="utf-8") as handle:
+                response_text = handle.read().strip()
+        finally:
+            try:
+                os.unlink(out_path)
+            except OSError:
+                pass
+
+        if not response_text:
+            # Exit 0 with no message means the run produced nothing usable.
+            # Returning "" would look like a valid empty completion to every
+            # caller downstream, so this fails instead.
+            self._record_error(metrics, chosen_model, start_time, "EmptyResponse")
+            raise RuntimeError(
+                "codex exec exited 0 but wrote no final message; "
+                f"stderr: {(result.stderr or '').strip()[:300]}"
+            )
+
+        latency = time.time() - start_time
+        if metrics and getattr(metrics, "_enabled", False):
+            metrics.record_llm_request(
+                model=chosen_model or "codex-default",
+                provider="codex_subscription",
+                status="success",
+                latency=latency,
+                tokens={"input": 0, "output": 0},  # the CLI does not report these
+                cost=0.0,  # billed against the subscription, not metered
+            )
+
+        logger.info(
+            "codex exec completed: model=%s latency=%.2fs chars=%d",
+            chosen_model or "(cli default)", latency, len(response_text),
+        )
+
+        _buf = llm_capture_var.get()
+        if _buf is not None:
+            try:
+                _buf.append({
+                    "provider": "codex_subscription",
+                    "model": chosen_model,
+                    "system": system_text,
+                    "prompt": prompt,
+                    "response": response_text,
+                })
+            except Exception:
+                pass
+
+        return response_text
+
+    @staticmethod
+    def _record_error(metrics, model, start_time, error_type):
+        if metrics and getattr(metrics, "_enabled", False):
+            metrics.record_llm_request(
+                model=model or "codex-default",
+                provider="codex_subscription",
+                status="error",
+                latency=time.time() - start_time,
+            )
+            metrics.record_error(component="llm_provider", error_type=error_type)
+
+
 def get_llm_provider(
     provider_name: str = "anthropic",
     api_key: Optional[str] = None,
@@ -764,10 +970,17 @@ def get_llm_provider(
             force_subscription=kwargs.get("force_subscription", True),
             timeout_seconds=kwargs.get("timeout_seconds", 180),
         )
+    elif provider_name.lower() == "codex_subscription":
+        return CodexSubscriptionProvider(
+            codex_executable=kwargs.get("codex_executable", "codex"),
+            force_subscription=kwargs.get("force_subscription", True),
+            timeout_seconds=kwargs.get("timeout_seconds", 180),
+            model=kwargs.get("model", ""),
+        )
     else:
         raise ValueError(
             f"Unknown provider: {provider_name}. Supported: 'anthropic', "
-            "'openrouter', 'claude_subscription'"
+            "'openrouter', 'claude_subscription', 'codex_subscription'"
         )
 
 
@@ -802,6 +1015,15 @@ def get_provider_from_config(config: Any = None) -> LLMProvider:
             force_subscription=cs.force_subscription,
             timeout_seconds=cs.timeout_seconds,
         )
+    if name == "codex_subscription":
+        cx = llm.codex_subscription
+        return get_llm_provider(
+            "codex_subscription",
+            codex_executable=cx.codex_executable,
+            force_subscription=cx.force_subscription,
+            timeout_seconds=cx.timeout_seconds,
+            model=cx.smart_model,
+        )
     return get_llm_provider("anthropic", api_key=llm.anthropic.api_key or None)
 
 
@@ -811,6 +1033,10 @@ def get_model_for_config(config: Any = None, tier: str = "smart") -> str:
     ``tier`` is ``"smart"`` or ``"fast"``. For ``claude_subscription`` the
     values are CLI aliases (``sonnet``/``haiku``); for ``anthropic`` they are
     full model IDs — the subscription provider maps either onto an alias.
+    For ``codex_subscription`` both default to ``""``, meaning "whatever the
+    CLI is configured to use". That is deliberate: the Codex CLI has no stable
+    family aliases, so naming a model here would silently break when the
+    default moves upstream.
     """
     if config is None:
         from quration.config import get_config
@@ -823,6 +1049,8 @@ def get_model_for_config(config: Any = None, tier: str = "smart") -> str:
         pc = llm.openrouter
     elif name == "claude_subscription":
         pc = llm.claude_subscription
+    elif name == "codex_subscription":
+        pc = llm.codex_subscription
     else:
         pc = llm.anthropic
     return pc.fast_model if tier == "fast" else pc.smart_model
