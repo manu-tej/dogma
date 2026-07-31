@@ -43,22 +43,69 @@ from quration.hypothesis.orchestrator.evaluation_plan import (
     Directness, Modality, ReadoutSpec, ResolvedReadout,
 )
 
-# Which assay modalities a candidate's assay string indicates.
-_ASSAY_MODALITY: dict[str, Modality] = {
-    "rna-seq": "transcript", "rna seq": "transcript", "expression": "transcript",
-    "microarray": "transcript", "scrna": "transcript",
-    "phospho": "phospho", "phosphoproteomics": "phospho",
-    "proteom": "protein", "mass spec": "protein",
-    "chip": "binding", "co-ip": "binding", "interaction": "binding",
-    "bisulfite": "methylation", "methyl": "methylation",
+# Tokens that name a specific assay. Checked first, because they identify what the
+# experiment actually measured.
+_SPECIFIC_ASSAY_MODALITY: dict[str, Modality] = {
+    "phosphoproteomics": "phospho", "phosphosite": "phospho", "phospho": "phospho",
+    "bisulfite": "methylation", "methylation": "methylation", "methyl": "methylation",
+    "chip-seq": "binding", "chip seq": "binding", "chip": "binding",
+    "co-ip": "binding", "immunoprecipitation": "binding",
+    "proteomics": "protein", "proteome": "protein", "proteom": "protein",
+    "mass spec": "protein",
+    "rna-seq": "transcript", "rna seq": "transcript", "scrna": "transcript",
+    "microarray": "transcript", "transcriptom": "transcript",
+}
+
+# Tokens that describe an experiment's *aim* rather than its assay. "expression" is
+# the offender: it appears in the title of proteomics, ChIP-seq and phospho studies
+# alike, so it identifies nothing on its own.
+_GENERIC_MODALITY: dict[str, Modality] = {
+    "expression": "transcript",
+    "interaction": "binding",
 }
 
 
-def _candidate_modality(c: DatasetCandidate) -> Modality:
-    blob = f"{c.assay or ''} {c.title}".lower()
-    for token, mod in _ASSAY_MODALITY.items():
+def _first_match(blob: str, table: dict[str, Modality]) -> Modality | None:
+    for token, modality in table.items():
         if token in blob:
-            return mod
+            return modality
+    return None
+
+
+def _candidate_modality(c: DatasetCandidate) -> Modality:
+    """What modality a dataset actually measured.
+
+    Two orderings matter, and neither was respected before.
+
+    1. The structured `assay` field beats the free-text `title`. The title is prose;
+       the assay field is the answer.
+    2. A specific assay name beats a generic aim word.
+
+    Previously this scanned one flat dict in insertion order over
+    `assay + " " + title`, and "expression" was inserted before "phospho". So
+    *"Phosphoproteomic profiling of expression changes"* classified as `transcript`
+    — and so did a proteomics study and a ChIP-seq study whose titles mention
+    expression, which is most of them. The consequence inverted the one guarantee
+    this module exists to make: `directness_for("phospho", <a real phospho dataset>)`
+    returned `proxy_modality`, i.e. the tool that refuses to let mRNA test a
+    phosphorylation event was reporting a phospho assay as a stand-in for itself.
+    """
+    assay = (c.assay or "").lower()
+    title = (c.title or "").lower()
+
+    for blob in (assay, title):
+        if not blob:
+            continue
+        specific = _first_match(blob, _SPECIFIC_ASSAY_MODALITY)
+        if specific is not None:
+            return specific
+
+    # Only now fall back to aim words, and only from the assay field first.
+    for blob in (assay, title):
+        generic = _first_match(blob, _GENERIC_MODALITY)
+        if generic is not None:
+            return generic
+
     return "unknown"
 
 
