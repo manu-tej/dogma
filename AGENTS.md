@@ -121,6 +121,27 @@ corresponding failure actually occurred in this repo.
    invoice. **Local, single-operator use only**: serving other users from a
    personal subscription violates the provider's terms.
 
+   The tool-augmented interpretation path also runs on the subscription. It
+   drives an agentic loop over 32 bioinformatics tools, which looked like it
+   needed an API key — a one-shot `claude -p` completion cannot run a tool loop.
+   That reasoning was wrong: `claude -p` *is* an agentic loop, and it was only
+   missing Dogma's tools. `quration.interpretation.bio_mcp` serves them over
+   MCP, `--mcp-config` hands them to the CLI, and the CLI runs the loop.
+
+   ```sh
+   bin/dogma mcp        # workspace guardrails, stdlib-only, zero install
+   python -m quration.interpretation.bio_mcp   # the 32 bio tools, needs the venv
+   ```
+
+   Two servers on purpose. The first must stay dependency-free — that is the
+   property `bin/dogma` exists to guarantee. The bio tools reach UniProt, KEGG,
+   Reactome, GEO and PubMed, so folding them in would quietly reimpose an
+   install on every external agent.
+
+   `--allowedTools` is enumerated rather than left open, because otherwise the
+   CLI also offers its own Bash, Write and Edit — an interpreter that can edit
+   the analysis it is interpreting is not something to hand out by accident.
+
    `QURATION_PROVIDER` sets the default, not the only option. Several providers
    are live in one process and any request can name one:
 
