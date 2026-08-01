@@ -31,6 +31,35 @@ from quration.interpretation.prompts import DEGene, PromptBuilder, get_template
 logger = logging.getLogger(__name__)
 
 
+def _subscription_interpretation_configured() -> bool:
+    """True when the configured provider is a logged-in coding-agent CLI.
+
+    Read from config, not from whether a key happens to be present. Choosing a
+    billing mode by sniffing the environment is exactly the silent switch this
+    codebase keeps removing — a user who set `QURATION_PROVIDER` should get what
+    they asked for, and one who did not should not be moved off it by an
+    unrelated variable appearing.
+
+    Only `claude_subscription` qualifies today. `codex_subscription` drives an
+    agent too, but Dogma's tools are not wired into it, so claiming support
+    would mean an interpretation that answers from memory instead of from
+    UniProt — worse than refusing.
+    """
+    try:
+        return (get_config().llm.provider or "").lower() == "claude_subscription"
+    except Exception:  # noqa: BLE001 - config problems must not break construction
+        return False
+
+
+def _cli_model_alias(model: str) -> str:
+    """Full model ids mean nothing to `claude -p`; it takes family aliases."""
+    lowered = (model or "").lower()
+    for family in ("haiku", "opus", "sonnet"):
+        if family in lowered:
+            return family
+    return "sonnet"
+
+
 class InterpretationService:
     """Main service for bioinformatics data interpretation.
 
@@ -74,11 +103,30 @@ class InterpretationService:
         self._executor = executor or create_executor(include_all_tools=True)
         self._model = model or get_config().interpretation.default_model
 
-        # Initialize components
-        self._claude_caller = ClaudeToolCaller(
-            executor=self._executor,
-            model=self._model,
-        )
+        # Which caller runs the tool loop. `ClaudeToolCaller` drives it here
+        # against `anthropic.Anthropic` and needs a metered key;
+        # `SubscriptionToolCaller` hands the loop to `claude -p` and serves the
+        # same 32 tools to it over MCP, so a logged-in CLI is enough.
+        #
+        # Selected from the configured provider rather than by sniffing for a
+        # key: silently switching billing mode based on the environment is the
+        # class of surprise this codebase keeps removing.
+        if _subscription_interpretation_configured():
+            from quration.interpretation.subscription_caller import SubscriptionToolCaller
+
+            self._claude_caller = SubscriptionToolCaller(
+                model=_cli_model_alias(self._model),
+                # Reused, not rebuilt: `create_executor(include_all_tools=True)`
+                # registers into a process-wide registry and raises on a second
+                # call.
+                executor=self._executor,
+            )
+            logger.info("interpretation will run on the Claude Code subscription")
+        else:
+            self._claude_caller = ClaudeToolCaller(
+                executor=self._executor,
+                model=self._model,
+            )
         self._parser = ResponseParser()
         self._claim_extractor = ClaimExtractor()
         self._scorer = ConfidenceScorer()
