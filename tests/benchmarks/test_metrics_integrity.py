@@ -129,24 +129,23 @@ class TestUnmeasuredMetricsAreVisible:
 
     def test_weight_coverage_reports_partial_measurement(self):
         metrics = BenchmarkMetrics(accuracy=MetricResult(name="accuracy", value=1.0))
-        assert metrics.weight_coverage == pytest.approx(0.25)
+        assert metrics.weight_coverage == pytest.approx(
+            BenchmarkMetrics._WEIGHTS["accuracy"]
+        )
 
     def test_weight_coverage_is_one_when_everything_is_measured(self):
         metrics = BenchmarkMetrics(
             **{
                 name: MetricResult(name=name, value=0.5)
-                for name in (
-                    "accuracy",
-                    "completeness",
-                    "citation_validity",
-                    "hallucination_rate",
-                    "claim_precision",
-                    "claim_recall",
-                    "confidence_calibration",
-                )
+                for name in BenchmarkMetrics._WEIGHTS
             }
         )
         assert metrics.weight_coverage == pytest.approx(1.0)
+
+    def test_the_weighting_itself_sums_to_one(self):
+        """weight_coverage divides by this sum, so drift here silently rescales
+        every published coverage figure."""
+        assert sum(BenchmarkMetrics._WEIGHTS.values()) == pytest.approx(1.0)
 
 
 class TestASynthenticScoreCannotBeQuoted:
