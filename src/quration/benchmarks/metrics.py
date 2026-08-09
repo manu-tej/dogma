@@ -64,20 +64,30 @@ class BenchmarkMetrics:
     claim_recall: MetricResult | None = None
     tool_utilization: MetricResult | None = None
     confidence_calibration: MetricResult | None = None
+    limitation_recognition: MetricResult | None = None
     custom_metrics: dict[str, MetricResult] = field(default_factory=dict)
+
+    # One weighting, used by both `overall_score` and `weight_coverage` — the
+    # two must never disagree about what "full coverage" means. Sums to 1.0.
+    # `limitation_recognition` carries real weight on purpose: a scorer that
+    # only rewards flat assertion optimises for the confident fabrication the
+    # epistemics layer exists to prevent. Changing any weight changes what the
+    # overall score means — scores from before and after are not comparable.
+    _WEIGHTS = {
+        "accuracy": 0.20,
+        "completeness": 0.15,
+        "citation_validity": 0.10,
+        "hallucination_rate": 0.15,  # Inverted (lower is better)
+        "claim_precision": 0.10,
+        "claim_recall": 0.10,
+        "confidence_calibration": 0.05,
+        "limitation_recognition": 0.15,
+    }
 
     @property
     def overall_score(self) -> float:
         """Calculate weighted overall score."""
-        weights = {
-            "accuracy": 0.25,
-            "completeness": 0.15,
-            "citation_validity": 0.15,
-            "hallucination_rate": 0.20,  # Inverted (lower is better)
-            "claim_precision": 0.10,
-            "claim_recall": 0.10,
-            "confidence_calibration": 0.05,
-        }
+        weights = self._WEIGHTS
 
         total_weight = 0.0
         weighted_sum = 0.0
@@ -110,15 +120,7 @@ class BenchmarkMetrics:
         constructed by the harness but never invoked, so coverage is currently
         well below 1.0 on every run.
         """
-        weights = {
-            "accuracy": 0.25,
-            "completeness": 0.15,
-            "citation_validity": 0.15,
-            "hallucination_rate": 0.20,
-            "claim_precision": 0.10,
-            "claim_recall": 0.10,
-            "confidence_calibration": 0.05,
-        }
+        weights = self._WEIGHTS
         measured = sum(
             weight
             for name, weight in weights.items()
@@ -139,6 +141,7 @@ class BenchmarkMetrics:
             "claim_recall",
             "tool_utilization",
             "confidence_calibration",
+            "limitation_recognition",
         ]:
             metric = getattr(self, attr)
             if metric is not None:
@@ -823,6 +826,77 @@ class ClaimPrecisionRecallCalculator:
                 "found": found,
                 "relevant": len(relevant_claims),
                 "matched_claims": [r[:50] for _, r in matches],
+            },
+        )
+
+
+class LimitationRecognitionCalculator:
+    """Credit a report for carrying a task's declared input limits through.
+
+    `ExpectedOutput.limitations` states what a task's inputs genuinely do not
+    establish — per-gene significance absent, magnitudes representative rather
+    than measured, no enrichment statistics computed. A report that flags such
+    a gap is doing the one thing this repo's epistemics layer demands, and the
+    first honest `--published` run showed the scorer counting exactly that as
+    failure: the model refused to call genes significant without adjusted
+    p-values, and accuracy read 0.000.
+
+    Recall-shaped: the score is the fraction of declared limitations the
+    report's own sentences acknowledge (fuzzy-matched, same matcher as claim
+    recall). It reads the full report text rather than the extracted claims,
+    because hedges are precisely what a claim extractor is built to discount.
+    A task that declares no limitations is *not measured* — never a free 1.0.
+    """
+
+    def __init__(self) -> None:
+        self._matcher = ClaimPrecisionRecallCalculator()
+
+    def calculate(
+        self,
+        report_text: str,
+        expected_limitations: list[str],
+    ) -> MetricResult:
+        """Score how many declared limitations the report acknowledges.
+
+        Args:
+            report_text: The interpretation's full summary text
+            expected_limitations: What the task's inputs do not establish
+
+        Returns:
+            MetricResult, not measured when nothing was declared
+        """
+        if not expected_limitations:
+            return MetricResult(
+                name="limitation_recognition",
+                value=None,
+                details={"note": "task declares no input limitations"},
+            )
+
+        sentences = [
+            s.strip()
+            for s in re.split(r"(?<=[.!?])\s+|\n+", report_text)
+            if s.strip()
+        ]
+
+        recognized = []
+        missed = []
+        for limitation in expected_limitations:
+            if any(
+                self._matcher._fuzzy_match(sentence, limitation)
+                for sentence in sentences
+            ):
+                recognized.append(limitation)
+            else:
+                missed.append(limitation)
+
+        return MetricResult(
+            name="limitation_recognition",
+            value=len(recognized) / len(expected_limitations),
+            details={
+                "recognized": recognized,
+                "missed": missed,
+                "declared": len(expected_limitations),
+                "sentences_checked": len(sentences),
             },
         )
 

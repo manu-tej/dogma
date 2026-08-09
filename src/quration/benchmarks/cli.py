@@ -260,6 +260,7 @@ def print_summary(report, json_output: bool = False) -> None:
         show("Claim Recall:", metrics.claim_recall)
         show("Hallucination Rate:", metrics.hallucination_rate, raw=True)
         show("Tool Utilization:", metrics.tool_utilization)
+        show("Limitation Recognition:", metrics.limitation_recognition)
 
         # The score renormalises over whatever was measured, so it is not
         # comparable across runs with different coverage. State the coverage next

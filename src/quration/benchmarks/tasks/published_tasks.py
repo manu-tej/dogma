@@ -36,6 +36,7 @@ class PublishedDEGBenchmarkTask(PublishedBenchmarkTask):
         expected_claims: list[str],
         expected_genes: list[str],
         expected_pathways: list[str],
+        limitations: list[str] | None = None,
         description: str = "",
         tags: list[str] | None = None,
     ):
@@ -56,6 +57,8 @@ class PublishedDEGBenchmarkTask(PublishedBenchmarkTask):
             expected_claims: Expected claims from paper
             expected_genes: Key genes from paper
             expected_pathways: Key pathways from paper
+            limitations: What the inputs genuinely do not establish; a report
+                earns limitation-recognition credit for flagging these
             description: Task description
             tags: Task tags
         """
@@ -78,6 +81,32 @@ class PublishedDEGBenchmarkTask(PublishedBenchmarkTask):
         self._expected_claims = expected_claims
         self._expected_genes = expected_genes
         self._expected_pathways = expected_pathways
+        self._limitations = limitations or []
+
+    def _study_attestation(self) -> str:
+        """What the source study established, stated without fabrication.
+
+        The first honest --published run sent these gene lists with no
+        significance at all, so the model (correctly) refused to call anything
+        differentially expressed — and the scorer counted the refusal as
+        failure. The genes ARE the study's reported significant DEG set; that
+        is why they are in the task. Attest it, name the DOI, and say plainly
+        which numbers are curated rather than measured. No per-gene p-values
+        are invented — an invented value is exactly the class of output this
+        repo exists to prevent.
+        """
+        return (
+            f"Provenance: the gene identities and directions of change listed "
+            f"above are transcribed from the significantly differentially "
+            f"expressed gene sets reported by the source study "
+            f'("{self.paper_title}", {self.paper_year}, '
+            f"DOI {self.paper_doi}), which applied multiple-testing "
+            f"correction. Treat gene identity and direction as established by "
+            f"that study. The log2 fold-change magnitudes shown are "
+            f"representative values curated for this benchmark, not verbatim "
+            f"table entries — do not treat them as measured effect sizes, and "
+            f"note that per-gene adjusted p-values are not provided."
+        )
 
     def get_input(self) -> BenchmarkInput:
         return BenchmarkInput(
@@ -89,6 +118,7 @@ class PublishedDEGBenchmarkTask(PublishedBenchmarkTask):
                 "condition_b": self._condition_b,
                 "organism": self._organism,
                 "experiment_type": self._experiment_type,
+                "additional_context": self._study_attestation(),
             },
         )
 
@@ -98,6 +128,7 @@ class PublishedDEGBenchmarkTask(PublishedBenchmarkTask):
             genes=self._expected_genes,
             pathways=self._expected_pathways,
             expected_tools=["get_gene_info", "search_pubmed", "get_reactome_pathway"],
+            limitations=self._limitations,
         )
 
     async def run(self, service: Any) -> BenchmarkResult:
@@ -112,6 +143,7 @@ class PublishedDEGBenchmarkTask(PublishedBenchmarkTask):
                 condition_b=self._condition_b,
                 organism=self._organism,
                 experiment_type=self._experiment_type,
+                additional_context=self._study_attestation(),
                 max_iterations=10,
             )
 
@@ -174,6 +206,7 @@ class PublishedPathwayBenchmarkTask(PublishedBenchmarkTask):
         enrichment_source: str,
         expected_claims: list[str],
         expected_pathways: list[str],
+        limitations: list[str] | None = None,
         description: str = "",
         tags: list[str] | None = None,
     ):
@@ -210,6 +243,36 @@ class PublishedPathwayBenchmarkTask(PublishedBenchmarkTask):
         self._enrichment_source = enrichment_source
         self._expected_claims = expected_claims
         self._expected_pathways = expected_pathways
+        self._limitations = limitations or []
+
+    def _pathway_payload(self) -> list[dict[str, Any]]:
+        """The gene set as handed to the interpreter — no invented statistics.
+
+        This used to carry a hardcoded ``p_value: 0.001`` labelled
+        "<source> analysis", and the model's benchmarked output — "one
+        nominally significant (p=0.001, uncorrected) KEGG enrichment hit...
+        I cannot confirm this is hsa04064" — was calibrated refusal aimed at
+        a number nobody computed. No p_value key at all: the prompt formatter
+        states significance as "not provided", which is the truth.
+        """
+        return [
+            {
+                "name": f"curated gene set from {self.paper_year} study (no enrichment run)",
+                "gene_count": len(self._gene_list),
+                "genes": self._gene_list,
+            }
+        ]
+
+    def _experiment_context(self) -> str:
+        return (
+            f"This gene set was curated from a published study "
+            f'("{self.paper_title}", {self.paper_year}, DOI {self.paper_doi}). '
+            f"No enrichment statistics were computed by this benchmark — "
+            f"there is no p-value, no background set, and no ranked pathway "
+            f"list. Use {self._enrichment_source} and related pathway tools "
+            f"to characterise which pathways this set represents, and ground "
+            f"every pathway assignment in a tool lookup rather than recall."
+        )
 
     def get_input(self) -> BenchmarkInput:
         return BenchmarkInput(
@@ -227,6 +290,7 @@ class PublishedPathwayBenchmarkTask(PublishedBenchmarkTask):
             claims=self._expected_claims,
             pathways=self._expected_pathways,
             expected_tools=["get_reactome_pathway", "get_go_enrichment", "get_kegg_pathway"],
+            limitations=self._limitations,
         )
 
     async def run(self, service: Any) -> BenchmarkResult:
@@ -234,22 +298,9 @@ class PublishedPathwayBenchmarkTask(PublishedBenchmarkTask):
         start_time = datetime.utcnow()
 
         try:
-            # Convert stored gene list to the pathway dict format the service expects
-            pathways = [
-                {
-                    "name": f"{self._enrichment_source} analysis",
-                    "p_value": 0.001,
-                    "gene_count": len(self._gene_list),
-                    "genes": self._gene_list,
-                }
-            ]
-            experiment_context = (
-                f"Pathway enrichment of {len(self._gene_list)} genes "
-                f"from: {self.paper_title}"
-            )
             result = await service.interpret_pathway_enrichment(
-                pathways=pathways,
-                experiment_context=experiment_context,
+                pathways=self._pathway_payload(),
+                experiment_context=self._experiment_context(),
                 gene_set_size=len(self._gene_list),
                 max_iterations=10,
             )
@@ -349,6 +400,10 @@ def published_brca_tcga() -> PublishedDEGBenchmarkTask:
             "Receptor tyrosine kinase signaling",
             "Cell differentiation",
         ],
+        limitations=[
+            "Per-gene adjusted p-values were not provided; significance is attested at the study level only.",
+            "The log2 fold-change magnitudes are representative curated values, not measured table entries.",
+        ],
         description="TCGA breast cancer molecular subtypes - luminal vs basal",
         tags=["deg", "published", "cancer", "tcga", "breast"],
     )
@@ -405,6 +460,10 @@ def published_covid_pbmc() -> PublishedDEGBenchmarkTask:
             "Innate immune response",
             "T cell signaling",
         ],
+        limitations=[
+            "Per-gene adjusted p-values were not provided; significance is attested at the study level only.",
+            "The log2 fold-change magnitudes are representative curated values, not measured table entries.",
+        ],
         description="COVID-19 PBMC immune response - severe vs healthy",
         tags=["deg", "published", "covid", "immune", "scRNA-seq"],
     )
@@ -460,6 +519,10 @@ def published_ipf_lung() -> PublishedDEGBenchmarkTask:
             "Collagen formation",
             "Wound healing",
         ],
+        limitations=[
+            "Per-gene adjusted p-values were not provided; significance is attested at the study level only.",
+            "The log2 fold-change magnitudes are representative curated values, not measured table entries.",
+        ],
         description="IPF vs healthy lung - fibrotic signature",
         tags=["deg", "published", "lung", "fibrosis", "disease"],
     )
@@ -512,6 +575,10 @@ def published_aging_brain() -> PublishedDEGBenchmarkTask:
             "Complement cascade",
             "Astrocyte activation",
         ],
+        limitations=[
+            "Per-gene adjusted p-values were not provided; significance is attested at the study level only.",
+            "The log2 fold-change magnitudes are representative curated values, not measured table entries.",
+        ],
         description="Brain aging - old vs young",
         tags=["deg", "published", "brain", "aging", "gtex"],
     )
@@ -557,6 +624,10 @@ def published_stemcell_pathway() -> PublishedPathwayBenchmarkTask:
             "Signaling pathways regulating pluripotency",
             "Transcriptional regulation by OCT4",
             "POU5F1 (OCT4), SOX2, NANOG activate genes",
+        ],
+        limitations=[
+            "No enrichment statistics were computed; there is no p-value or ranked pathway list to interpret.",
+            "No background gene set was specified, so enrichment strength cannot be quantified.",
         ],
         description="iPSC/ESC pluripotency gene set enrichment",
         tags=["pathway", "published", "stemcell", "pluripotency"],
@@ -605,6 +676,10 @@ def published_inflammation_pathway() -> PublishedPathwayBenchmarkTask:
             "TNF signaling pathway",
             "Cytokine-cytokine receptor interaction",
             "IL-17 signaling pathway",
+        ],
+        limitations=[
+            "No enrichment statistics were computed; there is no p-value or ranked pathway list to interpret.",
+            "No background gene set was specified, so enrichment strength cannot be quantified.",
         ],
         description="NF-kB inflammatory response gene set",
         tags=["pathway", "published", "inflammation", "nfkb"],

@@ -32,6 +32,10 @@ class ExpectedOutput:
     min_confidence: float = 0.5
     expected_tools: list[str] = field(default_factory=list)
     custom_validations: dict[str, Any] = field(default_factory=dict)
+    # What the task's inputs genuinely do NOT establish. A report earns
+    # limitation-recognition credit for carrying each of these through to its
+    # conclusions — calibrated refusal scored as the success it is.
+    limitations: list[str] = field(default_factory=list)
 
 
 @dataclass

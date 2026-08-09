@@ -20,6 +20,7 @@ from quration.benchmarks.metrics import (
     CompletenessCalculator,
     ConfidenceCalibrationCalculator,
     HallucinationDetector,
+    LimitationRecognitionCalculator,
     MetricResult,
     ToolUtilizationCalculator,
 )
@@ -183,6 +184,7 @@ class EvaluationHarness:
         self._precision_recall_calc = ClaimPrecisionRecallCalculator()
         self._calibration_calc = ConfidenceCalibrationCalculator()
         self._tool_calc = ToolUtilizationCalculator()
+        self._limitation_calc = LimitationRecognitionCalculator()
 
     def register_task(self, task: BenchmarkTask) -> None:
         """Register a benchmark task.
@@ -437,6 +439,16 @@ class EvaluationHarness:
                 expected_tools=expected.expected_tools,
             )
 
+        # Limitation recognition — did the report carry the task's declared
+        # input limits through to its conclusions? Scored over the full
+        # summary, not the extracted claims: hedges are what a claim
+        # extractor is built to discount.
+        if expected.limitations:
+            metrics.limitation_recognition = self._limitation_calc.calculate(
+                report_text=result.interpretation_summary,
+                expected_limitations=expected.limitations,
+            )
+
         return metrics
 
     def _aggregate_metrics(
@@ -463,6 +475,7 @@ class EvaluationHarness:
         recall_values = []
         tool_values = []
         calibration_values = []
+        limitation_values = []
 
         for r in results:
             if r.metrics.accuracy:
@@ -481,6 +494,8 @@ class EvaluationHarness:
                 tool_values.append(r.metrics.tool_utilization.normalized)
             if r.metrics.confidence_calibration:
                 calibration_values.append(r.metrics.confidence_calibration.normalized)
+            if r.metrics.limitation_recognition and r.metrics.limitation_recognition.measured:
+                limitation_values.append(r.metrics.limitation_recognition.normalized)
 
         # Calculate averages
         aggregate = BenchmarkMetrics()
@@ -539,6 +554,13 @@ class EvaluationHarness:
                 name="confidence_calibration",
                 value=sum(calibration_values) / len(calibration_values),
                 details={"sample_count": len(calibration_values)},
+            )
+
+        if limitation_values:
+            aggregate.limitation_recognition = MetricResult(
+                name="limitation_recognition",
+                value=sum(limitation_values) / len(limitation_values),
+                details={"sample_count": len(limitation_values)},
             )
 
         return aggregate
