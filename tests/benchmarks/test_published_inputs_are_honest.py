@@ -26,6 +26,7 @@ import pytest
 
 from quration.benchmarks.tasks.published_tasks import (
     get_all_published_tasks,
+    get_published_pathway_tasks,
     published_brca_tcga,
     published_stemcell_pathway,
 )
@@ -79,6 +80,48 @@ class TestEveryTaskDeclaresItsLimits:
     def test_limitations_are_sentences_not_labels(self, task):
         for limitation in task.get_expected_output().limitations:
             assert len(limitation.split()) >= 5, limitation
+
+
+class TestGeneSymbolsReachTheModel:
+    """The 20260809_070936 run's pathway tasks ran blind. The payload carries
+    the gene symbols, but `set_pathway_results` rendered `genes: {gene_count}`
+    — the count, never the identities — so the model received "genes: 13",
+    reported "the actual 13 gene symbols ... were not provided, only a count",
+    and reconstructed the set from the paper title. The benchmark scored a
+    model that never saw its input. The model caught this, not us.
+    """
+
+    @pytest.mark.parametrize(
+        "task", get_published_pathway_tasks(), ids=lambda t: t.task_id
+    )
+    def test_every_gene_symbol_is_in_the_rendered_prompt(self, task):
+        from quration.interpretation.prompts import PromptBuilder
+
+        builder = PromptBuilder("pathway_enrichment")
+        builder.set_pathway_results(task._pathway_payload())
+        builder.set_variables(experiment_context=task._experiment_context())
+        builder.set_variables(gene_set_size=str(len(task._gene_list)))
+        _, user = builder.build()
+        for gene in task._gene_list:
+            assert gene in user, (
+                f"{task.task_id}: {gene} is in the payload but never "
+                f"reached the prompt"
+            )
+
+    def test_long_gene_lists_truncate_loudly_not_silently(self):
+        """A cap on rendered genes is fine; a silent one is how this bug
+        happened. Whatever is held back must be announced in the prompt."""
+        from quration.interpretation.prompts import PromptBuilder
+
+        genes = [f"GENE{i}" for i in range(60)]
+        builder = PromptBuilder("pathway_enrichment")
+        builder.set_pathway_results([{"name": "big set", "genes": genes}])
+        builder.set_variables(experiment_context="x")
+        _, user = builder.build()
+        rendered = [g for g in genes if g in user]
+        hidden = len(genes) - len(rendered)
+        if hidden:
+            assert f"+{hidden} more" in user
 
 
 class TestTheHarnessScoresLimitationRecognition:

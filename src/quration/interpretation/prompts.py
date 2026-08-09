@@ -766,10 +766,25 @@ class PromptBuilder:
                 return f"nominal p: {nominal:.2e} (UNADJUSTED — not corrected for multiple testing)"
             return "significance: not provided"
 
+        # Render gene identities, not just how many there are. This showed only
+        # `gene_count`, so the published pathway tasks — whose entire input IS
+        # the gene set — reached the model as "genes: 13" and it analysed a
+        # reconstruction from the paper title instead. Any cap must say what it
+        # held back: a silent one is this same bug at a different threshold.
+        def _pathway_genes(p: dict[str, Any], cap: int = 40) -> str:
+            genes = p.get("genes")
+            if not genes:
+                return f"genes: {p.get('gene_count', 'N/A')}"
+            shown = ", ".join(genes[:cap])
+            hidden = len(genes) - cap
+            if hidden > 0:
+                shown += f" (+{hidden} more)"
+            return f"genes: {shown}"
+
         pathway_str = "\n".join(
             [
                 f"- {p['name']} ({_pathway_significance(p)}, "
-                f"genes: {p.get('gene_count', 'N/A')})"
+                f"{_pathway_genes(p)})"
                 for p in pathways[:top_n]
             ]
         )
