@@ -32,6 +32,15 @@ Use an absolute path — MCP hosts launch servers from their own working
 directory, not yours. This repo's own `.mcp.json` uses `./bin/dogma` because
 Claude Code resolves it against the project root.
 
+**Codex in `exec` (non-interactive) mode** auto-cancels every MCP tool call
+with `user cancelled MCP tool call` — a known Codex issue
+([openai/codex#16685](https://github.com/openai/codex/issues/16685)): the
+approval prompt has no handler when stdin is closed, so it reads as the server
+being broken when the server was never reached. The fix that keeps the sandbox
+intact is `-c 'approvals_reviewer="guardian_subagent"'`; verified 2026-08-09
+with Codex 0.145.0 driving all nine tools, including a journal round-trip.
+Interactive Codex sessions are unaffected.
+
 Nine tools. Eight are read-only; `record_decision` is the only one that writes,
 and it appends to the journal rather than touching the workspace.
 
