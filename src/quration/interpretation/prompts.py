@@ -6,6 +6,7 @@ bioinformatics interpretation scenarios.
 """
 
 import json
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -39,6 +40,30 @@ class PromptTemplate:
     optional_variables: list[str]
     recommended_tools: list[str]
 
+    def _fill_missing_optionals(
+        self, template_text: str, kwargs: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Default unsupplied optional variables instead of leaking `$name`.
+
+        `safe_substitute` leaves unknown variables verbatim, so a caller with
+        no accession used to send the model the literal line
+        `Dataset: $dataset_id` — and a model shown template syntax may fill it
+        in, which for an accession means inventing one.
+
+        Two shapes, two defaults. A labeled field (`Dataset: $dataset_id`)
+        becomes "not provided" — absence stated, the same convention the DEG
+        formatter uses for a missing adjusted p-value. A bare content block
+        (`$additional_context` on its own) renders empty, because "not
+        provided" dangling at the end of a prompt is itself noise.
+        """
+        filled = dict(kwargs)
+        for variable in self.optional_variables:
+            if filled.get(variable):
+                continue
+            labeled = re.search(rf"\S+:[ \t]*\${variable}\b", template_text)
+            filled[variable] = "not provided" if labeled else ""
+        return filled
+
     def render_system(self, **kwargs: Any) -> str:
         """Render the system prompt with variables.
 
@@ -49,7 +74,9 @@ class PromptTemplate:
             Rendered system prompt
         """
         template = Template(self.system_template)
-        return template.safe_substitute(**kwargs)
+        return template.safe_substitute(
+            **self._fill_missing_optionals(self.system_template, kwargs)
+        )
 
     def render_user(self, **kwargs: Any) -> str:
         """Render the user prompt with variables.
@@ -61,7 +88,9 @@ class PromptTemplate:
             Rendered user prompt
         """
         template = Template(self.user_template)
-        return template.safe_substitute(**kwargs)
+        return template.safe_substitute(
+            **self._fill_missing_optionals(self.user_template, kwargs)
+        )
 
     def render(self, **kwargs: Any) -> tuple[str, str]:
         """Render both system and user prompts.
