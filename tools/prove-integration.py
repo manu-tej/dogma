@@ -205,11 +205,29 @@ def main() -> int:
           f"expected id 2, got {json.dumps(listed)[:200]}")
 
     tools = {t["name"] for t in listed.get("result", {}).get("tools", [])}
-    check("all six biology tools are advertised",
-          tools == {"create_claim_graph", "record_analysis_run", "attach_evidence",
-                    "list_untested_or_stale_claims", "check_method_assumptions",
-                    "export_evidence_bundle"},
-          f"got {sorted(tools)}")
+
+    # Subset, not equality. An exact-set assertion fails in the wrong direction:
+    # it caught the journal tools being ADDED — which is not a regression — while
+    # the thing worth catching is a tool going MISSING from a fresh clone. This
+    # assertion failed for that reason once already; the surface is expected to
+    # grow, and a check that cries wolf on growth gets muted.
+    required_inspection = {
+        "create_claim_graph", "record_analysis_run", "attach_evidence",
+        "list_untested_or_stale_claims", "check_method_assumptions",
+        "export_evidence_bundle",
+    }
+    check("every workspace-inspection tool is advertised",
+          required_inspection <= tools,
+          f"missing {sorted(required_inspection - tools)}")
+
+    # The notebook half. Separate, because these carry a different contract: two
+    # of them write, and `check_claim_shape` is what compares a claimed graph
+    # against what the record can actually support.
+    required_journal = {"open_journal", "record_decision", "check_claim_shape"}
+    check("every bench-journal tool is advertised",
+          required_journal <= tools,
+          f"missing {sorted(required_journal - tools)}")
+    print(f"         (server advertises {len(tools)} tools)")
 
     # --- 4. real work against the clone's own workspace --------------------
     demo = clone / "dogma-demo-workspace"
@@ -241,7 +259,57 @@ def main() -> int:
           upayload.get("unrecognised_edge_states") == [],
           f"got {upayload.get('unrecognised_edge_states')}")
 
-    # --- 5. stdout hygiene and clean shutdown ------------------------------
+    # --- 5. the bench journal, round-tripped in the clone ------------------
+    # The notebook is the half an agent WRITES to, so proving it from outside
+    # means actually writing. Into the clone's own workspace, which is discarded
+    # with it — this must never touch the source checkout.
+    empty = host.request("tools/call", 5, {
+        "name": "open_journal", "arguments": {"root": str(demo)},
+    })
+    esummary = empty.get("result", {}).get("structuredContent", {}).get("summary", {})
+    check("a fresh workspace reports an absent journal rather than erroring",
+          esummary.get("present") is False and esummary.get("entries") == 0,
+          f"got {esummary}")
+
+    written = host.request("tools/call", 6, {
+        "name": "record_decision",
+        "arguments": {
+            "root": str(demo), "agent": "prove-integration",
+            "about": "whether the journal round-trips from a fresh clone",
+            "chose": "write one entry and read it back",
+            "because": "a notebook that cannot be written from outside is not a notebook",
+        },
+    })
+    entry = written.get("result", {}).get("structuredContent", {}).get("entry", {})
+    check("a decision can be recorded", bool(entry.get("entry_id")), f"got {written}")
+    check("an agent's claim is marked self-reported",
+          entry.get("self_reported") is True,
+          "an unmarked agent claim is indistinguishable from an observation")
+    check("the service stamped the time, not the caller",
+          bool(entry.get("recorded_at")))
+
+    reread = host.request("tools/call", 7, {
+        "name": "open_journal", "arguments": {"root": str(demo)},
+    })
+    rsummary = reread.get("result", {}).get("structuredContent", {}).get("summary", {})
+    check("the entry survives a re-read", rsummary.get("entries") == 1, f"got {rsummary}")
+    check("it is counted as self-reported, not observed",
+          rsummary.get("self_reported") == 1 and rsummary.get("service_observed") == 0,
+          f"got {rsummary}")
+
+    shape = host.request("tools/call", 8, {
+        "name": "check_claim_shape", "arguments": {"root": str(demo)},
+    })
+    spayload = shape.get("result", {}).get("structuredContent", {})
+    check("claim shape can be checked", "consistent" in spayload, f"keys={sorted(spayload)}")
+    check("no edge claims a measurement the record cannot support",
+          spayload.get("edges", {}).get("claiming_measurement") == 0,
+          f"got {spayload.get('edges')}")
+    check("it states the measurement gap rather than hiding it",
+          any("never a measurement" in str(limit) for limit in spayload.get("limitations", [])),
+          f"limitations={spayload.get('limitations')}")
+
+    # --- 6. stdout hygiene and clean shutdown ------------------------------
     code, stderr = host.close()
     check("server exits cleanly when stdin closes", code == 0, f"exit {code}")
     check("nothing was written to stderr during normal operation",
