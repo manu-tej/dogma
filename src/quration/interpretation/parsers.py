@@ -396,38 +396,39 @@ class ResponseParser:
             if len(sentence) < 20 or sentence.strip().endswith("?"):
                 continue
 
-            # For long sentences (>200 chars), try simplification first
-            candidate = sentence
+            # Simplify first, then vet — the substantive-claim check must run
+            # on the statement that is actually stored. It used to run on the
+            # full sentence while the simplified version was stored, so
+            # "Statistical robustness — the nominal p=0.001 has not been
+            # corrected..." passed the check as a sentence and then the em-dash
+            # split stored the two-word label the check would have rejected.
+            simplified = self._simplify_to_atomic(sentence)
             if len(sentence) > 200:
-                simplified = self._simplify_to_atomic(sentence)
                 if not simplified:
                     continue
-                candidate = simplified
+                statement = simplified
+            else:
+                statement = simplified or sentence
 
-            # Determine claim type
-            claim_type = self._determine_claim_type(candidate)
+            claim_type = self._determine_claim_type(statement)
+            confidence = self._assess_confidence(statement)
 
-            # Determine confidence
-            confidence = self._assess_confidence(candidate)
-
-            # Only include substantive claims not already captured
-            normalized = candidate.lower().strip()
-            if self._is_substantive_claim(candidate, claim_type) and normalized not in seen_statements:
-                # Try to shorten to atomic if not already simplified
-                atomic = candidate if len(candidate) <= 200 else candidate
-                if len(sentence) <= 200:
-                    atomic = self._simplify_to_atomic(sentence) or candidate
-                if atomic and atomic.lower().strip() not in seen_statements:
-                    seen_statements.add(atomic.lower().strip())
-                    claim = InterpretationClaim(
-                        claim_type=claim_type,
-                        statement=atomic,
-                        confidence=confidence,
-                        evidence=[],
-                        genes_mentioned=[],
-                        pathways_mentioned=[],
-                    )
-                    claims.append(claim)
+            if not self._is_substantive_claim(statement, claim_type):
+                continue
+            normalized = statement.lower().strip()
+            if normalized in seen_statements:
+                continue
+            seen_statements.add(normalized)
+            claims.append(
+                InterpretationClaim(
+                    claim_type=claim_type,
+                    statement=statement,
+                    confidence=confidence,
+                    evidence=[],
+                    genes_mentioned=[],
+                    pathways_mentioned=[],
+                )
+            )
 
         return claims
 
@@ -485,17 +486,24 @@ class ResponseParser:
              ClaimType.LITERATURE, ConfidenceLevel.MEDIUM),
         ]
 
-        # Process all pattern groups
+        # Process all pattern groups. Flags are per-group, and the distinction
+        # is load-bearing: the pathway patterns match prose names ("p53 pathway
+        # is enriched") and want case-insensitivity, but the gene patterns'
+        # entire selectivity is the uppercase symbol class [A-Z][A-Z0-9]{1,10}.
+        # A blanket IGNORECASE erased that constraint, so "that", "their" and
+        # "the" qualified as gene symbols and every "X activates Y" word triple
+        # in prose became a regulatory claim — the first honest benchmark run
+        # scored 'NANOG activate their' and 'that activate the' as claims.
         all_patterns = [
-            (expression_patterns, "expression"),
-            (pathway_patterns, "pathway"),
-            (regulatory_patterns, "regulatory"),
-            (function_patterns, "function"),
+            (expression_patterns, "expression", 0),
+            (pathway_patterns, "pathway", re.IGNORECASE),
+            (regulatory_patterns, "regulatory", 0),
+            (function_patterns, "function", 0),
         ]
 
-        for pattern_group, group_name in all_patterns:
+        for pattern_group, group_name, flags in all_patterns:
             for pattern, claim_type, confidence in pattern_group:
-                for match in re.finditer(pattern, text, re.IGNORECASE):
+                for match in re.finditer(pattern, text, flags):
                     # Build atomic statement from match
                     statement = self._build_atomic_statement(match, group_name)
                     if statement and len(statement) >= 15 and len(statement) <= 150:
