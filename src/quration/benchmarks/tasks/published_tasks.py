@@ -638,14 +638,22 @@ def published_inflammation_pathway() -> PublishedPathwayBenchmarkTask:
     """Inflammatory response pathway enrichment.
 
     Based on NF-kB and inflammation studies.
-    Reference: Cell / Immunity.
+    Reference: Oeckinghaus & Ghosh, Cold Spring Harb Perspect Biol 2009
+    (PMID 20066092).
+
+    The DOI here used to be 10.1016/j.immuni.2012.12.001 — Yona et al.'s
+    monocyte fate-mapping paper, unrelated to this title. The benchmarked
+    model caught it in run 20260809_070936 by resolving both through PubMed
+    and reporting "the title and DOI provided in the task input refer to two
+    different, unrelated papers." An input that asks for grounded claims must
+    itself survive the grounding check.
     """
     return PublishedPathwayBenchmarkTask(
         task_id="pub-pathway-002",
         task_name="NF-kB Inflammation",
-        paper_doi="10.1016/j.immuni.2012.12.001",
+        paper_doi="10.1101/cshperspect.a000034",
         paper_title="The NF-kB family of transcription factors and its regulation",
-        paper_year=2012,
+        paper_year=2009,
         gene_list=[
             "NFKB1",
             "RELA",
