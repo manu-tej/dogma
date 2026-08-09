@@ -194,3 +194,66 @@ class TestASynthenticScoreCannotBeQuoted:
         payload = self._report(["deg-synthetic-001"]).to_dict()
         assert payload["is_publishable_number"] is False
         assert payload["synthetic_task_count"] == 1
+
+
+class TestFailedTasksDoNotDiluteQualityMetrics:
+    """Run 20260809_075144: pub-pathway-002 died in the provider (exit 1,
+    zero tokens, no interpretation ever produced). Its zeroed metrics were
+    averaged into the aggregates anyway, so the reported claim recall of
+    0.586 measured a blend of model quality and infrastructure uptime — the
+    five tasks that actually completed scored 0.703. A failure is already
+    counted in `failed_tasks`; it must not also masquerade as a maximally
+    bad interpretation inside the quality numbers.
+    """
+
+    def test_aggregate_averages_only_completed_tasks(self):
+        from quration.benchmarks.harness import EvaluationHarness
+        from quration.benchmarks.tasks.base import BenchmarkResult
+
+        completed = BenchmarkResult(
+            task_id="t-good",
+            task_name="t",
+            task_type="deg_analysis",
+            success=True,
+            metrics=BenchmarkMetrics(
+                accuracy=MetricResult(name="accuracy", value=0.8),
+                claim_recall=MetricResult(name="claim_recall", value=1.0),
+            ),
+        )
+        crashed = BenchmarkResult(
+            task_id="t-dead",
+            task_name="t",
+            task_type="deg_analysis",
+            success=False,
+            error="claude -p exited 1",
+            metrics=BenchmarkMetrics(
+                accuracy=MetricResult(name="accuracy", value=0.0),
+                claim_recall=MetricResult(name="claim_recall", value=0.0),
+            ),
+        )
+        # __new__: _aggregate_metrics is pure, and constructing the full
+        # harness registers tools globally — a second construction in the
+        # same process raises "already registered".
+        harness = EvaluationHarness.__new__(EvaluationHarness)
+        aggregate = harness._aggregate_metrics([completed, crashed])
+        assert aggregate.accuracy.value == pytest.approx(0.8)
+        assert aggregate.claim_recall.value == pytest.approx(1.0)
+        assert aggregate.accuracy.details["sample_count"] == 1
+
+    def test_all_tasks_failed_aggregates_nothing(self):
+        from quration.benchmarks.harness import EvaluationHarness
+        from quration.benchmarks.tasks.base import BenchmarkResult
+
+        crashed = BenchmarkResult(
+            task_id="t-dead",
+            task_name="t",
+            task_type="deg_analysis",
+            success=False,
+            error="provider down",
+            metrics=BenchmarkMetrics(
+                accuracy=MetricResult(name="accuracy", value=0.0),
+            ),
+        )
+        harness = EvaluationHarness.__new__(EvaluationHarness)
+        aggregate = harness._aggregate_metrics([crashed])
+        assert aggregate.accuracy is None

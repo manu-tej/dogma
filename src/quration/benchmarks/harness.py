@@ -463,6 +463,13 @@ class EvaluationHarness:
         Returns:
             Aggregated BenchmarkMetrics
         """
+        # Quality metrics average over completed interpretations only. A failed
+        # task produced no interpretation to grade: averaging its zeros in makes
+        # "claim recall" measure a blend of model quality and infrastructure
+        # uptime (run 20260809_075144 published 0.586 where the five completed
+        # tasks scored 0.703). Failures stay visible in `failed_tasks` and the
+        # success rate — they are excluded here, not forgiven.
+        results = [r for r in results if r.success]
         if not results:
             return BenchmarkMetrics()
 
