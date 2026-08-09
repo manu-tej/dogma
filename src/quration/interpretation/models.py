@@ -172,6 +172,17 @@ class InterpretationResult(BaseModel):
             "count it as one."
         ),
     )
+    claim_source: str | None = Field(
+        default=None,
+        description=(
+            "'declared' when claims came from the model's own ```claims block; "
+            "'extracted' when the regex fallback parsed them out of prose. A "
+            "typed field, not a metadata entry: InterpretationResult declares "
+            "no metadata dict on purpose (see "
+            "test_metadata_is_still_not_a_field), and a silent fallback would "
+            "make every downstream number ambiguous about what it measures."
+        ),
+    )
 
     @property
     def failed(self) -> bool:

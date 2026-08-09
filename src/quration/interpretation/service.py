@@ -25,7 +25,11 @@ from quration.interpretation.models import (
     InterpretationType,
     TokenUsage,
 )
-from quration.interpretation.parsers import ClaimExtractor, ResponseParser
+from quration.interpretation.parsers import (
+    ClaimExtractor,
+    ResponseParser,
+    extract_declared_claims,
+)
 from quration.interpretation.prompts import DEGene, PromptBuilder, get_template
 
 logger = logging.getLogger(__name__)
@@ -403,11 +407,21 @@ class InterpretationService:
             # Parse response
             parsed = self._parser.parse(raw_result.summary)
 
-            # Extract claims
-            claims = self._claim_extractor.extract_claims(
-                raw_result.summary,
-                min_confidence=ConfidenceLevel.LOW,
-            )
+            # The model declares its claims as data (see SYSTEM_OUTPUT_FORMAT);
+            # regex over prose is the fallback, and which path ran is recorded
+            # in metadata["claim_source"] — a silent fallback would make every
+            # downstream number ambiguous about what it measures. An empty
+            # declared list is an honest "this report asserts nothing" and does
+            # NOT fall back: the regex would invent the claims the model
+            # deliberately declined to make.
+            claims = extract_declared_claims(raw_result.summary)
+            claim_source = "declared"
+            if claims is None:
+                claim_source = "extracted"
+                claims = self._claim_extractor.extract_claims(
+                    raw_result.summary,
+                    min_confidence=ConfidenceLevel.LOW,
+                )
 
             # Enrich claims with genes/pathways
             enriched_claims = self._enrich_claims(claims, parsed)
@@ -447,6 +461,7 @@ class InterpretationService:
                 # `failed` was False. Scoring and validation happily ran over the
                 # empty claim list and produced a number.
                 error=raw_result.error,
+                claim_source=claim_source,
                 claims=enriched_claims,
                 tool_calls=raw_result.tool_calls,
                 open_questions=self._extract_open_questions(parsed),
@@ -462,6 +477,7 @@ class InterpretationService:
                     "validation": validation,
                     "tool_count": len(raw_result.tool_calls),
                     "claim_count": len(enriched_claims),
+                    "claim_source": claim_source,
                 },
             )
 

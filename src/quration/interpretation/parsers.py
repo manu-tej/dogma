@@ -5,6 +5,7 @@ This module provides parsers to extract claims, citations, confidence
 levels, and other structured data from interpretation responses.
 """
 
+import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -914,3 +915,75 @@ class ClaimExtractor:
             "by_type": by_type,
             "by_confidence": by_confidence,
         }
+
+
+# Fence language for the machine-readable claims channel. A dedicated language
+# tag rather than plain ```json so an unrelated JSON example in the report
+# cannot be mistaken for the claims list.
+_CLAIMS_BLOCK = re.compile(r"```claims\s*\n(.*?)```", re.DOTALL)
+
+
+def extract_declared_claims(text: str) -> list[InterpretationClaim] | None:
+    """Parse the claims the interpreter declared, or None to trigger fallback.
+
+    Two benchmark runs bracketed why this exists. Regex extraction over prose
+    first scored 'NANOG activate their' as a claim; once that was fixed, the
+    same extractor pulled ONE claim from a report that plainly asserted all
+    four expected findings. Parsing assertions back out of markdown fails in
+    whichever direction it isn't currently tuned for, so the model now emits
+    its claims as data (see SYSTEM_OUTPUT_FORMAT) and prose parsing is the
+    fallback.
+
+    Semantics at the boundaries:
+
+    - No block, malformed JSON, a non-list payload, or a list with no valid
+      entry: return None — an instruction failure, the caller falls back.
+    - An empty list: return [] — an honest "this report asserts nothing",
+      which must NOT be overridden by a regex that would invent claims the
+      model deliberately declined to make.
+    - The last block wins, so a model that revises mid-report supersedes
+      its earlier list.
+    """
+    blocks = _CLAIMS_BLOCK.findall(text)
+    if not blocks:
+        return None
+
+    try:
+        payload = json.loads(blocks[-1])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, list):
+        return None
+
+    valid_types = {t.value for t in ClaimType}
+    valid_confidence = {c.value for c in ConfidenceLevel}
+
+    claims = []
+    for entry in payload:
+        if not isinstance(entry, dict):
+            continue
+        statement = entry.get("statement")
+        if not isinstance(statement, str) or not statement.strip():
+            continue
+        declared_type = entry.get("type")
+        declared_confidence = entry.get("confidence")
+        claims.append(
+            InterpretationClaim(
+                claim_type=ClaimType(declared_type)
+                if declared_type in valid_types
+                else ClaimType.INFERENCE,
+                statement=statement.strip(),
+                confidence=ConfidenceLevel(declared_confidence)
+                if declared_confidence in valid_confidence
+                else ConfidenceLevel.MEDIUM,
+                evidence=[],
+                genes_mentioned=[],
+                pathways_mentioned=[],
+            )
+        )
+
+    if not claims and payload:
+        # A non-empty list in which nothing was usable is a failure to follow
+        # the format, not a declaration of no claims.
+        return None
+    return claims

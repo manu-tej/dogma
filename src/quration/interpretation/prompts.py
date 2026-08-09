@@ -74,9 +74,14 @@ class PromptTemplate:
             Rendered system prompt
         """
         template = Template(self.system_template)
-        return template.safe_substitute(
+        rendered = template.safe_substitute(
             **self._fill_missing_optionals(self.system_template, kwargs)
         )
+        # Every system prompt demands the claims block — including bespoke and
+        # runtime-built templates that never embedded SYSTEM_OUTPUT_FORMAT.
+        if "```claims" not in rendered:
+            rendered += "\n" + SYSTEM_CLAIMS_CHANNEL
+        return rendered
 
     def render_user(self, **kwargs: Any) -> str:
         """Render the user prompt with variables.
@@ -144,13 +149,38 @@ You have access to bioinformatics tools to gather evidence:
 - Be explicit about confidence levels
 - Acknowledge limitations and uncertainties"""
 
-SYSTEM_OUTPUT_FORMAT = """
+# The machine-readable claims channel. Appended by `render_system` to every
+# system prompt that does not already carry it, so a template author cannot
+# forget it — the service parses this block instead of regex-extracting claims
+# from prose, and a template without the instruction silently degrades every
+# downstream metric to extractor coverage.
+SYSTEM_CLAIMS_CHANNEL = """
+End your response with a machine-readable list of every claim your report
+makes, in a fenced block with the language tag `claims`:
+
+```claims
+[
+  {"statement": "<one self-contained assertion>",
+   "type": "from_data|tool_result|inference|literature",
+   "confidence": "high|medium|low"}
+]
+```
+
+One entry per distinct assertion your report actually makes — no more, no
+fewer. Each statement must stand alone without the surrounding prose. Use
+"type" for where the claim comes from: "from_data" (directly from the input),
+"tool_result" (from a tool lookup), "literature" (from published work),
+"inference" (your reasoning). If your report deliberately asserts nothing,
+emit an empty list []."""
+
+SYSTEM_OUTPUT_FORMAT = f"""
 Structure your response with:
 1. Summary - Key findings in 2-3 sentences
 2. Detailed Analysis - Evidence-based interpretation
 3. Biological Context - Relevant pathways and mechanisms
 4. Confidence Assessment - How certain are the conclusions
-5. Recommendations - Suggested follow-up analyses if relevant"""
+5. Recommendations - Suggested follow-up analyses if relevant
+{SYSTEM_CLAIMS_CHANNEL}"""
 
 
 # Prompt templates
