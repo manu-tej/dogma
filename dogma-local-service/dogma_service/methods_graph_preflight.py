@@ -114,7 +114,8 @@ def derive_method_chain(root: Path, scan: dict[str, Any]) -> dict[str, Any]:
     return {
         "steps": steps,
         "method_ids": method_ids,
-        "coverage_gaps": [] if method_ids else ["workflow.method_chain_missing"],
+        "coverage_gaps": (["workflow.method_chain_missing"] if not steps else
+            [f"workflow.method_unknown:{step['process']}" for step in steps if not step["method_id"]]),
     }
 
 
@@ -158,7 +159,7 @@ def run_guardrail_chain(command: list[str], timeout_seconds: int = 30) -> dict[s
             parse_error = f"{error.msg} at line {error.lineno}"
 
     return {
-        "status": "completed" if verdict is not None else "parse_gap",
+        "status": "completed" if isinstance(verdict, dict) and completed.returncode == {"EVALUABLE": 0, "BLOCKED": 3, "NOT_EVALUABLE": 4}.get(verdict.get("status")) else "parse_gap",
         "exit_code": completed.returncode,
         "stdout": completed.stdout,
         "stderr": completed.stderr,
@@ -168,7 +169,7 @@ def run_guardrail_chain(command: list[str], timeout_seconds: int = 30) -> dict[s
 
 
 def status_from_verdict(verdict: dict[str, Any] | None) -> tuple[str, list[str]]:
-    if not verdict:
+    if not isinstance(verdict, dict) or not verdict:
         return "query_gap", ["methods_graph.guardrail_chain_unavailable"]
 
     status = verdict.get("status")
@@ -184,7 +185,7 @@ def status_from_verdict(verdict: dict[str, Any] | None) -> tuple[str, list[str]]
 def next_actions_for(status: str, gaps: list[str]) -> list[str]:
     actions = []
     if "methods_graph.audited_substrate_missing" in gaps:
-        actions.append("Configure DOGMA_METHODS_GRAPH_DB to an audited Kuzu database with ingest.lock.json.")
+        actions.append("Configure DOGMA_METHODS_GRAPH_DB to an audited Kuzu database with ingest.lock.json or methods.lock.json.")
     if "methods_graph.cli_missing" in gaps:
         actions.append("Install methods-graph on PATH or set DOGMA_METHODS_GRAPH_CLI to its executable.")
     if "workflow.method_chain_missing" in gaps:
@@ -272,7 +273,7 @@ def build_methods_graph_preflight(
     env: Mapping[str, str] | None = None,
     timeout_seconds: int = 30,
 ) -> dict[str, Any]:
-    values = env or os.environ
+    values = os.environ if env is None else env
     root_path = Path(root).expanduser().resolve()
     scan = scan_workspace(root_path, max_files=max_files)
     substrate = build_methods_graph_substrate(values)
@@ -288,7 +289,7 @@ def build_methods_graph_preflight(
     if substrate.get("status") != "ready":
         status = "configuration_gap"
         coverage_gaps.append("methods_graph.audited_substrate_missing")
-    elif not method_chain.get("method_ids"):
+    elif coverage_gaps or not method_chain.get("method_ids"):
         status = "coverage_gap"
     elif not cli.get("resolved"):
         status = "dependency_gap"
@@ -301,6 +302,7 @@ def build_methods_graph_preflight(
         coverage_gaps.extend(verdict_gaps)
         if command_result.get("status") != "completed":
             coverage_gaps.append("methods_graph.guardrail_chain_query_failed")
+            status = "query_gap"
 
     coverage_gaps = list(dict.fromkeys(coverage_gaps))
     result = {
@@ -308,9 +310,11 @@ def build_methods_graph_preflight(
         "root": str(root_path),
         "status": status,
         "substrate_status": substrate.get("status"),
+        "verification": substrate.get("verification"),
         "configured_graph": substrate.get("configured_graph", {}),
         "cli": {key: value for key, value in cli.items() if key != "argv_prefix"},
         "scan_summary": scan.get("summary", {}),
+        "workflow_files": scan.get("context", {}).get("workflow_files", []),
         "dataset_facts": dataset,
         "method_chain": method_chain,
         "command": command,

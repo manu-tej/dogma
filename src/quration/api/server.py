@@ -1,6 +1,8 @@
 """FastAPI server for the Dogma web workspace."""
 
 import asyncio
+import hmac
+import subprocess
 import json
 import logging
 import os
@@ -10,7 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path as FilePath
 from typing import Dict, List, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Path, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -795,68 +797,89 @@ async def get_pipeline_details(
     return pipeline.model_dump()
 
 
+_claim_execution_service = None
+
+
+def claim_execution_service():
+    """Enable only for a server-configured local workspace with pinned specs."""
+    global _claim_execution_service
+    if _claim_execution_service is None:
+        root = os.environ.get('DOGMA_EXECUTION_WORKSPACE')
+        if not root:
+            raise HTTPException(status_code=409, detail='No local execution workspace configured')
+        from quration.api.hypothesis_routes import get_repo
+        from quration.pipelines.claim_execution_service import ClaimExecutionService
+        from quration.pipelines.execution_contract import contained, digest
+
+        def specification(graph_id, edge_id):
+            path = contained(root, '.dogma/execution-specs/' + digest([graph_id, edge_id])[7:] + '.json')
+            result = json.loads(path.read_text())
+            result["_specification_file"] = str(path.relative_to(FilePath(root).resolve()))
+            return result
+
+        def preflight():
+            launcher = FilePath(__file__).resolve().parents[3] / 'bin/dogma'
+            try:
+                completed = subprocess.run([str(launcher), 'methods-graph-preflight', root, '--format', 'json'],
+                    text=True, capture_output=True, timeout=45)
+                result = json.loads(completed.stdout)
+                if completed.returncode != 0 or not isinstance(result, dict):
+                    raise ValueError('preflight CLI did not return a valid report')
+                return result
+            except (OSError, ValueError, subprocess.TimeoutExpired):
+                raise ValueError('Bundled Dogma preflight is unavailable or failed; configure the methods graph and verification CLI')
+
+        _claim_execution_service = ClaimExecutionService(root, get_repo(), nextflow_executor,
+            specification, preflight)
+    return _claim_execution_service
+
+
+def require_local_execution_request(request):
+    # Browser cross-origin calls and remote clients cannot grant local execution.
+    if not request.client or request.client.host not in ('127.0.0.1', '::1'):
+        raise HTTPException(status_code=403, detail='Local execution requires a loopback client')
+    if request.headers.get('origin') or request.headers.get('sec-fetch-site') == 'cross-site':
+        raise HTTPException(status_code=403, detail='Cross-origin local execution is disabled')
+    token = os.environ.get('DOGMA_LOCAL_EXECUTION_TOKEN')
+    supplied = request.headers.get('authorization', '')
+    if not token or len(token) < 32 or not hmac.compare_digest(supplied, 'Bearer ' + token):
+        raise HTTPException(status_code=403, detail='Authenticated local execution required')
+    if request.headers.get('x-dogma-local-execution') != 'explicitly-authorized':
+        raise HTTPException(status_code=403, detail='Explicit local execution authorization required')
+
+
+@app.post('/pipelines/claims/{graph_id}/{edge_id}/plan')
+async def plan_claim_execution(graph_id: str, edge_id: str, request: Request):
+    require_local_execution_request(request)
+    try:
+        return claim_execution_service().plan(graph_id, edge_id)
+    except (ValueError, OSError) as error:
+        raise HTTPException(status_code=409, detail=str(error))
+
+
+@app.post('/pipelines/plans/{plan_id}/approve')
+async def approve_claim_execution(plan_id: str, body: dict, request: Request):
+    require_local_execution_request(request)
+    try:
+        return claim_execution_service().approve(plan_id, body.get('context_digest'),
+            local_execution_authorized=body.get('local_execution_authorized') is True)
+    except (ValueError, KeyError, OSError) as error:
+        raise HTTPException(status_code=409, detail=str(error))
+
+
+@app.post('/pipelines/plans/{plan_id}/execute')
+async def execute_claim_plan(plan_id: str, request: Request):
+    require_local_execution_request(request)
+    try:
+        return await claim_execution_service().execute(plan_id)
+    except (ValueError, KeyError, OSError) as error:
+        raise HTTPException(status_code=409, detail=str(error))
+
+
 @app.post("/pipelines/execute", response_model=ExecutePipelineResponse, tags=["Nextflow"])
 async def execute_pipeline(request: ExecutePipelineRequest):
-    """
-    Execute a Nextflow pipeline.
-
-    This endpoint initiates a pipeline execution with the provided configuration
-    and returns an execution ID that can be used to track progress.
-
-    Args:
-        request: Pipeline execution request with configuration and inputs
-
-    Returns:
-        Execution details including execution ID and status
-
-    Raises:
-        HTTPException: 400 for validation errors, 500 for execution errors
-    """
-    try:
-        # Get pipeline to determine version
-        pipeline = pipeline_registry.get_pipeline(request.pipeline_id)
-        if not pipeline:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Pipeline not found: {request.pipeline_id}",
-            )
-
-        # Use latest version if not specified
-        pipeline_version = request.pipeline_version or pipeline.version
-
-        # Build configuration
-        from quration.models.nextflow import PipelineConfiguration
-
-        config = PipelineConfiguration(
-            pipeline_id=request.pipeline_id,
-            pipeline_version=pipeline_version,
-            parameters=request.parameters,
-            profile=request.profile,
-            output_dir=request.output_dir or f"./results/{request.pipeline_id.replace('/', '_')}",
-            resume=request.resume,
-        )
-
-        # Execute pipeline
-        execution = await nextflow_executor.execute_pipeline(
-            config=config,
-            input_spec=request.input_spec,
-        )
-
-        return ExecutePipelineResponse(
-            execution_id=execution.execution_id,
-            pipeline_id=execution.pipeline_id,
-            status=execution.status,
-            message=f"Pipeline execution started. Use /pipelines/executions/{execution.execution_id} to track progress.",
-            output_directory=execution.output_directory,
-        )
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to execute pipeline: {str(e)}",
-        )
+    """Legacy direct execution is closed; use an approved claim execution plan."""
+    raise HTTPException(status_code=409, detail="Direct pipeline execution is disabled: a server-derived claim context, explicit bound approval, workspace trust, and verified preflight are required.")
 
 
 @app.get("/pipelines/executions/{execution_id}", response_model=GetExecutionStatusResponse, tags=["Nextflow"])

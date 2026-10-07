@@ -92,6 +92,8 @@ class Edge(BaseModel):
     suggested_by: list[KGEdgeProvenance] = Field(default_factory=list)
     pending: bool = False
     proposed_test: EdgeTest | None = None
+    execution_context_digest: str | None = None
+    execution_claim_identity: str | None = None
     # --- epistemic state (additive; see epistemics.py) ---
     # SYSTEM, not LLM. This defaulted to LLM, so 10 of the 15 Edge construction
     # sites that omit it were asserting that a language model proposed the

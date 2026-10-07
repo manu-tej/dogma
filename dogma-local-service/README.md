@@ -44,7 +44,7 @@ The service is dependency-free Python so it can run before heavier parsers such 
 - Edge evaluation plans that turn a workspace into a typed `Readout -> Grounding -> Compose -> Execute -> Interpret` plan without biological verdicts.
 - Legacy-named `quration` handoff artifacts that map Dogma local IDE facts into the browser graph workspace's `CausalGraph`, `EvaluationPlan`, and factual `EvidenceRecord` JSON contract, with launch/import hints for Dogma's graph UI.
 - Dependency-free MCP stdio server for exposing Dogma as an evidence-control-plane tool provider to MCP hosts such as K-Dense or Claude Desktop.
-- Methods-graph substrate reports for audited graph/`ingest.lock.json` configuration and current guardrail contract.
+- Methods-graph substrate reports for audited graph configuration with `methods.lock.json` or legacy `ingest.lock.json`, and the current guardrail contract.
 - Methods-graph preflight reports that derive a workspace method chain and dataset facts, then call `methods-graph guardrail-chain --json` when configured.
 - Local LLM provider status reports for Claude Code subscription mode and other provider settings.
 - Guarded agent suggestions that can include active editor/selection context supplied by the VS Code extension and redacted by the same workspace trust policy.
@@ -147,7 +147,7 @@ The MCP adapter exposes these tools:
 
 Each tool takes a `root` argument pointing at the workspace to inspect. The adapter is intentionally facts-only: it wraps the same deterministic local-service builders used by the CLI/API, does not execute workflows, and does not create support/refute verdicts or confidence grades.
 
-Use `DOGMA_METHODS_GRAPH_DB` to point Dogma at an audited methods-graph Kuzu database; `QURATION_METHODS_GRAPH_DB` remains a legacy compatibility alias. Dogma expects the database to be paired with `ingest.lock.json`; otherwise the report records a configuration gap rather than pretending the graph is authoritative. Set `DOGMA_METHODS_GRAPH_DATASET_FORMAT` to override the dataset seed passed to methods-graph; by default sample-sheet/FASTQ workspaces seed `fmt:format_1930`. The local Python environment also needs the methods-graph `kuzu==0.11.3` dependency for live grounding.
+Use `DOGMA_METHODS_GRAPH_DB` to point Dogma at an audited methods-graph Kuzu database; `QURATION_METHODS_GRAPH_DB` remains a legacy compatibility alias. Dogma accepts `methods.lock.json` from a graph rebuild or legacy `ingest.lock.json` alongside the database; without either, the report records a configuration gap rather than pretending the graph is authoritative. If both are present, `ingest.lock.json` keeps precedence. Discovering a lock does not itself verify graph integrity. Set `DOGMA_METHODS_GRAPH_DATASET_FORMAT` to override the dataset seed passed to methods-graph; by default sample-sheet/FASTQ workspaces seed `fmt:format_1930`. The local Python environment also needs the methods-graph `kuzu==0.11.3` dependency for live grounding.
 
 For Claude Code subscription mode, set `DOGMA_LLM_PROVIDER=claude_subscription` and optionally `DOGMA_CLAUDE_CLI_PATH`, `DOGMA_CLAUDE_MODEL`, and `DOGMA_LLM_TIMEOUT_SECONDS`. If `DOGMA_CLAUDE_CLI_PATH` is `claude`, Dogma checks the service PATH plus common macOS developer locations such as `~/.local/bin`, `/opt/homebrew/bin`, and `/usr/local/bin`, then records all attempted paths in the LLM status artifact. This is a local-only adapter pattern: the LLM proposes typed decisions, while the Python service owns redaction, guardrails, and whitelisted actions.
 
@@ -273,3 +273,12 @@ python3 -m unittest discover -s tests
 ## MVP Role
 
 This service gives Dogma a real local indexing boundary: the IDE can stay focused on editor UX, diagnostics, and patch application while this process owns domain parsing, safety checks, and assistant-ready workspace facts.
+
+Substrate readiness now calls the configured MethodsGraph `verify-substrate` CLI
+with a timeout and requires JSON/exit-code agreement, a valid matching fingerprint,
+and a passing audit. A file and an empty lock are configuration, not readiness.
+Both `ingest.lock.json` and `methods.lock.json` remain discoverable under the legacy
+`ingest_lock` report field. Mixed known/unknown process chains remain coverage gaps.
+The separately gated backend execution contract is described in
+[claim-execution.md](../docs/claim-execution.md); sidecar dry/stub runs produce no
+biological measurements.

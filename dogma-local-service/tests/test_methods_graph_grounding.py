@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from dogma_service.indexer import scan_workspace
 from dogma_service.methods_graph_grounding import (
@@ -88,7 +89,11 @@ class MethodsGraphGroundingTests(unittest.TestCase):
             db = Path(tmp) / "methods.kuzu"
             db.mkdir()
             (Path(tmp) / "ingest.lock.json").write_text("{}", encoding="utf-8")
-            result = ground_edge_with_methods_graph(EDGE, scan, env={"DOGMA_METHODS_GRAPH_DB": str(db)})
+            with patch(
+                "dogma_service.methods_graph_grounding.import_methods_graph_runtime",
+                side_effect=ImportError("methods_graph unavailable"),
+            ):
+                result = ground_edge_with_methods_graph(EDGE, scan, env={"DOGMA_METHODS_GRAPH_DB": str(db)}, substrate={"status": "ready", "configured_graph": {"path": str(db)}})
 
         self.assertEqual(result["status"], "dependency_gap")
         self.assertIn("methods_graph.python_dependency_missing", result["coverage_gaps"])
@@ -104,12 +109,29 @@ class MethodsGraphGroundingTests(unittest.TestCase):
                 scan,
                 env={"DOGMA_METHODS_GRAPH_DB": str(db)},
                 runtime=fake_runtime(),
+                substrate={"status": "ready", "configured_graph": {"path": str(db)}},
             )
 
         self.assertEqual(result["status"], "grounded")
         self.assertEqual(result["frontier"], ["fmt:format_1930", "mod:deseq2"])
         self.assertEqual(result["chosen_method_ids"], ["m:deseq2"])
         self.assertEqual(result["preconditions"][0]["diagnostics"][0]["id"], "diag:replicate_count")
+        self.assertEqual(result["coverage_gaps"], [])
+
+    def test_rebuilt_graph_lock_reaches_grounding_runtime(self) -> None:
+        scan = scan_workspace(DEMO_ROOT)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db = root / "methods.kuzu"
+            db.touch()
+            (root / "methods.lock.json").write_text("{}", encoding="utf-8")
+            result = ground_edge_with_methods_graph(
+                EDGE, scan, env={"DOGMA_METHODS_GRAPH_DB": str(db)}, runtime=fake_runtime(),
+                substrate={"status": "ready", "configured_graph": {"path": str(db)}},
+            )
+
+        self.assertEqual(result["status"], "grounded")
+        self.assertEqual(result["chosen_method_ids"], ["m:deseq2"])
         self.assertEqual(result["coverage_gaps"], [])
 
 

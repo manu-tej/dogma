@@ -74,6 +74,8 @@ class PipelineRunProvenance(BaseModel):
     kind: Literal["pipeline_run"] = "pipeline_run"
     run_id: str
     data_accession: str
+    execution_context_digest: str | None = None
+    execution_receipt: str | None = None
 
 
 class GroundingProvenance(BaseModel):

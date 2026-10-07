@@ -15,7 +15,7 @@ def dedupe(items: list[str]) -> list[str]:
 
 
 def dataset_format_for_scan(scan: dict[str, Any], env: Mapping[str, str] | None = None) -> tuple[str | None, str]:
-    values = env or os.environ
+    values = os.environ if env is None else env
     explicit = values.get("DOGMA_METHODS_GRAPH_DATASET_FORMAT")
     if explicit:
         return explicit, "env:DOGMA_METHODS_GRAPH_DATASET_FORMAT"
@@ -106,7 +106,7 @@ def ground_edge_with_methods_graph(
     This is deliberately read-only and advisory. Missing configuration, missing
     Python dependencies, empty seeds, or empty suggestions are coverage gaps.
     """
-    values = env or os.environ
+    values = os.environ if env is None else env
     current_substrate = substrate or build_methods_graph_substrate(values)
     dataset_format, dataset_format_source = dataset_format_for_scan(scan, values)
     base = {

@@ -36,6 +36,9 @@ class MethodsGraphPreflightTests(unittest.TestCase):
                     #!/usr/bin/env python3
                     import json
                     import sys
+                    if "verify-substrate" in sys.argv:
+                        print(json.dumps({"schema": 1, "status": "verified", "verified": True, "audit": {"ok": True}, "graph_hash": "sha256:" + "a" * 64, "expected_graph_hash": "sha256:" + "a" * 64}))
+                        sys.exit(0)
                     print(json.dumps({
                         "status": "EVALUABLE",
                         "steps": [{"step": "m:fastqc", "status": "EVALUABLE", "method_id": "m:fastqc", "gates": []}],
@@ -66,3 +69,16 @@ class MethodsGraphPreflightTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_mixed_known_unknown_chain_never_queries_recognized_subset(tmp_path):
+    from unittest.mock import patch
+    (tmp_path / 'main.nf').write_text("process FASTQC {\n script:\n 'fastqc'\n}\nprocess UNKNOWN_UNBOUND_STEP {\n script:\n 'unknown'\n}\n")
+    with patch('dogma_service.methods_graph_preflight.build_methods_graph_substrate', return_value={
+        'status': 'ready', 'configured_graph': {'path': '/fixture/methods.kuzu'}}), patch(
+        'dogma_service.methods_graph_preflight.run_guardrail_chain') as query:
+        result = build_methods_graph_preflight(tmp_path, env={})
+    assert result['status'] == 'coverage_gap'
+    assert 'm:fastqc' in result['method_chain']['method_ids']
+    assert any('UNKNOWN_UNBOUND_STEP' in gap for gap in result['coverage_gaps'])
+    query.assert_not_called()
