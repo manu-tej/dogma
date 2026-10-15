@@ -2,7 +2,7 @@ import { Card } from "../ui/card";
 import { QueryBar } from "./QueryBar";
 
 const EXAMPLES = [
-  "How does AXL inhibition affect pAKT signalling in paclitaxel-resistant cancers?",
+  "How does mTORC1 inhibition affect AKT feedback signalling in everolimus-resistant tumours?",
   "Does KRAS G12C inhibition reactivate MAPK via RTK feedback?",
   "How does TGF-β signalling promote EMT in pancreatic cancer?",
 ];

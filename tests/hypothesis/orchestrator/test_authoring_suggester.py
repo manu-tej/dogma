@@ -14,19 +14,19 @@ class FakeSeeding:
         return SeedSkeleton(
             rationale="r",
             nodes=[
-                Node(id="ptx", type=NodeType.COMPOUND, label="paclitaxel"),
-                Node(id="AXL", type=NodeType.TARGET, label="AXL"),
+                Node(id="rapa", type=NodeType.COMPOUND, label="rapamycin"),
+                Node(id="MTOR", type=NodeType.TARGET, label="MTOR"),
             ],
-            edges=[Edge(id="e1", source_id="ptx", target_id="AXL", relation="inhibits")],
+            edges=[Edge(id="e1", source_id="rapa", target_id="MTOR", relation="inhibits")],
         )
 
 
 def test_expand_authors_from_query_and_ignores_seeds():
     seeding = FakeSeeding()
     sugg = LlmAuthoringSuggester(seeding)
-    result = sugg.expand(["IGNORED_SEED"], query="how does AXL inhibition...")
-    assert seeding.calls == ["how does AXL inhibition..."]
-    assert {n.id for n in result.nodes} == {"ptx", "AXL"}
+    result = sugg.expand(["IGNORED_SEED"], query="how does mTOR inhibition...")
+    assert seeding.calls == ["how does mTOR inhibition..."]
+    assert {n.id for n in result.nodes} == {"rapa", "MTOR"}
     assert [e.id for e in result.edges] == ["e1"]
 
 
