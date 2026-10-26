@@ -76,6 +76,10 @@ class EvidenceEntry(BaseModel):
     # the ledger but no longer supports the edited claim. None = legacy row (assumed
     # to apply to the current claim, preserving pre-existing graphs).
     claim_signature: tuple[str, str, str] | None = None
+    execution_context_digest: str | None = None
+    execution_receipt: str | None = None
+    execution_context: dict | None = None
+    execution_receipt_hash: str | None = None
 
     @model_validator(mode="after")
     def _provenance_matches_kind(self) -> "EvidenceEntry":
@@ -147,6 +151,58 @@ def edge_claim_signature(edge) -> tuple[str, str, str]:
     return (edge.source_id, edge.target_id, edge.relation)
 
 
+def execution_context_current(entry):
+    if entry.execution_context is None:
+        return True  # legacy rows are retained as unverified; no receipt is invented
+    from quration.pipelines.execution_contract import file_digest, digest
+    context = entry.execution_context
+    try:
+        import os
+        from pathlib import Path
+        import hashlib
+        binding = context.get('methods_graph_binding')
+        if not binding:
+            return False
+        method_path = Path(binding['path'])
+        configured_path = next((os.environ[name] for name in ('DOGMA_METHODS_GRAPH_DB', 'METHODS_GRAPH_DB', 'BIOCURSOR_METHODS_GRAPH_DB', 'QURATION_METHODS_GRAPH_DB') if os.environ.get(name)), None)
+        if configured_path is not None and Path(configured_path).resolve() != method_path.resolve():
+            return False
+        if not method_path.resolve().is_relative_to(Path(context['workspace_root']).resolve()):
+            if configured_path is None or Path(configured_path).resolve() != method_path.resolve():
+                return False  # external authority requires current trusted configuration
+        if method_path.suffix != '.kuzu' or method_path.is_symlink() or 'sha256:' + hashlib.sha256(method_path.read_bytes()).hexdigest() != binding['sha256']:
+            return False
+        if binding.get('lock'):
+            lock = Path(binding['lock'])
+            if lock.name not in ('ingest.lock.json', 'methods.lock.json') or lock.parent != method_path.parent or lock.is_symlink():
+                return False
+            if 'sha256:' + hashlib.sha256(lock.read_bytes()).hexdigest() != binding['lock_hash']:
+                return False
+        if digest(context) != entry.execution_context_digest:
+            return False
+        if entry.execution_receipt is not None:
+            import json
+            from quration.pipelines.execution_contract import contained
+            if file_digest(context['workspace_root'], entry.execution_receipt) != entry.execution_receipt_hash:
+                return False
+            receipt = json.loads(contained(context['workspace_root'], entry.execution_receipt).read_text())
+            if receipt.get('status') != 'completed' or receipt.get('measurement') is None:
+                return False
+            directory = contained(context['workspace_root'], entry.execution_receipt).parent
+            if any(file_digest(context['workspace_root'], contained(directory, path)) != expected
+                   for path, expected in receipt.get('artifacts', {}).items()):
+                return False
+        return all(file_digest(context['workspace_root'], path) == expected
+                   for path, expected in context['file_pins'].items())
+    except (ValueError, OSError, KeyError):
+        return False
+
+
+def context_claim_identity(context):
+    from quration.pipelines.execution_contract import digest
+    return digest({key: context[key] for key in ('endpoint_grounding', 'claim_signature', 'proposed_test')})
+
+
 def relevant_evidence(edge, entries: list[EvidenceEntry]) -> list[EvidenceEntry]:
     """Evidence rows that apply to the edge's CURRENT claim signature. A row whose
     signature differs (the claim was edited after it was gathered) is excluded so it
@@ -162,9 +218,28 @@ def relevant_evidence(edge, entries: list[EvidenceEntry]) -> list[EvidenceEntry]
     superseded = any(v.supersedes_prior for v in edge.validations)
     return [
         e for e in entries
-        if (tuple(e.claim_signature) == sig if e.claim_signature is not None
+        if execution_context_current(e)
+        and (e.execution_context is None or context_claim_identity(e.execution_context) == edge.execution_claim_identity)
+        and (e.execution_context_digest is None or e.execution_context_digest == edge.execution_context_digest)
+        and (tuple(e.claim_signature) == sig if e.claim_signature is not None
             else not superseded)
     ]
+
+
+def refresh_execution_identity(graph, edge, entries):
+    """Refresh claim grounding/test identity without rebinding any historical row."""
+    from quration.pipelines.execution_contract import digest
+    import copy
+    contextual = [entry for entry in entries if entry.execution_context is not None]
+    if not contextual:
+        return
+    context = copy.deepcopy(contextual[-1].execution_context)
+    endpoints = [graph.get_node(node) for node in (edge.source_id, edge.target_id)]
+    context['endpoint_grounding'] = [{k: v for k, v in node.model_dump(mode='json').items()
+        if k in ('id', 'grounding', 'type')} if node is not None else None for node in endpoints]
+    context['claim_signature'] = list(edge_claim_signature(edge))
+    context['proposed_test'] = edge.proposed_test.model_dump(mode='json') if edge.proposed_test else None
+    edge.execution_claim_identity = context_claim_identity(context)
 
 
 def recompute_edge_evidence(edge, entries: list[EvidenceEntry], created_at: str) -> None:

@@ -18,6 +18,7 @@ from quration.hypothesis.evidence import (
     EvidenceEntry,
     edge_claim_signature,
     recompute_edge_evidence,
+    refresh_execution_identity,
 )
 from quration.hypothesis.graph import CausalGraph
 
@@ -64,15 +65,32 @@ class InMemoryHypothesisRepository:
             self._recompute_edge(graph.id, edge.id)
 
     def get_graph(self, graph_id: str) -> CausalGraph | None:
-        return self._graphs.get(graph_id)
+        graph = self._graphs.get(graph_id)
+        if graph is not None:
+            for edge in graph.edges:
+                self._recompute_edge(graph_id, edge.id)
+        return graph
 
     def add_evidence(self, graph_id: str, entry: EvidenceEntry) -> None:
         graph = self._graphs.get(graph_id)
         edge = graph.get_edge(entry.edge_id) if graph is not None else None
         if edge is None:
             raise ValueError(f"no edge {entry.edge_id} in graph {graph_id}")
+        for old in self._evidence.get((graph_id, entry.edge_id), []):
+            if entry.execution_receipt and getattr(old.provenance, "run_id", None) == getattr(entry.provenance, "run_id", None):
+                if old.model_dump() == entry.model_dump():
+                    return
+                raise ValueError("conflicting receipt for existing execution")
         # Stamp the claim signature the evidence was gathered against.
-        entry.claim_signature = edge_claim_signature(edge)
+        if entry.claim_signature is not None and tuple(entry.claim_signature) != edge_claim_signature(edge):
+            raise ValueError("evidence claim identity differs from current edge")
+        from quration.hypothesis.evidence import execution_context_current
+        if not execution_context_current(entry):
+            raise ValueError("evidence pinned inputs have changed")
+        if entry.execution_context_digest is not None and entry.execution_context_digest != edge.execution_context_digest:
+            raise ValueError("evidence execution context is stale")
+        if entry.claim_signature is None:
+            entry.claim_signature = edge_claim_signature(edge)
         self._evidence.setdefault((graph_id, entry.edge_id), []).append(entry)
         self._recompute_edge(graph_id, entry.edge_id)
 
@@ -95,4 +113,5 @@ class InMemoryHypothesisRepository:
         # Recompute state + dataset validation from ONLY the evidence matching the
         # edge's current claim signature (idempotent). Evidence gathered under an old
         # signature stays in the ledger but won't re-promote the edited claim.
+        refresh_execution_identity(graph, edge, self._evidence.get((graph_id, edge_id), []))
         recompute_edge_evidence(edge, self._evidence.get((graph_id, edge_id), []), _now_iso())

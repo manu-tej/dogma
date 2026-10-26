@@ -8,6 +8,10 @@ from __future__ import annotations
 
 import os
 import shutil
+import json
+import re
+import shlex
+import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -26,38 +30,66 @@ def env_value(env: Mapping[str, str], names: list[str]) -> tuple[str | None, str
 
 
 def ingest_lock_for(graph_path: str | None) -> str | None:
+    """Find ingest or rebuild provenance, retaining the legacy report field.
+
+    ``mg ingest`` writes ingest.lock.json; ``mg rebuild`` writes
+    methods.lock.json beside its database. Discovery is not an integrity audit.
+    """
     if not graph_path:
         return None
     path = Path(graph_path).expanduser()
-    candidates = []
-    if path.is_dir():
-        candidates.append(path / "ingest.lock.json")
-        candidates.append(path.parent / "ingest.lock.json")
-    else:
-        candidates.append(path.parent / "ingest.lock.json")
-        candidates.append(path.with_name("ingest.lock.json"))
+    directories = [path, path.parent] if path.is_dir() else [path.parent]
+    # Existing ingest locks keep precedence when both forms are present.
+    candidates = [directory / name for name in ("ingest.lock.json", "methods.lock.json")
+                  for directory in directories]
     for candidate in candidates:
         if candidate.exists():
             return str(candidate.resolve())
     return str(candidates[0].resolve()) if candidates else None
 
 
-def build_methods_graph_substrate(env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    values = env or os.environ
+def build_methods_graph_substrate(env: Mapping[str, str] | None = None, *, runner=None, timeout_seconds=30) -> dict[str, Any]:
+    values = os.environ if env is None else env
     graph_env, graph_path = env_value(values, ["DOGMA_METHODS_GRAPH_DB", "METHODS_GRAPH_DB", "BIOCURSOR_METHODS_GRAPH_DB", "QURATION_METHODS_GRAPH_DB"])
     lock_path = ingest_lock_for(graph_path)
     _, cli_command = env_value(values, ["DOGMA_METHODS_GRAPH_CLI", "BIOCURSOR_METHODS_GRAPH_CLI"])
-    cli_path = shutil.which(cli_command or "methods-graph")
+    try:
+        cli_parts = shlex.split(cli_command or "methods-graph")
+    except ValueError:
+        cli_parts = []
+    cli_path = shutil.which(cli_parts[0]) if cli_parts else None
     graph_exists = bool(graph_path and Path(graph_path).expanduser().exists())
     lock_exists = bool(lock_path and Path(lock_path).expanduser().exists())
 
     configured = bool(graph_path)
-    audited_ready = configured and graph_exists and lock_exists
-    status = "ready" if audited_ready else "configuration_gap" if not configured else "needs_audit_lock"
+    verification = None
+    audited_ready = False
+    status = "configuration_gap" if not configured else "needs_audit_lock"
+    if configured and graph_exists and lock_exists:
+        status = "dependency_gap" if not cli_path else "verification_failed"
+        if cli_path:
+            try:
+                completed = (runner or subprocess.run)(
+                    [cli_path, *cli_parts[1:], "verify-substrate", "--db", graph_path,
+                     "--lock", lock_path, "--json"], capture_output=True, text=True,
+                    timeout=timeout_seconds)
+                verification = json.loads(completed.stdout)
+                audited_ready = (completed.returncode == 0 and isinstance(verification, dict)
+                    and type(verification.get("schema")) is int and verification["schema"] == 1 and verification.get("verified") is True
+                    and verification.get("status") == "verified"
+                    and isinstance(verification.get("audit"), dict)
+                    and verification["audit"].get("ok") is True
+                    and verification.get("graph_hash") == verification.get("expected_graph_hash")
+                    and isinstance(verification.get("graph_hash"), str)
+                    and re.fullmatch(r"sha256:[0-9a-f]{64}", verification["graph_hash"]) is not None)
+            except (OSError, ValueError, subprocess.TimeoutExpired):
+                verification = {"status": "verification_failed", "verified": False}
+            status = "ready" if audited_ready else "verification_failed"
 
     result = {
         "service": "dogma-local-service",
         "status": status,
+        "verification": verification,
         "configured_graph": {
             "env_var": graph_env,
             "path": str(Path(graph_path).expanduser()) if graph_path else None,
@@ -70,7 +102,7 @@ def build_methods_graph_substrate(env: Mapping[str, str] | None = None) -> dict[
             {
                 "name": "audited_kuzu_graph",
                 "status": "ready" if audited_ready else "gap",
-                "detail": "Runtime guardrails should come from an audited Kuzu graph plus ingest.lock.json.",
+                "detail": "Runtime guardrails should come from an audited Kuzu graph plus ingest.lock.json or methods.lock.json.",
             },
             {
                 "name": "workflow_ir_validator_ledger",
@@ -136,8 +168,8 @@ def render_methods_graph_substrate_markdown(result: dict[str, Any]) -> str:
             f"- Graph env var: {configured.get('env_var') or 'not configured'}",
             f"- Graph path: {configured.get('path') or 'not configured'}",
             f"- Graph exists: {str(bool(configured.get('exists'))).lower()}",
-            f"- Ingest lock: {configured.get('ingest_lock') or 'not configured'}",
-            f"- Ingest lock exists: {str(bool(configured.get('ingest_lock_exists'))).lower()}",
+            f"- Provenance lock: {configured.get('ingest_lock') or 'not configured'}",
+            f"- Provenance lock exists: {str(bool(configured.get('ingest_lock_exists'))).lower()}",
             f"- CLI path: {configured.get('cli_path') or 'not found'}",
             "",
             "## Current Guardrail Surface",

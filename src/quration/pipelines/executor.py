@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import subprocess
+import signal
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -41,7 +42,7 @@ class NextflowExecutor:
     - Log collection
     """
 
-    def __init__(self, config: Optional[NextflowConfig] = None):
+    def __init__(self, config: Optional[NextflowConfig] = None, *, process_factory=None, clock=None):
         """
         Initialize the executor.
 
@@ -50,6 +51,8 @@ class NextflowExecutor:
         """
         self.config = config or NextflowConfig()
         self.registry = get_pipeline_registry()
+        self._process_factory = process_factory or asyncio.create_subprocess_exec
+        self._clock = clock or (lambda: datetime.utcnow().isoformat())
         self._executions: Dict[str, PipelineExecution] = {}
         self._processes: Dict[str, subprocess.Popen] = {}
 
@@ -236,6 +239,91 @@ class NextflowExecutor:
             cmd.extend(["--max_time", f"{config.max_time_hours}.h"])
 
         return cmd
+
+    async def _stop_approved_process(self, process, *, grace_seconds=2):
+        """Bounded controller/group shutdown; Docker child cleanup stays unverified."""
+        if process is None or getattr(process, 'returncode', None) is not None:
+            return {'controller': 'not_running', 'child_cleanup': 'unverified'}
+        def send(sig):
+            # Real approved processes start in their own session. Mock processes
+            # use their own terminate/kill seams and never receive OS signals.
+            if isinstance(process, asyncio.subprocess.Process) and os.name == 'posix':
+                os.killpg(process.pid, sig)
+            elif sig == signal.SIGTERM and hasattr(process, 'terminate'):
+                process.terminate()
+            else:
+                process.kill()
+        try:
+            send(signal.SIGTERM)
+            await asyncio.wait_for(process.wait(), timeout=grace_seconds)
+            return {'controller': 'terminated', 'child_cleanup': 'unverified'}
+        except asyncio.TimeoutError:
+            try:
+                send(signal.SIGKILL)
+                await asyncio.wait_for(process.wait(), timeout=grace_seconds)
+                return {'controller': 'killed_after_grace', 'child_cleanup': 'unverified'}
+            except (OSError, asyncio.TimeoutError):
+                return {'controller': 'cleanup_incomplete', 'child_cleanup': 'unverified'}
+        except OSError:
+            return {'controller': 'cleanup_unverified', 'child_cleanup': 'unverified'}
+
+    async def execute_approved_context(self, context, output_directory, execution_id, *, timeout_seconds, observer=None):
+        """Bounded execution used only after the claim service checks approval/gates."""
+        from .execution_contract import contained
+        root = Path(output_directory).resolve().parents[2]
+        specification = context['specification']
+        environment = dict(context['runtime_environment'])
+        parameters = dict(specification['parameters'])
+        parameters['outdir'] = str(output_directory / 'results')
+        parameters['input'] = str(contained(root, specification['sample_design']))
+        parameters['reads'] = ','.join(str(contained(root, path)) for path in specification['dataset'])
+        config = PipelineConfiguration(
+            pipeline_id=str(contained(root, specification['workflow_files'][0])),
+            pipeline_version=specification['pipeline_version'],
+            parameters=parameters, profile='docker',
+            output_dir=str(output_directory / 'results'), work_dir=str(output_directory / 'work'))
+        inputs = PipelineInput(input_files=[str(contained(root, p)) for p in specification['dataset']],
+                               samplesheet=str(contained(root, specification['sample_design'])))
+        command = self._build_nextflow_command(config, inputs, execution_id)
+        # -C excludes ambient user/project Nextflow configuration.
+        pinned_config = output_directory / 'execution.config'
+        pinned_config.write_text("process { withName: '.*' { executor = 'local' } }\nprofiles { docker { docker.enabled = true } }\n")
+        command[1:1] = ['-C', str(pinned_config)]
+        receipt = {'execution_id': execution_id, 'command': command,
+                   'started_at': self._clock(), 'status': 'running',
+                   'runtime_settings': {key: value for key, value in environment.items() if key != 'PATH'}}
+        process = None
+        if observer:
+            observer(receipt)
+        try:
+            runtime_command = [self.config.nextflow_executable, '-version']
+            receipt['runtime_command'] = runtime_command
+            runtime_process = await self._process_factory(*runtime_command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                cwd=str(root), env=environment, start_new_session=True)
+            process = runtime_process
+            version_output, _ = await asyncio.wait_for(runtime_process.communicate(), timeout=timeout_seconds)
+            import re
+            actual_version = re.search(r'nextflow version (\d+\.\d+\.\d+)', version_output.decode())
+            if runtime_process.returncode != 0 or actual_version is None or actual_version.group(1) != specification['runtime_version']:
+                raise ValueError('actual Nextflow runtime does not match approved version')
+            receipt['runtime_version'] = actual_version.group(1)
+            with (output_directory / 'process.log').open('w') as log:
+                process = await self._process_factory(*command, stdout=log, stderr=subprocess.STDOUT,
+                    cwd=str(root), env=environment, start_new_session=True)
+                code = await asyncio.wait_for(process.wait(), timeout=timeout_seconds)
+                receipt.update(exit_code=code, status='completed' if code == 0 else 'failed')
+        except (asyncio.TimeoutError, asyncio.CancelledError) as error:
+            receipt['status'] = 'cancelled' if isinstance(error, asyncio.CancelledError) else 'timeout'
+            receipt['cleanup'] = await self._stop_approved_process(process)
+            raise
+        except Exception as error:
+            receipt.update(status='failed', error=type(error).__name__)
+            raise
+        finally:
+            receipt['completed_at'] = self._clock()
+            if observer:
+                observer(receipt)
+        return receipt
 
     async def execute_pipeline(
         self,

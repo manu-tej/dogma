@@ -29,6 +29,7 @@ from quration.hypothesis.evidence import (
     EvidenceRecord,
     edge_claim_signature,
     recompute_edge_evidence,
+    refresh_execution_identity,
 )
 from quration.hypothesis.graph import CausalGraph
 from quration.hypothesis.observability import GraphSummary, HypothesisEvent
@@ -116,6 +117,7 @@ class SqliteHypothesisRepository:
             # silently reset edge state (mirrors InMemory). Mutate edges in-place
             # BEFORE serializing, so the persisted graph_json reflects rollup.
             for edge in graph.edges:
+                refresh_execution_identity(graph, edge, self._evidence_rows(graph.id, edge.id))
                 recompute_edge_evidence(edge, self._evidence_rows(graph.id, edge.id), now)
             graph_json = graph.model_dump_json()
             self._conn.execute(
@@ -142,9 +144,22 @@ class SqliteHypothesisRepository:
             if edge is None:
                 raise ValueError(f"no edge {entry.edge_id} in graph {graph_id}")
 
+            for old in self._evidence_rows(graph_id, entry.edge_id):
+                if entry.execution_receipt and getattr(old.provenance, "run_id", None) == getattr(entry.provenance, "run_id", None):
+                    if old.model_dump() == entry.model_dump():
+                        return
+                    raise ValueError("conflicting receipt for existing execution")
             now = self._now()
             # Stamp the claim signature the evidence was gathered against.
-            entry.claim_signature = edge_claim_signature(edge)
+            if entry.claim_signature is not None and tuple(entry.claim_signature) != edge_claim_signature(edge):
+                raise ValueError("evidence claim identity differs from current edge")
+            from quration.hypothesis.evidence import execution_context_current
+            if not execution_context_current(entry):
+                raise ValueError("evidence pinned inputs have changed")
+            if entry.execution_context_digest is not None and entry.execution_context_digest != edge.execution_context_digest:
+                raise ValueError("evidence execution context is stale")
+            if entry.claim_signature is None:
+                entry.claim_signature = edge_claim_signature(edge)
             self._conn.execute(
                 "INSERT INTO evidence (graph_id, edge_id, created_at, entry_json) "
                 "VALUES (?, ?, ?, ?)",
@@ -152,6 +167,7 @@ class SqliteHypothesisRepository:
             )
             # Recompute this edge from ONLY the evidence matching its current claim
             # signature, then re-persist. Stale-signature evidence stays in the ledger.
+            refresh_execution_identity(graph, edge, self._evidence_rows(graph_id, entry.edge_id))
             recompute_edge_evidence(edge, self._evidence_rows(graph_id, entry.edge_id), now)
             self._conn.execute(
                 "UPDATE graphs SET graph_json=?, updated_at=? WHERE id=?",
@@ -290,7 +306,11 @@ class SqliteHypothesisRepository:
         ).fetchone()
         if row is None:
             return None
-        return CausalGraph.model_validate_json(row["graph_json"])
+        graph = CausalGraph.model_validate_json(row["graph_json"])
+        for edge in graph.edges:
+            refresh_execution_identity(graph, edge, self._evidence_rows(graph_id, edge.id))
+            recompute_edge_evidence(edge, self._evidence_rows(graph_id, edge.id), self._now())
+        return graph
 
     def _evidence_rows(self, graph_id: str, edge_id: str) -> list[EvidenceEntry]:
         rows = self._conn.execute(
